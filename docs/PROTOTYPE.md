@@ -3,7 +3,7 @@
 ## What is implemented
 
 - Godot **4.6.3 stable**, GDScript, Compatibility rendering, no third-party engine plugins.
-- Modern rural paper-textured scenery with ordinary houses and a solar roof, plus independently drawn bare trees, textured paper-leaf sprites, a transparent electric-blower character, directional wind streaks, local leaf piles, gentle light/fog overlays, and soft shadows.
+- Modern rural paper-textured scenery with ordinary houses and a solar roof, plus a single central magical tree using the original textured illustration, textured paper-leaf sprites, a transparent electric-blower character, directional wind streaks, local leaf piles, gentle light/fog overlays, and soft shadows.
 - Fixed-camera, fixed **360 × 640** logical playfield, uniformly fitted inside browser safe-area padding. Screen shape changes decorative margins, not gameplay geometry.
 - Keyboard and independent multi-touch movement/blowing, input release on touch cancellation, pause on application focus loss, and explicit pause/resume.
 - Upward leaf force with mild flutter, once-only rescue/miss outcomes, pile slowdown, battery depletion/release-to-recharge, score/combo, 12 main weeks and a final North Wind encounter, and cumulative winter pressure.
@@ -77,7 +77,7 @@ Headless Chromium uses software WebGL in this environment. It can establish func
 
 ## Deliberate prototype limits
 
-- Distant scenery remains a composited background plate with baked lighting. Gameplay trees, their foliage and atmospheric overlays are separate runtime layers; the whole illustrated tree sprite is paired with twig-coordinate/orientation metadata in `scripts/canopy.gd`. This is not a final rigged 2.5D or fully dynamic lighting pipeline.
+- Distant scenery remains a composited background plate with baked lighting. The Season Tree, its foliage and atmospheric overlays are separate runtime layers; the whole illustrated tree sprite is paired with twig-coordinate/orientation metadata in `scripts/canopy.gd`. This is not a final rigged 2.5D or fully dynamic lighting pipeline.
 - The character uses 12 wardrobe atlas frames plus separate warm victory and bundled sad-defeat poses, with smooth mipmapped filtering. Full walking, looking-up, celebration and blower-idle animation rigs remain production work.
 - Branch capture has a forgiving 15-logical-pixel radius and sweeps each motion segment to avoid missing slots at higher speeds. The radius, branch layout, foliage density and marker visibility need phone-scale playtesting. Arriving at an arbitrary sky height never counts as a rescue.
 - Weather/endings demonstrate the visual states rather than finished cinematic direction. Warning flakes do not collide with leaves or change movement.

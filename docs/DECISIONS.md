@@ -14,7 +14,8 @@ This log separates the requested game from proposed implementation choices. “R
 | Difficulty | Three choices, each with its own score table | User requirement; names and balance recommended |
 | Rendering | Paper & Lanterns: layered cut-paper 2D, textured materials, soft shadows and backlighting | User-selected creative direction; runtime/mobile-performance spike pending |
 | Setting | Modern rural homes and optional solar roof, forest and small hills; no castle or stone bridge | User direction adopted in the revised backdrop |
-| Canopy | Whole illustrated bare-tree sprites plus separate paper leaves; artist-authored twig/stem anchors; gaps persist across weeks | Implemented; no overnight foliage refill |
+| Hero tree | One central Season Tree governing the valley’s seasons; use the original richly textured tree illustration | Working mythos/layout direction; prototype implemented for review |
+| Canopy | One whole textured tree plus separate paper leaves; 48 artist-authored twig/stem anchors; gaps persist across weeks | Implemented; stable slot identities preserve existing checkpoints |
 | Reattachment | Lifted leaves fill nearby empty branch slots; occupied positions and arbitrary sky heights do not score | Implemented with swept capture and exactly-once occupancy |
 | Blower visual | Short directional wind streaks and restrained leaf flutter | User-requested replacement for the earlier spiral effect |
 | Warning weather | Small paper snowflakes begin before loss, increasing with winter pressure | User requirement; thresholds/readability to test |

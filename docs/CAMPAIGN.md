@@ -36,9 +36,11 @@ Switching apps/tabs, hiding the document or losing window focus automatically pa
 
 ## Art correction
 
-Each tree is one complete illustrated bare-tree sprite, not a silhouette reconstructed from little branch polygons. The right tree mirrors the same asset. Twig attachment metadata is authored against actual opaque points in that image; leaf stems meet the wood and blades face outward, rather than receiving arbitrary random rotations.
+The composition uses **one central magical tree**, preserving the original richly textured full-tree illustration requested by the user. It is not the later simplified line-style tree, a mirrored pair, or a silhouette reconstructed from little branch polygons. Twig attachment metadata is authored against actual opaque points in that image; leaf stems meet the wood and blades face outward, rather than receiving arbitrary random rotations.
 
-The same paper leaf texture appears attached, in flight and in piles. Smooth linear filtering with mipmaps reduces aliasing as large cutouts scale down. There is no integer pixel snapping or deliberate pixel-art filter. Phone-size screenshots and moving builds, not isolated source images, determine whether the result is acceptable.
+Its leaves hold autumn in the valley: the Season Tree is a provisional name for this visual mythos. The caretaker moves in front of the roots without collision, and the North Wind threatens the same focal tree.
+
+All 48 slot identities are retained so existing saved weeks, builds and missing-leaf counts survive the composition change; positions map onto the new tree. The same paper leaf texture appears attached, in flight and in piles. Smooth linear filtering with mipmaps reduces aliasing as large cutouts scale down. There is no integer pixel snapping or deliberate pixel-art filter. Phone-size screenshots and moving builds, not isolated source images, determine whether the result is acceptable.
 
 ## Upgrade pacing
 

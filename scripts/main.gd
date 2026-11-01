@@ -519,7 +519,7 @@ func show_title() -> void:
 	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(logo)
 	text_label(panel, "P A P E R  &  L A N T E R N S", Rect2(12, 77, 284, 20), 9, INK)
-	text_label(panel, "A little blower. One stubborn autumn.", Rect2(12, 107, 284, 22), 11, INK)
+	text_label(panel, "One magical tree. One stubborn autumn.", Rect2(12, 107, 284, 22), 11, INK)
 	button(panel, "Continue / New garden", Rect2(25, 147, 258, 45), show_slots)
 	button(panel, "Explore the seasons", Rect2(25, 203, 258, 40), show_season_lab, true)
 	text_label(panel, "Move: A / D or arrows  ·  Blow: hold Space\nOn a phone, hold the buttons below.", Rect2(12, 254, 284, 43), 10, INK)
@@ -703,11 +703,8 @@ func draw_fog(cold: float) -> void:
 
 
 func draw_trees() -> void:
-	for side in range(2):
-		if side == 1: draw_set_transform(Vector2(360, 0), 0, Vector2(-1, 1))
-		draw_texture_rect(TREE, Rect2(Canopy.TREE_RECT.position + Vector2(2, 3), Canopy.TREE_RECT.size), false, Color(0.13, 0.14, 0.10, 0.16))
-		draw_texture_rect(TREE, Canopy.TREE_RECT, false)
-		draw_set_transform(Vector2.ZERO)
+	draw_texture_rect(TREE, Rect2(Canopy.TREE_RECT.position + Vector2(2, 3), Canopy.TREE_RECT.size), false, Color(0.13, 0.14, 0.10, 0.16))
+	draw_texture_rect(TREE, Canopy.TREE_RECT, false)
 
 
 func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
