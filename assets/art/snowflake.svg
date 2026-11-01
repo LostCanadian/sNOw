@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="-64 -64 128 128">
+  <defs>
+    <path id="arm" fill="#f5f7f7" fill-rule="evenodd" d="M-4-8L-5-25L-18-34L-20-45L-7-38L-8-52L0-63L8-52L7-38L20-45L18-34L5-25L4-8Z M0-53L-3-48L0-42L3-48Z M0-31L-2-27L0-22L2-27Z"/>
+  </defs>
+  <g opacity=".16" transform="translate(1 2)"><use href="#arm"/><use href="#arm" transform="rotate(60)"/><use href="#arm" transform="rotate(120)"/><use href="#arm" transform="rotate(180)"/><use href="#arm" transform="rotate(240)"/><use href="#arm" transform="rotate(300)"/></g>
+  <use href="#arm"/><use href="#arm" transform="rotate(60)"/><use href="#arm" transform="rotate(120)"/><use href="#arm" transform="rotate(180)"/><use href="#arm" transform="rotate(240)"/><use href="#arm" transform="rotate(300)"/>
+  <path fill="#f5f7f7" fill-rule="evenodd" d="M0-15L13-7.5L13 7.5L0 15L-13 7.5L-13-7.5Z M0-7L-6-3.5L-6 3.5L0 7L6 3.5L6-3.5Z"/>
+</svg>

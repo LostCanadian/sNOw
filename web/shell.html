@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#243a34">
+  <meta name="description" content="A little blower. One stubborn autumn. A cut-paper game about keeping winter waiting.">
+  <title>sNOw — Paper &amp; Lanterns</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
+    body { background: #172e2a; color: #fff2d6; font: 15px system-ui, sans-serif; display: grid; place-items: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      background-image: radial-gradient(ellipse at 50% 30%, #3e5544, #172e2a 75%); }
+    #stage { width: min(100%, calc(100dvh * 9 / 16)); height: 100%; max-height: calc(100vw * 16 / 9); position: relative; }
+    #canvas { width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+    #loading { position: absolute; inset: 0; display: grid; place-content: center; gap: 18px; text-align: center;
+      padding: 30px; background: #243a34; z-index: 2; }
+    h1 { font: 54px Georgia, serif; margin: 0; font-weight: normal; }
+    h1 em { color: #eabe6c; font-style: normal; }
+    #notice { font-size: 13px; line-height: 1.6; max-width: 280px; }
+    progress { width: 180px; height: 5px; margin: auto; accent-color: #eabe6c; }
+  </style>
+  $GODOT_HEAD_INCLUDE
+</head>
+<body>
+  <main id="stage" aria-label="sNOw game">
+    <canvas id="canvas" tabindex="0" aria-label="sNOw. Move with A and D or arrow keys; hold Space to blow; Escape pauses.">
+      This game needs a browser with canvas and WebGL 2 support.
+    </canvas>
+    <div id="loading" role="status" aria-live="polite">
+      <h1>s<em>NO</em>w</h1>
+      <div id="notice">Setting the paper stage…</div>
+      <progress id="progress"></progress>
+    </div>
+  </main>
+  <script src="$GODOT_URL"></script>
+  <script>
+    const engine = new Engine($GODOT_CONFIG);
+    const canvas = document.getElementById('canvas');
+    const loading = document.getElementById('loading');
+    const notice = document.getElementById('notice');
+    const progress = document.getElementById('progress');
+    const stage = document.getElementById('stage');
+    const resize = () => {
+      const padding = getComputedStyle(document.body);
+      const availableWidth = innerWidth - parseFloat(padding.paddingLeft) - parseFloat(padding.paddingRight);
+      const availableHeight = innerHeight - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom);
+      const width = Math.min(availableWidth, availableHeight * 9 / 16);
+      stage.style.width = width + 'px';
+      stage.style.height = width * 16 / 9 + 'px';
+      const rect = canvas.getBoundingClientRect();
+      const ratio = Math.min(devicePixelRatio, 2);
+      canvas.width = Math.round(rect.width * ratio);
+      canvas.height = Math.round(rect.height * ratio);
+    };
+    resize();
+    const fail = error => {
+      notice.textContent = 'The stage could not open. This prototype needs WebGL 2 and WebAssembly. ' + String(error);
+      progress.hidden = true;
+      console.error(error);
+    };
+    const missing = Engine.getMissingFeatures({ threads: false });
+    if (missing.length) fail(missing.join(', '));
+    else engine.startGame({ canvas, canvasResizePolicy: 0,
+      args: new URLSearchParams(location.search).has('test') ? ['--', '--test-hooks'] : [],
+      onProgress(current, total) {
+      if (total > 0) { progress.max = total; progress.value = current; }
+    }}).then(() => { loading.remove(); canvas.focus(); }, fail);
+    // Keep the CSS-defined portrait rectangle inside the safe area, without stretching the simulation.
+    window.addEventListener('resize', resize);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) resize(); });
+  </script>
+</body>
+</html>
