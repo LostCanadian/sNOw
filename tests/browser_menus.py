@@ -18,6 +18,7 @@ with sync_playwright() as p:
         page.wait_for_function('mode => window.snowSnapshot.mode === mode', arg=value)
     def snap():
         return page.evaluate('window.snowSnapshot')
+    assert page.title().startswith('sNOw') and 'Paper' not in page.title(), page.title()
     page.locator('canvas').screenshot(path='docs/images/prototype-menu.png')
     click(113, 427)
     mode('scores')
@@ -54,7 +55,7 @@ with sync_playwright() as p:
     mode('title')
     print('PASS: all difficulty tabs and complete license sections work offline; pause retains the selected notice.',flush=True)
     # New-garden difficulty controls: real UI selection persisted in the campaign.
-    for difficulty, slot_y, x, capacity in [(0,242,62,34),(2,322,246,22)]:
+    for difficulty, slot_y, x, capacity in [(0,242,62,18),(2,322,246,10)]:
         click(180,323)
         mode('slots')
         click(180,slot_y)

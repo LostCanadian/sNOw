@@ -21,8 +21,9 @@ def run(url: str, executable: str):
             headless=True,
             args=["--no-sandbox", "--enable-unsafe-swiftshader", "--use-angle=swiftshader"],
         )
-        context = browser.new_context(viewport={"width": 390, "height": 844}, has_touch=True, device_scale_factor=2)
+        context = browser.new_context(viewport={"width": 360, "height": 640}, has_touch=True, device_scale_factor=1)
         page = context.new_page()
+        page.on("dialog", lambda dialog: dialog.accept())
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
         page.goto(url, wait_until="networkidle")
@@ -66,18 +67,21 @@ def run(url: str, executable: str):
         page.keyboard.up("a")
         page.wait_for_function("window.snowSnapshot.air > 0")
         # Position beneath a real, newly opened branch gap rather than the old sky band.
-        target_x = max(29, min(331, snap()["gaps"][0][0] - 42.9))
+        gap_x = snap()["gaps"][0][0]
+        expected_facing = 1 if gap_x > snap()["x"] else -1
+        target_x = max(29, min(331, gap_x - expected_facing * 11.7))
         if abs(snap()["x"] - target_x) > 5:
             direction_key = "d" if snap()["x"] < target_x else "a"
             page.keyboard.down(direction_key)
             page.wait_for_function("target => Math.abs(window.snowSnapshot.x - target) < 6", arg=target_x)
             page.keyboard.up(direction_key)
+        page.wait_for_function("Math.abs(window.snowSnapshot.aim) < 0.01")
         page.keyboard.down("Space")
         page.wait_for_function("window.snowSnapshot.rescued > 0", timeout=20000)
         page.screenshot(path=str(output / "browser-gameplay.png"))
         page.keyboard.up("Space")
         state = snap()
-        assert state["attached"] + state["air"] + state["missed"] == state["slots"]
+        assert state["attached"] + state["air"] + state["missed"] - state["regrown"] == state["slots"]
         record("keyboard movement and actual gust-to-empty-branch reattachment with conserved leaves")
 
         page.keyboard.press("Escape")
@@ -118,37 +122,7 @@ def run(url: str, executable: str):
         page.evaluate("document.body.style.padding = ''; window.dispatchEvent(new Event('resize'))")
         page.keyboard.press("Escape")
         page.wait_for_function("window.snowSnapshot.mode === 'play'")
-        page.wait_for_function("window.snowSnapshot.mode === 'workshop'", timeout=45000)
-        assert snap()["points"] == 1
-        assert snap()["attached"] == snap()["slots"] - snap()["missed"]
-        bare_count = snap()["attached"]
-        page.screenshot(path=str(output / "browser-workshop.png"))
-        click(180, 244)
-        page.wait_for_function("window.snowSnapshot.tiers[1] === 1 && window.snowSnapshot.points === 0")
-        assert snap()["save_error"] == "", snap()
-        assert page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1')).slots[0].checkpoint.tiers") == [0, 1, 0]
-        page.screenshot(path=str(output / "browser-workshop-purchased.png"))
-        page.wait_for_timeout(100)
-        page.reload()
-        page.wait_for_function("window.snowSnapshot?.mode === 'title'", timeout=90000)
-        click(180, 323)
-        page.wait_for_function("window.snowSnapshot.mode === 'slots'")
-        click(160, 242)
-        page.wait_for_function("window.snowSnapshot.active_slot === 0")
-        loaded = snap()
-        assert loaded["phase"] == "workshop", f"Wrong restored checkpoint: {loaded}"
-        if loaded["mode"] == "paused": page.keyboard.press("Escape")
-        page.wait_for_function("window.snowSnapshot.mode === 'workshop'")
-        assert snap()["tiers"] == [0, 1, 0] and snap()["points"] == 0, f"Reload lost upgrade: {snap()}"
-        record("named local save survives a real browser reload without duplicate upgrade rewards")
-        click(235, 485)
-        page.wait_for_function("window.snowSnapshot.mode === 'play' && window.snowSnapshot.week === 2")
-        assert snap()["tiers"] == [0, 1, 0]
-        assert snap()["attached"] <= bare_count, "new weeks must not refill the bare canopy"
-        page.locator("canvas").screenshot(path=str(output / "browser-depleted-canopy.png"))
-        record("real week completion, workshop purchase, upgrade carryover and persistent bare branches")
-
-        page.wait_for_function("window.snowSnapshot.mode === 'lost'", timeout=60000)
+        page.wait_for_function("window.snowSnapshot.mode === 'lost'", timeout=120000)
         page.wait_for_function("window.snowSnapshot.result_visible", timeout=20000)
         page.screenshot(path=str(output / "browser-winter-loss.png"))
         record("misses trigger actual winter loss and its result screen")
@@ -167,7 +141,8 @@ def run(url: str, executable: str):
         page.wait_for_function("window.snowSnapshot.mode === 'lost'")
         click(180, 368)
         page.wait_for_function("window.snowSnapshot.mode === 'play'")
-        assert snap()["week"] == 2 and snap()["tiers"] == [0, 1, 0]
+        assert snap()["week"] == 1 and snap()["tiers"] == [0, 0, 0]
+        assert snap()["week_missed"] == 0 and snap()["attached"] + snap()["air"] == 288
         page.keyboard.press("Escape")
         page.wait_for_function("window.snowSnapshot.mode === 'paused'")
         click(180, 386)
@@ -184,6 +159,55 @@ def run(url: str, executable: str):
         record("initials entry saves the actual terminal score; local top ten survives reload")
         click(180, 554)
         page.wait_for_function("window.snowSnapshot.mode === 'title'")
+        # Isolated, validated workshop fixture: this tests UI/persistence, not a played win.
+        fixture = json.loads(Path("test-results/visual-fixture.json").read_text())
+        document = page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1'))")
+        document["slots"][1] = fixture["slots"][2]
+        page.evaluate("data => localStorage.setItem('snow.campaigns.v1', JSON.stringify(data))", document)
+        page.reload(wait_until="networkidle")
+        page.wait_for_function("window.snowSnapshot?.mode === 'title'", timeout=90000)
+        click(180,323)
+        page.wait_for_function("window.snowSnapshot.mode === 'slots'")
+        click(180,322)
+        page.wait_for_function("window.snowSnapshot.mode === 'workshop'")
+        assert snap()["points"] == 1
+        click(180,222)  # Inspect Fan rank 1.
+        page.wait_for_function("window.snowSnapshot.selected_upgrade[0] === 1")
+        click(96,536)   # Explicit Buy action, separate from inspection.
+        page.wait_for_function("window.snowSnapshot.tiers[1] === 1 && window.snowSnapshot.points === 0")
+        click(180,362)  # Locked rank 6 still has a readable description.
+        page.wait_for_function("window.snowSnapshot.selected_upgrade[1] === 6")
+        assert snap()["tiers"] == [0,1,0]
+        page.screenshot(path=str(output / "browser-workshop.png"))
+        click(296,135)  # Refund the kit.
+        page.wait_for_function("window.snowSnapshot.points === 1 && window.snowSnapshot.tiers[1] === 0")
+        click(180,222)
+        page.wait_for_function("window.snowSnapshot.selected_upgrade[0] === 1")
+        click(96,536)
+        page.wait_for_function("window.snowSnapshot.tiers[1] === 1")
+        record("workshop fixture: inspect locked nodes, buy explicitly and refund without overlapping controls")
+        page.reload(wait_until="networkidle")
+        page.wait_for_function("window.snowSnapshot?.mode === 'title'", timeout=90000)
+        click(180,323)
+        page.wait_for_function("window.snowSnapshot.mode === 'slots'")
+        click(180,322)
+        page.wait_for_function("window.snowSnapshot.mode === 'workshop'")
+        assert snap()["tiers"] == [0,1,0] and snap()["points"] == 0
+        click(261,536)
+        page.wait_for_function("window.snowSnapshot.mode === 'play' && window.snowSnapshot.week === 2")
+        assert snap()["week_missed"] == 0 and snap()["tiers"] == [0,1,0]
+        page.reload(wait_until="networkidle")
+        page.wait_for_function("window.snowSnapshot?.mode === 'title'", timeout=90000)
+        click(180,323)
+        page.wait_for_function("window.snowSnapshot.mode === 'slots'")
+        click(180,322)
+        page.wait_for_function("window.snowSnapshot.mode === 'paused'")
+        assert snap()["week"] == 2 and snap()["tiers"] == [0,1,0] and snap()["week_missed"] == 0
+        record("workshop fixture: saved upgrades, next-week checkpoint and explicit resume survive reload")
+        click(180,387)
+        page.wait_for_timeout(300)
+        click(180,383)
+        page.wait_for_function("window.snowSnapshot.mode === 'title'")
         click(180, 377)
         page.wait_for_function("window.snowSnapshot.mode === 'preview'")
         for x, key, target, filename in [
@@ -198,7 +222,7 @@ def run(url: str, executable: str):
         record("warning, cut-paper snow and flower-victory previews render")
         browser.close()
     assert not errors, errors
-    report = {"passed": results, "browser_errors": errors, "note": "Headless Chromium uses software WebGL. This is not physical-device performance evidence."}
+    report = {"passed": results, "browser_errors": errors, "note": "Headless Chromium uses software WebGL. The early loss/score are played; workshop checks use an explicitly validated UI fixture. This is not physical-device performance evidence."}
     (output / "browser-results.json").write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2), flush=True)
 

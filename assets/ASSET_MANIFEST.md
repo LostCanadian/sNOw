@@ -2,7 +2,7 @@
 
 | File | Source / creator | Status and use |
 | --- | --- | --- |
-| `art/autumn_stage.png` | Generated with OpenAI image generation for this project; revised from the earlier Paper & Lanterns backdrop at the user's request | Recomposed for the central tree: small modern rural houses and solar roof at the far edges, forest/hills framing a quiet open central clearing and sky. No castle, bridge or baked-in gameplay trees/foliage. Background lighting and paper grain remain baked into the plate. |
+| `art/autumn_stage.png` | Generated with OpenAI image generation for this project; revised from the earlier paper-cut backdrop at the user's request | Recomposed for the central tree: small modern rural houses and solar roof at the far edges, forest/hills framing a quiet open central clearing and sky. No castle, bridge or baked-in gameplay trees/foliage. Background lighting and paper grain remain baked into the plate. |
 | `art/paper_leaf.png` | Generated with OpenAI image generation for this project | Transparent ivory cut-paper maple leaf, tinted per season. One shared material for attached, airborne and grounded foliage. |
 | `art/caretaker.png` | Generated with OpenAI image generation for this project | Retained original character reference; superseded at runtime by the wardrobe and ending atlases. |
 | `art/season_tree.png` | Generated with OpenAI image generation **using the user-attached tree as the editing reference**, `exec-7bdc1abc-d1d0-43d7-9c61-a704c12bb537.png` | Authoritative runtime tree: gnarled, asymmetric ancient tree with layered bark texture and exposed roots. A transparent adaptation of the supplied reference, rather than an exact-byte copy. Whole illustration with separately attached leaves. |
@@ -20,3 +20,5 @@ Generated image originals are retained outside the checkout under `/workspace/ge
 Large paper sprites generate mipmaps and use smooth linear filtering at runtime. They are not pixel-art assets.
 
 The in-game License screen reads Godot’s full MIT text and bundled-library copyright/license terms from the running engine. `licenses/DEJAVU.txt` includes the font-specific Bitstream Vera terms and DejaVu public-domain notice; exports explicitly include this text and the original font package notice. These third-party terms do not assign a license to the project’s own code or artwork.
+
+`art/upgrade_icons.png` was generated with OpenAI image generation for this project (`exec-fc2d4fb0-083c-4bb5-ac97-8f63de8eb65f.png`): textured boots, electric fan and battery icons. Atlas regions in `scripts/main.gd` preserve each full silhouette; icons use fixed header bounds with smooth mipmapped filtering.

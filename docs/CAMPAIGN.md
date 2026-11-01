@@ -1,58 +1,55 @@
-# Campaign, saving, and paper art
+# sNOw — campaign and progression
 
-This supersedes the original seven-day arcade-run proposal. Current prototype scope is described here; numerical balance and the boss's final identity/art remain provisional.
+The working title is **sNOw**. The selected cut-paper style is an art direction, not a subtitle or in-game brand.
 
 ## Twelve weeks and a final encounter
 
-The main campaign contains **12 weeks**, followed by **The North Wind**, a separately named boss encounter. The UI never calls it Week 13. Temperature drops 2°C each week from 22°C to 0°C; the finale shows −2°C. These temperatures provide seasonal feedback alongside clothing, cooler lighting and pressure-driven warning snow. Clothing is cosmetic and does not alter speed or energy.
+Play twelve main weeks, followed by the separately named North Wind final encounter. Temperature drops from 22°C to 0°C over the main weeks and reaches −2°C in the finale. Twelve outfit frames gradually add layers, a coat and scarf. Victory returns the caretaker to a happy T-shirt/shorts pose; defeat uses a sad, bundled pose. Authored turning/looking-up/celebration performances remain production work.
 
-Each of the twelve main weeks has its own outfit in the wardrobe atlas: T-shirt/shorts, light neck layer, vest, long sleeves, sweater, padded vest, hoodie, windbreaker, thicker jacket/gloves, hat/scarf, winter coat, then the heaviest bundled outfit. Victory switches to a happy T-shirt/shorts celebration; defeat switches to a separate sad, bundled pose. A basic distance-driven cutout leg rig and blower vibration now animate these outfits. Artist-separated limb rigs and bespoke ending animation remain production work.
+## Persistent canopy with a recovery floor
 
-The prototype boss is a mischievous paper cloud. Its repeating cycle gives 1.5 seconds of warning, then a 2.5-second downward gust with quicker shedding and snow, followed by a 3.5-second recovery window. All detached leaves still come from the actual canopy: the boss cannot invent extra leaf IDs or award repeated rescue points. Snow is a readable visual cue; the gust is the mechanical hazard. Final enemy art, sound and tuning need playtesting.
+A new campaign begins with **288 individually attached leaves** on the supplied textured ancient tree. Leaves originate at occupied twig positions, drift under gravity, and reattach only when lifted into a real vacant position. Any empty position may accept a leaf. The exact identities and occupancy of every position are saved.
 
-The cumulative winter-pressure budget and persistent bare spots currently carry across all weeks. This makes later levels demanding; checkpoints permit repeated attempts from the same starting state. Difficulty curves and the budget must be tuned for the longer campaign rather than assumed balanced from the earlier prototype.
+**If every leaf is rescued in week one, week two still starts with all 288.** Nothing removes leaves simply because another week has begun. Seasonal colour advances and the next shedding schedule is harder. Misses leave persistent gaps; successful play preserves a fuller tree.
 
-## Local campaign flow
+Danger is **weekly**. Reaching that week's miss allowance loses the level. Its completed checkpoint remains safe, and Retry restores that level's starting canopy, score, loadout, random state, clean path, full battery and zero weekly misses. Lifetime rescued/missed totals are tracked separately and do not consume the next week's allowance.
 
-Main menu → three named gardens → new campaign or saved checkpoint → week → automatic save → workshop → next week. Week 12's workshop opens the final encounter; defeating it saves campaign completion and opens the sunny ending. Losing opens Retry Current Level and Main Menu.
+Before the next week begins, the tree regrows only enough missing leaves to reach a **96-leaf recovery floor**. It never refills a healthier crown. Regrowth restores missing identities into vacant slots and grants no rescue score, combo or upgrade points. A short start-of-week notice explains any regrowth. The workshop forecasts it. With the current profiles, 96 leaves exceed the largest scheduled final-encounter batch (84), guaranteeing a usable leaf supply without rewarding poor play.
 
-- Exactly three slots, each with an editable name of up to 18 characters. Names are plain display text, never file paths.
-- New campaigns are created in empty slots. Replacing an existing campaign requires an explicit confirmation; renaming does not replace progress.
-- A level-start checkpoint contains the current week/finale, score, rescue/miss totals, equipment, point ledger, canopy occupancy, shedding order and exact random state. The battery and walking path start fresh.
-- Completing a level saves its workshop boundary and rewards once. Buying/reallocating equipment saves that workshop state. Starting the next level saves the new retry checkpoint.
-- Losing never overwrites the prior level-start checkpoint. Retry restores it completely, including score and foliage, so attempts cannot accumulate rewards or damage.
-- Foreground app switching pauses the current in-memory attempt. Reloading or process termination returns to the latest saved boundary; unfinished level progress is intentionally lost.
-- No accounts, cloud synchronization or server storage. Browser saves belong to that browser and origin; clearing site data removes them. Native saves are local to the install.
+Example: finish a week with 170 attached leaves → start the next with the same 170. Finish with 88 → eight leaves regrow, starting the next with 96. A retry uses that saved 96-leaf state; it does not repeatedly grow more leaves. This prevents resource depletion from making a campaign unrecoverable while preserving visible consequences.
 
-Storage uses versioned JSON. Native installs use a temporary-file replacement and recovery backup under Godot's `user://` directory. Browser exports use atomic, synchronous `localStorage` value replacement (`snow.campaigns.v1`) plus a separate backup value, rather than depending on virtual-filesystem synchronization. Checkpoints validate level bounds, phase, equipment costs, leaf uniqueness/conservation, combo state and exact random-state encoding. Unsupported/malformed data is retained separately rather than silently trusted; valid other slots and backups remain available. Unavailable storage or quota failures produce a visible message. Actual browser reloads validate persistence. Clearing browser/site data still removes local saves; these are not cloud backups.
+| Difficulty | Weekly miss limit | First-week shedding | Added each week | Shedding interval | Wind | Fall factor |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Breezy | 18 | 24 | 2 | ×1.15 | ×0.70 | ×0.88 |
+| Blustery | 14 | 30 | 2 | ×1.00 | ×1.00 | ×1.00 |
+| Gale | 10 | 36 | 3 | ×0.85 | ×1.30 | ×1.12 |
 
-Native campaign files are under Godot's `user://` storage, outside the checkout; browser saves are local to the page's origin. The three campaign slots are distinct from the three separate local per-difficulty high-score tables.
+The final encounter adds twelve scheduled leaves. All schedules are finite and bounded by attached leaves. The pressure-driven warning snow and loss condition use **weekly misses**, shown as Weekly Frost. No account or permanent stat grind is required. Numbers need human playtesting; the floor prevents a supply soft lock, not every possible player failure.
 
-## Pause and exit contract
+## Direction and airflow
 
-Escape or the top-right pause button pauses **any screen**, including the workshop, naming flow, art preview and both ending timelines. The previous screen and its controls are retained and restored on Resume. Held movement/blower input clears on pause.
+The caretaker faces their movement direction and retains that facing when stopped. The barrel smoothly returns upright at rest and leans up to 32° while moving. The cutout pose, nozzle position, wind streaks, affected cone and force direction share geometry. Moving airflow can steer leaves sideways toward vacant branches. Pushing against a movement boundary does not count as running.
 
-Switching apps/tabs, hiding the document or losing window focus automatically pauses. Focus returning never resumes it. Native window-close and in-game Exit show: **“Are you sure you want to exit? Current level progress will be lost.”** Completed progress stays saved. Browser close/reload uses the browser's standard confirmation where supported; browsers control that wording and may suppress the dialog. Saving boundaries, rather than relying on a close dialog, protects completed progress.
+Leaves flutter and tumble with seeded variation in drag, phase and spin. A return breeze grows near the vertical edges. Leaves may briefly leave the viewport, but outward blower force fades there and the breeze draws them back; a last-resort bound sits 22 logical pixels beyond each edge. This geometry is identical on all screen shapes.
 
-## Art correction
+## Eighteen upgrades, twelve points
 
-The composition uses **one central magical tree**, using a transparent adaptation of the richly textured, asymmetric ancient tree attached by the user. It is not the later simplified line-style tree, a mirrored pair, or a silhouette reconstructed from little branch polygons. The background frames a quiet central clearing, with houses moved to the far sides. Twig attachment metadata is authored against actual opaque points in that image; leaf stems meet the wood and blades face outward, rather than receiving arbitrary random rotations.
+Boots, Blower and Battery each have six one-point ranks: **18 nodes**, with only **12 points** earned from the twelve main weeks. Previous rank in the branch is required. This yields **28 distinct full-budget final allocations**, plus many purchase orders and partially spent kits. Examples include 6/6/0, 6/0/6, 0/6/6 and 4/4/4. The boss awards no unusable extra upgrade point.
 
-Its leaves hold autumn in the valley: the Season Tree is a provisional name for this visual mythos. The caretaker moves in front of the roots without collision, and the North Wind threatens the same focal tree.
+Tap any node to inspect it, including locked/owned ones. Its full description and prerequisite appear in a separate fixed card. Buying is a separate explicit action. Equipment icons identify the three lanes, connectors show prerequisites, and node hit areas do not overlap. Reset Kit freely refunds the earned budget in the workshop.
 
-All 48 slot identities are retained so existing saved weeks, builds and missing-leaf counts survive the composition change; positions map onto the new tree. The same paper leaf texture appears attached, in flight and in piles. Smooth linear filtering with mipmaps reduces aliasing as large cutouts scale down. There is no integer pixel snapping or deliberate pixel-art filter. Phone-size screenshots and moving builds, not isolated source images, determine whether the result is acceptable.
+Boot ranks improve speed and reduce pile drag. Fan ranks add lift/reach but add weight and drain. Battery ranks add capacity/efficiency and reduce recharge time, with a small weight cost. All modeled builds retain movement above 60 logical units/second under maximum pile drag and useful burst time; actual winning strategy balance still needs human testing.
 
-## Upgrade pacing
+## Save Slots and compatibility
 
-The twelve main weeks award one point each. First-tier nodes cost one; second-tier nodes cost three additional points. Each branch costs four total, so all three can be finished before the boss while the order creates different mid-campaign builds. The finale awards no unused point. This revises the old seven-day economy; values remain provisional.
+The menu calls them **Save Slots**, with three editable names. New defaults are Save 1–3; existing custom names are preserved. Difficulty stays fixed for a campaign. Autosaves occur at completed-week/workshop boundaries, next-week starts and victory, never mid-attempt. Exiting warns that current-level progress will be lost.
 
-## Later environment polish — planned, not implemented
+Native files are `user://campaigns.json`; browser checkpoints use `snow.campaigns.v1` plus backup. Container version stays compatible; checkpoint rules version 2 identifies the new canopy/weekly danger/upgrade economy. Previous 48-slot checkpoints keep their original positions, identities, campaign ID, completed weeks, score and earned point budget, with 240 additional canopy positions. An old two-rank purchase costing four points maps to rank four in its branch. Browser storage keys are unchanged. Native saves can still be read from the former application-data directory after the title change.
 
-1. Slow layered cloud drift and very subtle background weather, independently pausable.
-2. Occasional squirrels crossing the path or climbing trunks. Keep them behind gameplay leaves, noncolliding and outside essential touch zones; no fake pickups or score effects.
-3. A possible night/storm week with cooler paper layers, window lights, rain and distant lightning. Choose its placement after the twelve-week pacing test; the prototype does not yet have a night level.
-4. Reduced-motion/effects and reduced-flash options must preserve readable leaf silhouettes and warnings. Lightning must be restrained and replaceable with a gentle sky change. Ambient effects must not alter gameplay physics or future ranked scoring.
+High scores are separate from campaign slots. Earlier rules' tables remain accessible under **Previous scores**; current rules do not overwrite or rank against them. A campaign contributes one best terminal result per rules version.
 
-Profile the effects on minimum phones, cap their frequency/particles and pause them with gameplay. Do not trade touch responsiveness or falling-leaf contrast for scenery activity.
+## Pause and later polish
 
-New gardens choose a fixed difficulty. Existing saves migrate to Blustery. Campaign checkpoints now retain a stable identity and difficulty; a garden contributes one best terminal result to its difficulty’s table, with better retries replacing the earlier entry. See [scores and licenses](SCORES_AND_LICENSES.md).
+Pause freezes physics, poses, weather, previews and endings. Switching away pauses automatically; returning requires Resume. All-screen pause and confirmed exit remain available.
+
+Later scenery polish: slow clouds, squirrels on the ground/trunk, and a restrained night storm/lightning week. Dynamic lighting depth, artist-separated limbs, richer turns and authored ending performances remain later work. The textured whole-tree illustration stays authoritative; do not rebuild it from little line segments.

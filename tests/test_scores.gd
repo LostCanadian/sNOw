@@ -71,6 +71,7 @@ func _initialize() -> void:
 		var restored = Campaign.restore(checkpoint)
 		check(restored.difficulty == difficulty and restored.run_id == game.run_id, "difficulty and campaign identity survive checkpoint %d" % difficulty)
 		game.missed = game.capacity() - 1
+		game.week_missed = game.missed
 		check(game.pressure() < 1.0, "pressure uses the selected capacity")
 		game.spawn_leaf()
 		game.resolve_leaf(game.leaves[0], false)
@@ -80,6 +81,12 @@ func _initialize() -> void:
 	check(easy.capacity() > hard.capacity() and easy.week_leaf_count() < hard.week_leaf_count(), "difficulty profiles change pressure and shedding")
 	var legacy: Dictionary = Campaign.snapshot(Loop.new())
 	legacy.erase("difficulty")
+	legacy.erase("rules")
+	legacy.erase("regrown")
+	legacy.erase("week_regrown")
+	legacy.leaf_ids.resize(48)
+	legacy.order = legacy.order.filter(func(id): return id < 48)
+	if legacy.order.is_empty(): legacy.order = [0]
 	legacy.erase("run_id")
 	check(Campaign.restore(legacy).difficulty == 1 and Campaign.restore(legacy).run_id == Campaign.restore(legacy).run_id, "legacy saves migrate to Blustery with a stable campaign identity")
 	for name in DirAccess.get_files_at("user://"):

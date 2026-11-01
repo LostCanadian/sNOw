@@ -2,7 +2,7 @@
 
 A portrait, single-screen arcade game about holding back winter with an electric leaf blower. Catch falling paper leaves in the wind and blow them into empty branch positions before the ground becomes impassable. One magical tree governs the seasons of a modern rural valley; keeping its leaves attached holds winter at bay. Its crown grows visibly barer as leaves are missed.
 
-The title is **sNOw**, with **NO** treated as a playful, emphatic visual element in the eventual logo.
+The working title is **sNOw**, with **NO** emphasized. The selected paper-cut visual style is not a subtitle. See [naming ideas](docs/NAMING.md).
 
 ## Project documents
 
@@ -32,7 +32,7 @@ The browser opens at **http://localhost:8000** once the export finishes. Leave t
 
 To serve an existing build quickly, add `--serve-only`; to export without starting a server, use `--build-only`. Change the local port with `--port 8080`. Omit `--open` to open the printed address yourself. See [setup details](docs/PROTOTYPE.md#run-and-export) for the existing-Godot workflow.
 
-Move with **A/D** or **Left/Right**. Hold **Space** to blow and release to recharge. **Escape** or the pause button pauses any screen. Switching away pauses automatically; returning requires Resume. Completed levels and workshop choices autosave locally in three named slots; a failed or exited level restarts from its checkpoint. Phones use the on-screen direction and fan buttons simultaneously. Choose **Explore the seasons** from the menu to preview warning snow, winter defeat, and flowering victory.
+Move with **A/D** or **Left/Right**. Hold **Space** to blow and release to recharge. **Escape** or the pause button pauses any screen. Switching away pauses automatically; returning requires Resume. Completed levels and workshop choices autosave locally in three named Save Slots; a failed or exited level restarts from its checkpoint. Phones use the on-screen direction and fan buttons simultaneously. The character turns with movement; the blower aims upright at rest and leans into movement, steering the airflow. Choose **Explore the seasons** from the menu to preview warning snow, winter defeat, and flowering victory.
 
 To build the browser version, install the matching Godot web export templates, then:
 
@@ -43,4 +43,4 @@ python3 -m http.server 8000 --directory build/web
 
 Open the locally served `index.html` in a WebGL 2-capable browser; opening the file directly does not work. See [prototype instructions and validation](docs/PROTOTYPE.md) for setup, tests, and limitations, and the [asset manifest](assets/ASSET_MANIFEST.md) for artwork provenance.
 
-This is an early playable art/interaction study, not a release candidate. The campaign now has 12 weeks and a final North Wind encounter, weekly clothing/temperature progression, three named local checkpoint slots, and an upgrade workshop. The central tree now follows the supplied ancient-tree reference, with a rural clearing around it. A basic cutout rig animates distance-driven steps and blower vibration; leaves drift and tumble under gravity. See the [gameplay screenshot](docs/images/prototype-gameplay.png) and [motion clip](docs/images/prototype-motion.mp4). New gardens select Breezy, Blustery or Gale, each with a local top ten and initials entry. The menu’s License screen includes offline engine/library/font terms. Artist-separated character animation and native-device validation remain planned. Design numbers are provisional.
+This is an early playable art/interaction study, not a release candidate. The campaign now has 12 weeks and a final North Wind encounter, weekly clothing/temperature progression, three named Save Slots, and an illustrated 18-node workshop. Twelve points allow 28 distinct full-budget builds. Its 288-leaf canopy carries forward; weekly danger resets, with limited regrowth to a 96-leaf recovery floor. The central tree now follows the supplied ancient-tree reference, with a rural clearing around it. A basic cutout rig animates distance-driven steps and blower vibration; leaves drift and tumble under gravity. See the [gameplay screenshot](docs/images/prototype-gameplay.png) and [motion clip](docs/images/prototype-motion.mp4). New saves select Breezy, Blustery or Gale, each with a local top ten and initials entry. The menu’s License screen includes offline engine/library/font terms. Artist-separated character animation and native-device validation remain planned. Design numbers are provisional.

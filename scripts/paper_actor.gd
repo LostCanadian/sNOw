@@ -2,10 +2,11 @@ extends RefCounted
 ## A small CPU-skinned cutout rig: torso, two hip/knee/ankle chains, and blower.
 ## One textured mesh preserves all twelve costumes; stance feet follow ground travel.
 
+const BlowerPose = preload("res://scripts/blower_pose.gd")
 const SIZE := Vector2(78, 76)
 const ANCHOR := Vector2(0.40, 1.0)
 const NOZZLE_UV := Vector2(0.95, 0.06)
-const NOZZLE_OFFSET := (NOZZLE_UV - ANCHOR) * SIZE
+const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const STRIDE := 42.0
 const STANCE := 0.62
 const COLUMNS := 14
@@ -15,6 +16,7 @@ var travel := 0.0
 var time := 0.0
 var movement := 0.0
 var direction := 1.0
+var aim := 0.0
 var motor := false
 var gentle := false
 var mesh := ArrayMesh.new()
@@ -40,18 +42,23 @@ func reset() -> void:
 	time = 0
 	movement = 0
 	direction = 1
+	aim = 0
 	motor = false
 	update_joints()
 
 
 func phase() -> float:
-	return fposmod(travel / STRIDE, 1.0)
+	return fposmod(travel * direction / STRIDE, 1.0)
 
 
-func advance(displacement: float, dt: float, running_motor: bool, reduced := false) -> void:
+func advance(displacement: float, dt: float, running_motor: bool, reduced := false, facing_override := 0.0, aim_override := NAN) -> void:
 	travel += displacement
 	time += dt
-	if absf(displacement) > 0.0001: direction = signf(displacement)
+	if not is_zero_approx(facing_override): direction = facing_override
+	elif absf(displacement) > 0.0001: direction = signf(displacement)
+	if is_nan(aim_override):
+		aim = move_toward(aim, direction * BlowerPose.MOVING_TILT if absf(displacement) > 0.0001 else 0.0, dt * BlowerPose.TURN_SPEED)
+	else: aim = aim_override
 	movement = move_toward(movement, 1.0 if absf(displacement) > 0.0001 else 0.0, dt * 10)
 	motor = running_motor
 	gentle = reduced
@@ -125,18 +132,21 @@ func leg_point(point: Vector2, uv: Vector2, leg: int) -> Vector2:
 
 func point(uv: Vector2) -> Vector2:
 	var rest := (uv - ANCHOR) * SIZE
-	var torso := torso_transform * rest
+	# The barrel and supporting hands rotate around the grip, away from the face.
+	var blower_weight := smoothstep(0.62 - uv.y * 0.15, 0.70 - uv.y * 0.15, uv.x) * (1.0 - smoothstep(0.69, 0.76, uv.y))
+	var aimed := BlowerPose.GRIP + (rest - BlowerPose.GRIP).rotated(aim * direction - BlowerPose.ORIGINAL_ANGLE)
+	var torso := (torso_transform * rest).lerp(aimed, blower_weight)
 	var back := leg_point(rest, uv, 0)
 	var front := leg_point(rest, uv, 1)
 	var legs := back.lerp(front, smoothstep(0.40, 0.46, uv.x))
 	var leg_weight := smoothstep(0.68, 0.76, uv.y) * (1.0 - smoothstep(0.69, 0.77, uv.x))
 	var result := torso.lerp(legs, leg_weight * movement)
-	var blower_weight := smoothstep(0.52, 0.72, uv.x) * (1.0 - smoothstep(0.62, 0.73, uv.y))
 	return result + recoil * blower_weight
 
 
 func nozzle() -> Vector2:
-	return point(NOZZLE_UV)
+	var tip := point(NOZZLE_UV)
+	return Vector2(tip.x * direction, tip.y)
 
 
 func rebuild(texture: Texture2D, region: Rect2) -> void:

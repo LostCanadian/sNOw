@@ -1,19 +1,22 @@
 extends RefCounted
 ## Presentation-independent fixed-step arcade simulation. All coordinates are logical 360 x 640.
 
-const PaperActor = preload("res://scripts/paper_actor.gd")
-const NOZZLE_OFFSET := PaperActor.NOZZLE_OFFSET
+const BlowerPose = preload("res://scripts/blower_pose.gd")
+const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
+const Upgrades = preload("res://scripts/upgrades.gd")
+const RULES := 2
+const RECOVERY_FLOOR := 96
 const GRAVITY := 48.0
 const GROUND := 502.0
 const Canopy = preload("res://scripts/canopy.gd")
 const CAPTURE_RADIUS := 15.0
 const MAX_ACTIVE := 150
 const BASE_SPEED := 122.0
-const CAPACITY := 28 # Existing Blustery saves retain their tuning.
+const CAPACITY := 14 # Default weekly allowance. Cumulative loss remains in missed.
 const DIFFICULTIES := [
-	{"name": "Breezy", "capacity": 34, "leaves": 14, "cadence": 1.15, "wind": 0.70, "fall": 0.88},
-	{"name": "Blustery", "capacity": 28, "leaves": 16, "cadence": 1.0, "wind": 1.0, "fall": 1.0},
-	{"name": "Gale", "capacity": 22, "leaves": 18, "cadence": 0.85, "wind": 1.30, "fall": 1.12},
+	{"name": "Breezy", "capacity": 18, "leaves": 24, "increment": 2, "cadence": 1.15, "wind": 0.70, "fall": 0.88},
+	{"name": "Blustery", "capacity": 14, "leaves": 30, "increment": 2, "cadence": 1.0, "wind": 1.0, "fall": 1.0},
+	{"name": "Gale", "capacity": 10, "leaves": 36, "increment": 3, "cadence": 0.85, "wind": 1.30, "fall": 1.12},
 ]
 const MAIN_WEEKS := 12
 const BOSS_STAGE := MAIN_WEEKS + 1
@@ -29,10 +32,14 @@ var idle_charge_time := 0.0
 var energy_locked := false
 var blowing := false
 var direction := 0.0
+var facing := 1.0
+var aim := 0.0
 var score := 0
 var combo := 0
 var rescued := 0
 var missed := 0
+var regrown := 0
+var week_regrown := 0
 var spawned := 0
 var week_rescued := 0
 var week_missed := 0
@@ -60,14 +67,14 @@ func _init(seed_value: int = 641023, difficulty_value := 1) -> void:
 
 
 func stats(build: Array = tiers) -> Dictionary:
-	var load_factor: float = 1.0 + 0.075 * build[1] + (0.04 if build[2] == 2 else 0.0)
+	var load_factor: float = 1.0 + 0.05 * build[1] + 0.005 * build[2]
 	return {
-		"speed": BASE_SPEED * (1.10 if build[0] >= 1 else 1.0) / load_factor,
-		"force": 410.0 * (1.0 + 0.25 * build[1]),
-		"width": 48.0 + (12.0 if build[1] == 2 else 0.0),
-		"burst": 6.0 * (1.30 if build[2] == 2 else 1.0) / ((1.0 + 0.15 * build[1]) * (0.78 if build[2] >= 1 else 1.0)),
-		"recharge": 3.0 * (1.30 if build[2] == 2 else 1.0),
-		"pile_penalty": 0.30 if build[0] == 2 else 0.40,
+		"speed": BASE_SPEED * (1.0 + 0.05 * build[0]) / load_factor,
+		"force": 410.0 * (1.0 + 0.15 * build[1]),
+		"width": 48.0 + 4.0 * build[1],
+		"burst": 6.0 * (1.0 + 0.10 * build[2]) / ((1.0 + 0.075 * build[1]) * (1.0 - 0.045 * build[2])),
+		"recharge": 3.0 * (1.0 - 0.045 * build[2]),
+		"pile_penalty": 0.32 - 0.025 * build[0],
 	}
 
 
@@ -76,7 +83,7 @@ func capacity() -> int:
 
 
 func pressure() -> float:
-	return clampf(float(missed) / capacity(), 0.0, 1.0)
+	return clampf(float(week_missed) / capacity(), 0.0, 1.0)
 
 
 func week_leaf_count() -> int:
@@ -108,7 +115,7 @@ func prepare_shedding() -> void:
 		var value := shedding_order[i]
 		shedding_order[i] = shedding_order[j]
 		shedding_order[j] = value
-	shedding_order.resize(mini(shedding_order.size(), int(DIFFICULTIES[difficulty].leaves) + (week - 1)))
+	shedding_order.resize(mini(shedding_order.size(), int(DIFFICULTIES[difficulty].leaves) + int(DIFFICULTIES[difficulty].increment) * (week - 1) + (12 if is_boss() else 0)))
 
 
 func temperature() -> int:
@@ -147,7 +154,11 @@ func pile_at(at_x: float) -> int:
 
 
 func nozzle() -> Vector2:
-	return Vector2(x, GROUND) + NOZZLE_OFFSET
+	return Vector2(x, GROUND) + BlowerPose.nozzle_offset(facing, aim)
+
+
+func air_axis() -> Vector2:
+	return BlowerPose.axis(aim)
 
 
 func step(dt: float, move_axis: float, wants_blow: bool) -> void:
@@ -158,7 +169,11 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 	var s := stats()
 	direction = clampf(move_axis, -1.0, 1.0)
 	var drag: float = minf(float(pile_at(x)) / 5.0, 1.0) * s.pile_penalty
+	var previous_x := x
 	x = clampf(x + direction * s.speed * (1.0 - drag) * dt, 29.0, 331.0)
+	if absf(direction) > 0.01: facing = signf(direction)
+	var target_aim := facing * BlowerPose.MOVING_TILT if absf(x - previous_x) > 0.001 else 0.0
+	aim = move_toward(aim, target_aim, dt * BlowerPose.TURN_SPEED)
 	if not wants_blow:
 		energy_locked = false
 		idle_charge_time += dt
@@ -178,6 +193,8 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 		spawn_leaf()
 		spawn_timer += (0.38 if boss_phase() == "blast" else maxf(0.65, 1.30 - week * 0.045)) * DIFFICULTIES[difficulty].cadence
 	var origin := nozzle()
+	var airflow := air_axis()
+	var lateral := airflow.orthogonal()
 	for leaf in leaves:
 		if leaf.state != "air":
 			continue
@@ -185,9 +202,10 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 		var p: Vector2 = leaf.position
 		var previous := p
 		var v: Vector2 = leaf.velocity
-		var height := origin.y - p.y
-		var center_x := origin.x + direction * height * 0.15
-		var in_gust: bool = blowing and height > -8.0 and height < 335.0 and absf(p.x - center_x) < s.width * (0.7 + height / 340.0)
+		var offset := p - origin
+		var height := offset.dot(airflow)
+		var across := offset.dot(lateral)
+		var in_gust: bool = blowing and height > -8.0 and height < 335.0 and absf(across) < s.width * (0.7 + height / 340.0)
 		var wind := sin(week_time * 0.9 + week) * (5.0 + week * 1.6) * float(DIFFICULTIES[difficulty].wind)
 		# Smooth, seeded aerodynamic variation: broad drifting arcs, never frame noise.
 		var flutter: float = leaf.age * leaf.get("flutter_rate", 2.8) + leaf.get("flutter_phase", float(leaf.id))
@@ -198,15 +216,22 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 		if boss_phase() == "blast": v.y += 32.0 * dt
 		if in_gust:
 			leaf.lifted = true
-			v.y -= s.force * dt
-			# Directional airflow with mild flutter, rather than a corkscrew vortex.
-			v.x += ((center_x - p.x) * 0.55 + sin(flutter) * 12.0) * dt
+			var force: Vector2 = airflow * float(s.force)
+			# At the borders a return breeze wins over outward-directed blower force.
+			if force.x < 0: force.x *= smoothstep(-8, 48, p.x)
+			if force.x > 0: force.x *= (1.0 - smoothstep(312, 368, p.x))
+			v += (force + lateral * (-across * 0.55 + sin(flutter) * 12.0)) * dt
+		v.x += BlowerPose.edge_force(p.x) * dt
 		v.y = clampf(v.y, -158.0, (45.0 + week * 1.5) * float(DIFFICULTIES[difficulty].fall))
-		v.x = clampf(v.x, -85.0, 85.0)
+		v.x = clampf(v.x, -125.0, 125.0)
 		p += v * dt
-		if p.x < 24.0 or p.x > 336.0:
-			p.x = clampf(p.x, 24.0, 336.0)
-			v.x = -v.x * 0.6
+		# A short overshoot is allowed; the spring continuously draws leaves back in.
+		if p.x < -22.0:
+			p.x = -22.0
+			v.x = maxf(24, absf(v.x) * 0.35)
+		elif p.x > 382.0:
+			p.x = 382.0
+			v.x = -maxf(24, absf(v.x) * 0.35)
 		leaf.position = p
 		leaf.velocity = v
 		leaf.angle = leaf.get("rest_angle", 0.0) + sin(flutter) * 0.65 + leaf.age * leaf.get("spin", 0.2)
@@ -224,7 +249,7 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 			break
 	leaves = leaves.filter(func(leaf: Dictionary) -> bool: return leaf.state == "air")
 	if status == "playing" and spawned >= week_leaf_count() and leaves.is_empty():
-		score += 500 + 50 * (capacity() - missed)
+		score += 500 + 50 * (capacity() - week_missed)
 		blowing = false
 		if is_boss():
 			score += 5000
@@ -283,16 +308,16 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 		combo = 0
 		var segment := clampi(int(leaf.position.x / 30.0), 0, 11)
 		piles[segment] += 1
-		if missed >= capacity():
+		if week_missed >= capacity():
 			status = "lost"
 			blowing = false
 	events.append({"position": leaf.position, "saved": saved})
 
 
 func buy(branch: int) -> bool:
-	if status != "workshop" or branch < 0 or branch > 2 or tiers[branch] >= 2:
+	if status != "workshop" or branch < 0 or branch > 2 or tiers[branch] >= Upgrades.MAX_RANK:
 		return false
-	var cost: int = 1 if tiers[branch] == 0 else 3
+	var cost := 1
 	if points < cost:
 		return false
 	points -= cost
@@ -311,6 +336,12 @@ func next_week() -> bool:
 	if status != "workshop":
 		return false
 	week += 1
+	x = 180.0
+	direction = 0
+	facing = 1
+	aim = 0
+	blowing = false
+	week_regrown = restore_playable_canopy()
 	charge = 1.0
 	energy_locked = false
 	idle_charge_time = 0.0
@@ -324,3 +355,23 @@ func next_week() -> bool:
 	prepare_shedding()
 	status = "playing"
 	return true
+
+
+func restore_playable_canopy() -> int:
+	var count := maxi(0, RECOVERY_FLOOR - attached_count())
+	if count == 0: return 0
+	var present := {}
+	for slot in slots:
+		if slot.leaf_id >= 0: present[slot.leaf_id] = true
+	var identities: Array[int] = []
+	for id in range(Canopy.SLOT_COUNT):
+		if not present.has(id): identities.append(id)
+	var filled := 0
+	for slot in slots:
+		if slot.leaf_id >= 0: continue
+		slot.leaf_id = identities[filled]
+		slot.attached_at = -10.0
+		filled += 1
+		if filled >= count: break
+	regrown += filled
+	return filled

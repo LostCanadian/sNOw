@@ -1,7 +1,8 @@
 extends RefCounted
 ## Top ten per difficulty, one best result per campaign. No accounts or network API.
 const Campaign = preload("res://scripts/campaign.gd")
-const RULES := 1
+const RULES := 2
+const StoragePaths = preload("res://scripts/storage_paths.gd")
 const WEB_KEY := "snow.highscores.v1"
 const LIMIT := 10
 var tables: Array = [[], [], []]
@@ -38,11 +39,11 @@ static func valid_record(record) -> bool:
 	if not record.get("initials") is String or record.initials.length() != 3 or record.initials != clean_initials(record.initials): return false
 	for field in ["score", "week", "difficulty", "rules"]:
 		if not Campaign.whole(record.get(field), 0, 1000000000): return false
-	if record.score <= 0 or record.week < 1 or record.week > 13 or record.difficulty > 2 or record.rules != RULES: return false
+	if record.score <= 0 or record.week < 1 or record.week > 13 or record.difficulty > 2 or not Campaign.whole(record.rules, 1, RULES): return false
 	if not record.get("won") is bool or (record.won and record.week != 13): return false
 	if not record.get("tiers") is Array or record.tiers.size() != 3: return false
 	for tier in record.tiers:
-		if not Campaign.whole(tier, 0, 2): return false
+		if not Campaign.whole(tier, 0, 2 if record.rules == 1 else 6): return false
 	return true
 
 static func better(a: Dictionary, b: Dictionary) -> bool:
@@ -54,13 +55,23 @@ static func valid_document(data) -> bool:
 	var ids := {}
 	for difficulty in range(3):
 		var table = data.tables[difficulty]
-		if not table is Array or table.size() > LIMIT: return false
+		if not table is Array or table.size() > LIMIT * 2: return false
+		var previous := {}
+		var counts := {}
 		for i in range(table.size()):
 			var record = table[i]
-			if not valid_record(record) or record.difficulty != difficulty or ids.has(record.id): return false
-			if i > 0 and better(record, table[i - 1]): return false
-			ids[record.id] = true
+			if not valid_record(record) or record.difficulty != difficulty: return false
+			var key: String = str(record.rules) + ":" + record.id
+			if ids.has(key): return false
+			if previous.has(record.rules) and better(record, previous[record.rules]): return false
+			previous[record.rules] = record
+			counts[record.rules] = counts.get(record.rules, 0) + 1
+			if counts[record.rules] > LIMIT: return false
+			ids[key] = true
 	return true
+
+func entries(difficulty: int, rules := RULES) -> Array:
+	return tables[difficulty].filter(func(record): return record.rules == rules)
 
 func candidate(game, initials: String) -> Dictionary:
 	return {"id": game.run_id, "initials": clean_initials(initials), "score": game.score,
@@ -70,7 +81,7 @@ func candidate(game, initials: String) -> Dictionary:
 func qualifies(game) -> bool:
 	var record := candidate(game, "AAA")
 	if game.status not in ["lost", "won"] or not valid_record(record): return false
-	var table: Array = tables[game.difficulty]
+	var table: Array = entries(game.difficulty)
 	for old in table:
 		if old.id == record.id: return better(record, old)
 	return table.size() < LIMIT or better(record, table[-1])
@@ -78,19 +89,20 @@ func qualifies(game) -> bool:
 func submit(game, initials: String) -> bool:
 	if not qualifies(game): return false
 	var record := candidate(game, initials)
-	var table: Array = tables[game.difficulty].filter(func(old): return old.id != record.id)
+	var table: Array = entries(game.difficulty).filter(func(old): return old.id != record.id)
 	# Insert after exact ties so their original order is retained.
 	var index := 0
 	while index < table.size() and not better(record, table[index]): index += 1
 	table.insert(index, record)
 	if table.size() > LIMIT: table.resize(LIMIT)
-	tables[game.difficulty] = table
+	tables[game.difficulty] = table + entries(game.difficulty, 1)
 	return flush()
 
 func read_raw(backup: bool) -> String:
 	if not browser_storage:
 		var source := path + (".bak" if backup else "")
-		return FileAccess.get_file_as_string(source) if FileAccess.file_exists(source) else ""
+		if FileAccess.file_exists(source): return FileAccess.get_file_as_string(source)
+		return StoragePaths.legacy_raw("highscores.json", backup) if path == "user://highscores.json" else ""
 	var js := "(() => {try {return JSON.stringify({ok:true,data:localStorage.getItem(%s)});}catch(_){return JSON.stringify({ok:false});}})()" % JSON.stringify(WEB_KEY + (".backup" if backup else ""))
 	var envelope = Campaign.read_document(str(JavaScriptBridge.eval(js, true)))
 	if not envelope is Dictionary or not envelope.get("ok", false):
@@ -122,7 +134,7 @@ func flush() -> bool:
 		if result != OK:
 			error = "Score save failed. Your previous scores are preserved."
 			return false
-		if not previous.is_empty():
+		if not previous.is_empty() and FileAccess.file_exists(path):
 			var suffix := ".bak" if valid_document(Campaign.read_document(previous)) else ".unreadable-" + str(Time.get_ticks_usec())
 			if DirAccess.copy_absolute(path, path + suffix) != OK:
 				error = "Score backup failed. Your previous scores are preserved."

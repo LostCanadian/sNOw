@@ -2,7 +2,7 @@
 
 Status: an initial [technical art prototype](PROTOTYPE.md) now implements a subset of these stages in Godot 4.6.3, with a browser export, automated simulation/input checks, original prototype assets, and a small upgrade workshop. This is not a completed cross-platform gate or production vertical slice. Physical-device performance, native exports, full animation/layered-art production, physical difficulty tuning and settings persistence remain outstanding. Complete each exit gate before expanding scope; the list below remains the broader delivery plan.
 
-The revised prototype uses modern rural homes instead of the original medieval backdrop. Bare gameplay trees and all foliage now render independently: occupied positions shed real leaves, misses leave persistent gaps, and returning leaves reattach to vacant positions. A single textured ancient tree adapted from the user-attached reference and artist-authored twig metadata, textured leaf sprites and directional wind streaks replace the static painted canopy, blanket sky capture and spiral blower ribbons. The current finite canopy has 48 leaves; the earlier 150-leaf budget below remains a future scale target, not a claim about the current stress scenario.
+The revised prototype uses modern rural homes instead of the original medieval backdrop. Bare gameplay trees and all foliage now render independently: occupied positions shed real leaves, misses leave persistent gaps, and returning leaves reattach to vacant positions. A single textured ancient tree adapted from the user-attached reference and artist-authored twig metadata, textured leaf sprites and directional wind streaks replace the static painted canopy, blanket sky capture and spiral blower ribbons. The canopy now has 288 occupied positions, while the active airborne-leaf pool remains capped at 150. Exact occupancy persists, with a 96-leaf recovery floor and fresh weekly danger.
 
 The campaign prototype now includes 12 weekly outfit frames, two ending poses, falling temperature, all-screen pausing, and three named local boundary-save slots. Final boss mechanics are a first North Wind gust/snow study. A first procedural cutout leg rig now follows ground distance, with blower vibration, moving wind streaks and seeded gravity/flutter/drift for leaves. Artist-separated limbs, authored turn/ending performances, human difficulty tuning and native device validation remain open. The rural backdrop now leaves its center clear and frames the tree with houses at the sides.
 
@@ -48,7 +48,7 @@ Exit gate: a recorded engine/rendering decision with playable touch/browser buil
 
 ## Stage 2 — greybox core loop
 
-Implement fixed-screen movement, the upward blower cone, wind/gravity/swirl, canopy capture, and the finite leaf lifecycle. Add rechargeable blower energy, ground segments, visible pile depth, capped slowdown, cumulative danger, and exact week/loss transitions. Prototype one mobility upgrade and one heavy blower upgrade to measure movement/force tradeoffs before expanding the tree. Use simple shapes and temporary audio.
+Implement fixed-screen movement, the upward blower cone, wind/gravity/swirl, canopy capture, and the finite leaf lifecycle. Add rechargeable blower energy, ground segments, visible pile depth, capped slowdown, weekly danger, and exact week/loss transitions. Prototype one mobility upgrade and one heavy blower upgrade to measure movement/force tradeoffs before expanding the tree. Use simple shapes and temporary audio.
 
 Prototype at least two cone widths and wind strengths. Check whether automatic upward aiming is satisfying before investing in an aim stick. Add a developer overlay for leaf states, capture bounds, current forces, and frame time, kept out of release UI.
 
@@ -64,7 +64,7 @@ Exit gate: a new player can go from menu to gameplay to an ending and replay wit
 
 ## Stage 4 — full progression and arcade systems
 
-Author twelve week profiles and a final encounter and all three difficulty variants as data. Add the colour progression, telegraphed crosswinds, heavy-leaf introduction, week transitions, and persistent run danger. Implement the three-branch, two-tier upgrade tree, once-per-week point awards, prerequisites, between-week reallocation, weight effects, and workshop stat previews. Finish all score bonuses, initials entry, top-ten tables with build records, settings, and versioned persistence.
+Author twelve week profiles and a final encounter and all three difficulty variants as data. Add the colour progression, telegraphed crosswinds, heavy-leaf introduction, week transitions, and persistent canopy state. Implement the three-branch, six-rank upgrade tree, once-per-week point awards, prerequisites, between-week reallocation, weight effects, and workshop stat previews. Finish all score bonuses, initials entry, top-ten tables with build records, settings, and versioned persistence.
 
 Test mobility, power, endurance, and mixed builds against the same week profiles. Check that no heavy build becomes immobile, no high-power build loses capture reliability, and no refund/transition grants extra points. Tune the difficulty curve from observed rescue rates, run duration, recharge downtime, and reasons for loss; avoid adjusting every variable at once. Temporary pickups are deferred.
 
@@ -121,3 +121,5 @@ Maintain a small manual device matrix covering minimum hardware, browser/native 
 Next: review the playable art prototype on physical Android/iPhone browsers, record minimum-device assumptions and performance, and complete the remaining Stage 1 native/export gates before treating the engine choice as validated across platforms. See PROTOTYPE.md for the implemented subset and exact checks.
 
 Implemented menu increment: per-difficulty local top tens, three-initial entry, campaign-best deduplication, backward-compatible difficulty/identity checkpoints, three initial difficulty profiles and offline License notices. See [scores and licenses](SCORES_AND_LICENSES.md). Human balance testing and signed native builds remain outstanding.
+
+Current interaction increment: mirrored facing, shared upright/directional blower pose and force cone, soft border-return airflow, an illustrated non-overlapping 18-node workshop with separate descriptions, Save Slots terminology, and the user-selected persistent-canopy/recovery-floor rule. The working title is sNOw; visual-style labels are not game branding.

@@ -12,10 +12,10 @@ This log separates the requested game from proposed implementation choices. “R
 | Endings | Look up → clouds → snow on loss; sun and flowers on victory | User requirement |
 | Branding | sNOw with emphasized, stylized NO | User requirement; logo exploration pending |
 | Difficulty | Three choices, each with its own score table | User requirement; names and balance recommended |
-| Rendering | Paper & Lanterns: layered cut-paper 2D, textured materials, soft shadows and backlighting | User-selected creative direction; runtime/mobile-performance spike pending |
+| Rendering | Layered cut-paper 2D, textured materials, soft shadows and backlighting | User-selected creative direction; runtime/mobile-performance spike pending |
 | Setting | Modern rural homes and optional solar roof, forest and small hills; no castle or stone bridge | User direction adopted in the revised backdrop |
 | Hero tree | One central Season Tree governing the valley’s seasons; use the user-attached ancient asymmetric tree as the authoritative textured reference | Working mythos/layout direction; prototype implemented for review |
-| Canopy | One whole textured tree plus separate paper leaves; 48 artist-authored twig/stem anchors; gaps persist across weeks | Implemented; stable slot identities preserve existing checkpoints |
+| Canopy | One whole textured tree plus separate paper leaves; 288 twig-attached positions (first 48 IDs retained); gaps persist across weeks | Implemented; stable slot identities preserve existing checkpoints |
 | Reattachment | Lifted leaves fill nearby empty branch slots; occupied positions and arbitrary sky heights do not score | Implemented with swept capture and exactly-once occupancy |
 | Blower visual | Short directional wind streaks and restrained leaf flutter | User-requested replacement for the earlier spiral effect |
 | Warning weather | Small paper snowflakes begin before loss, increasing with winter pressure | User requirement; thresholds/readability to test |
@@ -29,9 +29,9 @@ This log separates the requested game from proposed implementation choices. “R
 | Blower power source | Electric battery blower; fuel-cell theme remains an alternative; no gasoline | User direction; rechargeable arcade energy replaces the earlier heat proposal |
 | Level structure | 12 main weeks, then a separately named North Wind final encounter | User requirement; prototype implemented, human balance/session timing pending |
 | Leaf lifecycle | Finite scheduled leaves, rescued once/week, grounded leaves stay grounded | Recommended; prevents score farming and endless weeks |
-| Overnight piles | Clear local piles but retain cumulative winter pressure | Recommended; test clarity versus persistent piles |
+| Overnight piles | Clear local piles and weekly danger; retain canopy occupancy, with a 96-leaf recovery floor | Recommended; test clarity versus persistent piles |
 | Score formula | Rescue points, capped combo, week capacity bonus, win bonus | Recommended; balance and exploit checks pending |
-| High scores | Three local per-difficulty initials tables, separate from named campaign slots | Implemented with per-garden best-result replacement; no accounts/global services |
+| High scores | Three local per-difficulty initials tables, separate from named campaign slots | Implemented with per-campaign best-result replacement; no accounts/global services |
 | Campaign saves | Three named local slots; autosave level completion and workshop edits; retry current level from its checkpoint | User requirement; implemented with versioning, validation and recovery backup |
 | Pause | Every screen/timeline; focus/visibility loss auto-pauses; explicit Resume required | User requirement; native and browser lifecycle handling |
 | Temperature / clothing | 12 weekly clothing stages; 22°C → 0°C, −2°C finale; warm victory and bundled sad defeat | User requirement; prototype art and temperature curve implemented |
@@ -55,3 +55,5 @@ When a choice is validated, record the result, relevant build/device or playtest
 Motion prototype: CPU-skinned cutout mesh with two hip/knee/ankle chains, stance tied to signed ground distance, a weighted electric-blower vibration control, and advancing wind streaks. Seeded per-leaf aerodynamics supply gravity, flutter, drift and tumble. Artist-separated limbs and authored turning/ending performances remain later art work.
 
 License notices are available offline from the main menu: Godot MIT and engine-library copyright/terms come from the running engine APIs; DejaVu font terms are explicitly bundled with exports. This adds third-party notices without selecting a license for the game itself.
+
+The working title is sNOw only. Upgrade economy is now 18 one-point nodes (three branches × six ranks), with 12 earned points and 28 final full-budget allocations. Old four-point rank-two purchases migrate to rank four; rules-one scores remain in the Previous Scores archive.

@@ -32,6 +32,24 @@ func run() -> void:
 		check(main.mode == "scores", "difficulty table %d opens" % difficulty)
 	main.return_from_scores()
 	check(main.mode == "title", "score screen returns to menu")
+	main.start_run()
+	main.sim.spawned = main.sim.week_leaf_count()
+	main._physics_process(1.0 / 60)
+	await process_frame
+	var nodes = main.overlay.find_children("*", "Button", true, false)
+	var overlaps := false
+	for i in range(nodes.size()):
+		for j in range(i + 1, nodes.size()):
+			overlaps = overlaps or nodes[i].get_global_rect().intersects(nodes[j].get_global_rect())
+	check(not overlaps and nodes.size() == 21, "all eighteen upgrade nodes and workshop actions have non-overlapping hit areas")
+	var bounded := true
+	for icon in main.overlay.find_children("*", "TextureRect", true, false):
+		bounded = bounded and icon.size.x <= 44 and icon.size.y <= 35
+	check(bounded, "equipment textures stay inside their header slots")
+	main.selected_upgrade = Vector2i(2, 6)
+	main.show_workshop()
+	var card_text = main.overlay.find_children("*", "RichTextLabel", true, false)
+	check(card_text.size() == 1 and card_text[0].size.x <= 300, "full upgrade descriptions wrap inside a separate bounded card")
 	main.selected_difficulty = 2
 	main.start_run()
 	check(main.sim.difficulty == 2, "new campaign uses the chosen difficulty")
@@ -46,7 +64,7 @@ func run() -> void:
 	var buttons = main.overlay.find_children("*", "Button", true, false)
 	for b in buttons:
 		if b.text == "Save score": b.pressed.emit()
-	check(main.mode == "scores" and main.high_scores.tables[2][0].initials == "XYZ", "the score-entry form submits normalized initials to the right table")
+	check(main.mode == "scores" and main.high_scores.entries(2)[0].initials == "XYZ", "the score-entry form submits normalized initials to the right table")
 	main.return_from_scores()
 	check(main.mode == "lost" and not main.high_scores.qualifies(main.sim), "returning to a result cannot duplicate its score")
 	for extension in ["", ".bak", ".tmp"]:

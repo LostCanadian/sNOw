@@ -49,7 +49,8 @@ func _initialize() -> void:
 	game = Loop.new()
 	game.week = Loop.BOSS_STAGE
 	game.spawned = game.week_leaf_count()
-	game.missed = Loop.CAPACITY - 1
+	game.week_missed = game.capacity() - 1
+	game.missed = game.week_missed
 	game.leaves.append({"id": 99, "position": Vector2(180, Loop.GROUND), "velocity": Vector2.ZERO, "state": "air", "lifted": false, "age": 0.0, "angle": 0.0, "colour": Color.WHITE})
 	game.step(1.0 / 60.0, 0, false)
 	check(game.status == "lost", "loss takes precedence when the final leaf fills capacity")
@@ -63,7 +64,7 @@ func _initialize() -> void:
 	for i in range(20): game.step(1.0 / 60.0, 0, false)
 	check(game.points == 1, "workshop cannot repeatedly award a week's point")
 	check(game.buy(1) and game.points == 0, "first blower tier costs one point")
-	check(not game.buy(1), "cannot afford a three-point advanced upgrade")
+	check(not game.buy(1), "cannot buy another rank without a point")
 	check(not game.buy(-1) and not game.buy(3), "invalid upgrade branches are rejected")
 	check(game.stats().force > 410 and game.stats().speed < Loop.BASE_SPEED, "heavy blower trades movement speed for force")
 	game.refund_build()
@@ -72,9 +73,9 @@ func _initialize() -> void:
 	check(game.next_week() and game.week == 2 and game.tiers[0] == 1, "next week preserves the build")
 	check(game.charge == 1.0 and game.pile_at(180) == 0, "next week refills and clears local piles")
 	check(not game.next_week() and not game.buy(2), "cannot skip weeks or buy during active play")
-	for a in range(3):
-		for b in range(3):
-			for c in range(3):
+	for a in range(7):
+		for b in range(7):
+			for c in range(7):
 				var s: Dictionary = game.stats([a, b, c])
 				check(s.speed * (1.0 - s.pile_penalty) > 60.0, "all build combinations retain usable movement")
 	var first = Loop.new(922)
@@ -88,14 +89,14 @@ func _initialize() -> void:
 	game.week = Loop.BOSS_STAGE
 	game.spawned = game.week_leaf_count()
 	game.step(1.0 / 60.0, 0, false)
-	check(game.status == "won" and game.score == 6900 and game.points == 0, "final-week success awards the win bonus and no unusable upgrade point")
+	check(game.status == "won" and game.score == 6200 and game.points == 0, "final-week success awards the win bonus and no unusable upgrade point")
 	game = Loop.new()
 	game.shedding_order.clear()
 	for slot in game.slots: game.shedding_order.append(slot.leaf_id)
 	for i in range(game.slots.size()): game.spawn_leaf()
-	check(game.leaves.size() == 48 and game.attached_count() == 0, "the complete canopy can shed without phantom or duplicated leaves")
+	check(game.leaves.size() == Loop.MAX_ACTIVE and game.attached_count() == Loop.Canopy.SLOT_COUNT - Loop.MAX_ACTIVE, "full-canopy shedding respects the active-leaf budget and conservation")
 	for i in range(600): game.step(1.0 / 60.0, sin(i / 50.0), i % 300 < 180)
-	check(game.leaves.size() <= 48 and is_finite(game.charge), "full-canopy stress scenario stays bounded")
+	check(game.leaves.size() <= Loop.MAX_ACTIVE and is_finite(game.charge), "full-canopy stress scenario stays bounded")
 	test_canopy()
 	test_weeks()
 	print("Simulation: %d checks, %d failures" % [checks, failures])
@@ -104,13 +105,13 @@ func _initialize() -> void:
 
 func test_canopy() -> void:
 	var game = Loop.new()
-	check(game.attached_count() == 48 and game.leaves.is_empty(), "every initial canopy leaf occupies a visible branch slot")
+	check(game.attached_count() == Loop.Canopy.SLOT_COUNT and game.leaves.is_empty(), "every initial canopy leaf occupies a visible branch slot")
 	check(game.capture_slot(Vector2(180, 300), Vector2(180, 75)) == -1, "occupied branches cannot accept another leaf")
 	game.spawn_leaf()
 	var first: Dictionary = game.leaves[0]
 	var empty: int = first.home_slot
 	var p: Vector2 = game.slots[empty].position
-	check(game.attached_count() == 47 and game.slots[empty].leaf_id == -1, "shedding removes the attached leaf and exposes its exact gap")
+	check(game.attached_count() == Loop.Canopy.SLOT_COUNT - 1 and game.slots[empty].leaf_id == -1, "shedding removes the attached leaf and exposes its exact gap")
 	check(first.position.distance_to(p) <= 10.0, "falling leaves originate at their branch rather than an arbitrary sky band")
 	check(game.capture_slot(p + Vector2(0, 50), p - Vector2(0, 50)) == empty, "swept capture finds a gap even at upgraded velocity")
 	check(game.capture_slot(Vector2(180, 310), Vector2(180, 300)) == -1, "a lifted leaf away from a real empty spot does not count as saved")
@@ -131,7 +132,7 @@ func test_canopy() -> void:
 	var gap: int = second.home_slot
 	game.next_week()
 	check(game.attached_count() == remaining and game.slots[gap].leaf_id == -1, "missed-leaf gaps remain bare after the overnight workshop")
-	check(game.attached_count() + game.missed == 48, "canopy conservation survives a miss, cross-slot rescue, and week transition")
+	check(game.attached_count() + game.missed - game.regrown == Loop.Canopy.SLOT_COUNT, "canopy conservation survives a miss, cross-slot rescue, and week transition")
 	check(game.week_leaf_count() <= game.attached_count(), "later shedding schedules never invent leaves to refill a depleted canopy")
 	var id: int = game.slots[empty].leaf_id
 	game.week = Loop.MAIN_WEEKS
