@@ -26,7 +26,7 @@ Main menu → three named gardens → new campaign or saved checkpoint → week 
 
 Storage uses versioned JSON. Native installs use a temporary-file replacement and recovery backup under Godot's `user://` directory. Browser exports use atomic, synchronous `localStorage` value replacement (`snow.campaigns.v1`) plus a separate backup value, rather than depending on virtual-filesystem synchronization. Checkpoints validate level bounds, phase, equipment costs, leaf uniqueness/conservation, combo state and exact random-state encoding. Unsupported/malformed data is retained separately rather than silently trusted; valid other slots and backups remain available. Unavailable storage or quota failures produce a visible message. Actual browser reloads validate persistence. Clearing browser/site data still removes local saves; these are not cloud backups.
 
-Native campaign files are under Godot's `user://` storage, outside the checkout; browser saves are local to the page's origin. The three campaign slots are distinct from the three planned per-difficulty high-score tables.
+Native campaign files are under Godot's `user://` storage, outside the checkout; browser saves are local to the page's origin. The three campaign slots are distinct from the three separate local per-difficulty high-score tables.
 
 ## Pause and exit contract
 
@@ -54,3 +54,5 @@ The twelve main weeks award one point each. First-tier nodes cost one; second-ti
 4. Reduced-motion/effects and reduced-flash options must preserve readable leaf silhouettes and warnings. Lightning must be restrained and replaceable with a gentle sky change. Ambient effects must not alter gameplay physics or future ranked scoring.
 
 Profile the effects on minimum phones, cap their frequency/particles and pause them with gameplay. Do not trade touch responsiveness or falling-leaf contrast for scenery activity.
+
+New gardens choose a fixed difficulty. Existing saves migrate to Blustery. Campaign checkpoints now retain a stable identity and difficulty; a garden contributes one best terminal result to its difficulty’s table, with better retries replacing the earlier entry. See [scores and licenses](SCORES_AND_LICENSES.md).

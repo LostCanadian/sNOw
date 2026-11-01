@@ -31,7 +31,7 @@ This log separates the requested game from proposed implementation choices. “R
 | Leaf lifecycle | Finite scheduled leaves, rescued once/week, grounded leaves stay grounded | Recommended; prevents score farming and endless weeks |
 | Overnight piles | Clear local piles but retain cumulative winter pressure | Recommended; test clarity versus persistent piles |
 | Score formula | Rescue points, capped combo, week capacity bonus, win bonus | Recommended; balance and exploit checks pending |
-| High scores | Three local per-difficulty initials tables, separate from named campaign slots | Planned; not yet implemented, no accounts/global services |
+| High scores | Three local per-difficulty initials tables, separate from named campaign slots | Implemented with per-garden best-result replacement; no accounts/global services |
 | Campaign saves | Three named local slots; autosave level completion and workshop edits; retry current level from its checkpoint | User requirement; implemented with versioning, validation and recovery backup |
 | Pause | Every screen/timeline; focus/visibility loss auto-pauses; explicit Resume required | User requirement; native and browser lifecycle handling |
 | Temperature / clothing | 12 weekly clothing stages; 22°C → 0°C, −2°C finale; warm victory and bundled sad defeat | User requirement; prototype art and temperature curve implemented |
@@ -53,3 +53,5 @@ This log separates the requested game from proposed implementation choices. “R
 When a choice is validated, record the result, relevant build/device or playtest evidence, and any consequences here. Change the design and plan together so they remain consistent.
 
 Motion prototype: CPU-skinned cutout mesh with two hip/knee/ankle chains, stance tied to signed ground distance, a weighted electric-blower vibration control, and advancing wind streaks. Seeded per-leaf aerodynamics supply gravity, flutter, drift and tumble. Artist-separated limbs and authored turning/ending performances remain later art work.
+
+License notices are available offline from the main menu: Godot MIT and engine-library copyright/terms come from the running engine APIs; DejaVu font terms are explicitly bundled with exports. This adds third-party notices without selecting a license for the game itself.

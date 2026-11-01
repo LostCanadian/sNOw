@@ -177,7 +177,7 @@ Temporary pickups are deferred until the upgrade tree is balanced. If revisited,
 
 Store the top ten scores **separately for each difficulty**, with three initials, score, highest week, win/loss, a scoring-rules version, and the completed build. Sort descending by score, then highest week; preserve earlier records for exact ties. Give the planned high-score initials entry a large touch-friendly alphabet selector and keyboard support; allow A–Z, default to AAA, and provide a skip option. Display initials as plain text.
 
-Use local campaign saves and separate local arcade high scores rather than accounts or global services. The three **save slots** are named campaigns; the three **difficulty score tables** remain a separate planned feature. Version and validate checkpoint data, keep backup recovery, and indicate storage failure instead of claiming success. Browser saves are local to the browser/origin and can be cleared; native and browser installations do not share them. No cloud saves or login is needed.
+Use local campaign saves and separate local arcade high scores rather than accounts or global services. The three **save slots** are named campaigns; the three **difficulty score tables** are separate local records, now implemented. Each garden contributes its best terminal score, with better retries replacing its earlier result. See [scores and licenses](SCORES_AND_LICENSES.md) for the implementation and current difficulty profiles. Version and validate checkpoint data, keep backup recovery, and indicate storage failure instead of claiming success. Browser saves are local to the browser/origin and can be cleared; native and browser installations do not share them. No cloud saves or login is needed.
 
 Save only level boundaries/workshop edits. Foreground resume preserves a paused in-memory attempt, but reload or OS process death restores the latest saved checkpoint. Retrying rolls back attempt score, misses and resources together. A future leaderboard must define how checkpoint retries and campaign rules versions are compared.
 
@@ -185,7 +185,7 @@ Save only level boundaries/workshop edits. Foreground resume preserves a paused 
 
 ### Main menu
 
-Show the sNOw logo, a lightly animated tree scene, **Play**, **High Scores**, **How to Play**, and **Settings**. Avoid a separate mandatory account, splash interaction, or lengthy intro. The first intentional tap/click can also enable browser audio.
+Show the sNOw logo, a lightly animated tree scene, **Play**, **High Scores**, **How to Play**, **License**, and **Settings**. Avoid a separate mandatory account, splash interaction, or lengthy intro. The first intentional tap/click can also enable browser audio.
 
 Play opens a difficulty selector with a short description and that difficulty's best score. Remember the last choice. Start week one with three brief contextual lessons: move, hold to blow, and avoid burying the path. Let returning players skip them. Delay real pressure until the player has used the controls.
 

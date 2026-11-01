@@ -13,7 +13,7 @@
 - Small warning flakes near defeat; clouds, cut-paper snowflakes and ground snow on loss; flowers on victory. Main-menu season previews allow immediate art review.
 - Soft-effects and mute options; a quiet synthesized electric whirr after starting a run. No microphone input or external audio service.
 
-The title screen offers **Continue / New garden** to choose one of three named local save slots and **Explore the seasons** to review the visual states. The prototype has one tuning profile; weeks are deliberately short and not the finished difficulty curve. Nothing is purchased with score or real money.
+The title screen offers **Continue / New garden** to choose one of three named local save slots and **Explore the seasons** to review the visual states. New gardens choose Breezy, Blustery or Gale; weeks are deliberately short and not the finished difficulty curve. The main menu also opens local **High Scores** and offline **License** notices. See [scores and licenses](SCORES_AND_LICENSES.md) for the storage/deduplication contract and current difficulty tuning. Nothing is purchased with score or real money.
 
 For the exact save/retry contract, clothing progression, final encounter and deferred scenery polish, see [Campaign design](CAMPAIGN.md). Native saves use `user://campaigns.json` with a recovery backup; browser saves use the localStorage key `snow.campaigns.v1` and a separate backup value. Browser close confirmation wording is controlled by the browser; completed checkpoints do not depend on that dialog.
 
@@ -59,11 +59,11 @@ The shell fits a constant portrait rectangle within the viewport's safe-area pad
 | Pause/resume | Escape | Tap pause, then Resume |
 | Workshop/menu | Tab, arrows where supported, Enter/Space | Tap/click buttons |
 
-Leaving the blower held at zero charge will not refill it: release first. Upgrades reset on a new campaign, not on level retry. Workshop reallocation refunds the earned budget and removes all nodes before rebuilding. Campaign checkpoints, scores within the campaign, canopy state and upgrades persist locally. Settings and separate high-score tables are not yet persisted.
+Leaving the blower held at zero charge will not refill it: release first. Upgrades reset on a new campaign, not on level retry. Workshop reallocation refunds the earned budget and removes all nodes before rebuilding. Campaign checkpoints, scores within the campaign, canopy state and upgrades persist locally. Separate per-difficulty high-score tables persist locally; settings are not yet persisted.
 
 ## Reproducible validation
 
-Current-instance validation: **191 headless checks passed** (108 simulation, 38 scene/input, 31 campaign-save and 14 cutout-animation/flutter checks). All **nine browser integration scenarios passed without runtime errors**, with denied-storage and corrupt-primary/backup recovery separately verified in the preceding save-system pass. The headless suites cover simulation, weekly/boss progression, artwork/pausing, and local campaign persistence. Browser checks include real multi-touch, reattachment, five aspect ratios, automatic pause/explicit resume, level completion, named-save reload, retry, exit confirmation and ending previews. The latest run outcome is recorded in ignored `test-results/browser-results.json`; native phone performance is not established by these checks.
+Current-instance validation: **233 headless checks passed** (108 simulation, 38 scene/input, 31 campaign-save, 14 cutout-animation/flutter, 29 score/difficulty and 13 menu/license checks). All **ten browser integration scenarios passed without runtime errors**, alongside exported offline-notice and difficulty-selection checks, with denied-storage and corrupt-primary/backup recovery separately verified in the preceding save-system pass. The headless suites cover simulation, weekly/boss progression, artwork/pausing, and local campaign persistence. Browser checks include real multi-touch, reattachment, five aspect ratios, automatic pause/explicit resume, level completion, named-save reload, retry, exit confirmation and ending previews. The latest run outcome is recorded in ignored `test-results/browser-results.json`; native phone performance is not established by these checks.
 
 Actual screenshots of [gameplay](images/prototype-gameplay.png), [save slots](images/prototype-save-slots.png), [week 12](images/prototype-week-12.png), [the boss study](images/prototype-boss.png), [victory](images/prototype-victory.png), the [sparse late-autumn warning preview](images/prototype-warning.png), and the [bare-tree winter preview](images/prototype-winter.png) are included in the repository. The generated release is under ignored `build/web/`; a portable browser bundle is `build/snow-web-prototype.zip`. The bundle must still be served over HTTP/HTTPS, not opened directly from disk.
 
@@ -74,6 +74,8 @@ bash tools/godot.sh --headless --script tests/test_loop.gd
 bash tools/godot.sh --headless --script tests/test_ui.gd
 bash tools/godot.sh --headless --script tests/test_campaign.gd
 bash tools/godot.sh --headless --script tests/test_actor.gd
+bash tools/godot.sh --headless --script tests/test_scores.gd
+bash tools/godot.sh --headless --script tests/test_menus.gd
 ```
 
 Browser integration uses **Python Playwright 1.62.0** and an installed Chromium. Those are test tools, not game/runtime dependencies. To reproduce in a machine that lacks them, install that Playwright version in a development virtual environment and install its Chromium browser or supply your system Chromium path. Build a separate debug export, leave the server above running, then:
@@ -82,6 +84,7 @@ Browser integration uses **Python Playwright 1.62.0** and an installed Chromium.
 mkdir -p build/web/test
 bash tools/godot.sh --headless --export-debug Web build/web/test/index.html
 python3 tests/browser_smoke.py --chromium /usr/bin/chromium
+python3 tests/browser_menus.py
 ```
 
 The debug browser check enables a read-only `window.snowSnapshot` only in debug builds with the explicit `?test=1` flag. Release builds do not expose it. The test drives actual keyboard and browser multi-touch input; it does not use a cheat API to advance weeks or award upgrades. It writes screenshots and a JSON report to ignored `test-results/`. Do not publish the nested debug export as part of a release.
@@ -99,7 +102,7 @@ Headless Chromium uses software WebGL in this environment. It can establish func
 - Branch capture has a forgiving 15-logical-pixel radius and sweeps each motion segment to avoid missing slots at higher speeds. The radius, branch layout, foliage density and marker visibility need phone-scale playtesting. Arriving at an arbitrary sky height never counts as a rescue.
 - Weather/endings demonstrate the visual states rather than finished cinematic direction. Warning flakes do not collide with leaves or change movement.
 - Workshop purchases immediately change the visible build readout; production needs a fuller before/after preview and confirmation flow.
-- No saved high scores, initials entry, difficulty selector, persistent settings, exact mid-attempt resume after process termination, global leaderboard, production music, or temporary pickups. These remain in the staged design plan.
+- No persistent settings, exact mid-attempt resume after process termination, global leaderboard, production music, or temporary pickups. These remain in the staged design plan.
 - Art readability, battery cadence, week difficulty, scoring and all upgrade numbers need human playtesting. Fixed-step logic and equal viewports do not solve every future ranked-play fairness issue.
 
 Next gate: play this on physical Android and iPhone browsers, review empty-branch aiming and the paper effect at phone scale, then refine branch art, scenery depth and animated character assets.
@@ -115,3 +118,5 @@ The cutout mesh updates at 30 Hz while fixed-step movement/leaf forces and wind 
 To regenerate the seven art screenshots from a release export, run `tests/visual_fixture.gd`, serve `build/web`, then `python3 tests/capture_art.py`. The optional `--video` uses Playwright’s ffmpeg to capture real input and system ffmpeg to encode the trimmed MP4. The resulting [motion clip](images/prototype-motion.mp4) demonstrates the running browser build; software rendering in the cloud does not establish device frame rate.
 
 Launcher verification: `python3 tests/test_launcher.py` checks platform selection, cached-download reuse, checksum/incomplete-download failures and archive path containment without network access. The fresh Linux download/import/export and loopback HTTP serve are also exercised separately.
+
+Current menu captures: [main menu](images/prototype-menu.png), [High Scores](images/prototype-high-scores.png), and [License](images/prototype-license.png). Score screenshots use an actual browser-played terminal result.

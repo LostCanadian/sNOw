@@ -70,7 +70,7 @@ static func snapshot(game) -> Dictionary:
 	if game.status == "playing" and game.week_time > 0.0: return {}
 	var ids: Array = []
 	for slot in game.slots: ids.append(slot.leaf_id)
-	return {"week": game.week, "phase": game.status, "score": game.score,
+	return {"difficulty": game.difficulty, "run_id": game.run_id, "week": game.week, "phase": game.status, "score": game.score,
 		"combo": game.combo, "week_rescued": game.week_rescued, "week_missed": game.week_missed,
 		"rescued": game.rescued, "missed": game.missed, "points": game.points,
 		"earned_points": game.earned_points, "tiers": game.tiers.duplicate(),
@@ -84,14 +84,17 @@ static func whole(value, low: int, high: int) -> bool:
 
 static func valid_checkpoint(data) -> bool:
 	if not data is Dictionary: return false
+	if not whole(data.get("difficulty", 1), 0, 2): return false
+	if data.has("run_id") and (not data.run_id is String or data.run_id.length() < 16 or data.run_id.length() > 80): return false
+	var limit: int = Loop.DIFFICULTIES[int(data.get("difficulty", 1))].capacity
 	for field in ["week", "phase", "score", "rescued", "missed", "points", "earned_points", "tiers", "leaf_ids", "order", "rng_state", "rng_seed"]:
 		if not data.has(field): return false
 	if not whole(data.week, 1, Loop.BOSS_STAGE) or not data.phase is String or data.phase not in ["playing", "workshop", "won"]: return false
 	if data.phase == "workshop" and data.week > Loop.MAIN_WEEKS: return false
 	if data.phase == "won" and data.week != Loop.BOSS_STAGE: return false
-	if not whole(data.score, 0, 1000000000) or not whole(data.rescued, 0, 10000) or not whole(data.missed, 0, Loop.CAPACITY - 1): return false
+	if not whole(data.score, 0, 1000000000) or not whole(data.rescued, 0, 10000) or not whole(data.missed, 0, limit - 1): return false
 	if not whole(data.get("combo", 0), 0, int(data.rescued)): return false
-	if not whole(data.get("week_rescued", 0), 0, 48) or not whole(data.get("week_missed", 0), 0, Loop.CAPACITY - 1): return false
+	if not whole(data.get("week_rescued", 0), 0, 48) or not whole(data.get("week_missed", 0), 0, limit - 1): return false
 	if not whole(data.earned_points, 0, Loop.MAIN_WEEKS) or not whole(data.points, 0, Loop.MAIN_WEEKS): return false
 	var expected: int = int(data.week) if data.phase == "workshop" else mini(int(data.week) - 1, Loop.MAIN_WEEKS)
 	if data.earned_points != expected: return false
@@ -125,7 +128,9 @@ static func valid_checkpoint(data) -> bool:
 
 static func restore(data):
 	if not valid_checkpoint(data): return null
-	var game = Loop.new()
+	var game = Loop.new(641023, int(data.get("difficulty", 1)))
+	# Stable identity for legacy checkpoints: reloading/retrying never makes another score row.
+	game.run_id = data.get("run_id", "legacy-" + JSON.stringify(data).sha256_text().substr(0, 32))
 	game.week = int(data.week)
 	game.status = data.phase
 	game.score = int(data.score)

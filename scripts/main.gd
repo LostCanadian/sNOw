@@ -4,6 +4,8 @@ extends Node2D
 const Loop = preload("res://scripts/loop.gd")
 const PaperActor = preload("res://scripts/paper_actor.gd")
 const Canopy = preload("res://scripts/canopy.gd")
+const HighScores = preload("res://scripts/high_scores.gd")
+const ThirdParty = preload("res://scripts/third_party.gd")
 const Campaign = preload("res://scripts/campaign.gd")
 const BACKDROP = preload("res://assets/art/autumn_stage.png")
 const PAPER_LEAF = preload("res://assets/art/paper_leaf.png")
@@ -48,6 +50,11 @@ var leaf_region: Rect2
 var wardrobe_regions: Array[Rect2] = []
 var ending_regions: Array[Rect2] = []
 var campaign = Campaign.new()
+var high_scores = HighScores.new()
+var selected_difficulty := 1
+var scores_return_to_result := false
+var license_section := "About"
+var license_characters := 0
 var active_slot := -1
 var level_checkpoint: Dictionary = {}
 var paused_mode := "play"
@@ -146,13 +153,16 @@ func _physics_process(dt: float) -> void:
 		telemetry_tick += 1
 		if telemetry_tick % 6 == 0:
 			var snapshot := {
-				"mode": mode, "week": sim.week, "x": sim.x, "charge": sim.charge,
+				"mode": mode, "score": sim.score, "week": sim.week, "x": sim.x, "charge": sim.charge,
 				"blowing": sim.blowing, "rescued": sim.rescued, "missed": sim.missed,
 				"points": sim.points, "tiers": sim.tiers, "touches": touches.size(),
 				"time": sim.week_time, "weather": weather(), "victory": preview_victory,
 				"attached": sim.attached_count(), "slots": sim.slots.size(), "air": sim.leaves.size(),
 				"result_visible": mode in ["lost", "won"] and overlay != null,
 				"active_slot": active_slot, "phase": sim.status, "temperature": sim.temperature(), "boss_phase": sim.boss_phase(),
+				"difficulty": sim.difficulty, "capacity": sim.capacity(),
+				"score_rows": high_scores.tables.map(func(table): return table.size()),
+				"license_section": license_section, "license_characters": license_characters,
 				"gait_phase": actor.phase(), "travel": actor.travel, "motor": actor.motor,
 				"save_error": save_notice, "storage_error": campaign.error,
 				"gaps": sim.slots.filter(func(slot: Dictionary): return slot.leaf_id < 0).map(func(slot: Dictionary): return [slot.position.x, slot.position.y]),
@@ -242,9 +252,9 @@ func _notification(what: int) -> void:
 		confirm_discard(func(): get_tree().quit())
 
 
-func start_run(slot_index := -1, slot_name := "") -> void:
+func start_run(slot_index := -1, slot_name := "", difficulty := -1) -> void:
 	clear_paused_overlay()
-	sim = Loop.new()
+	sim = Loop.new(641023, selected_difficulty if difficulty < 0 else difficulty)
 	actor.reset()
 	update_actor_mesh(true)
 	active_slot = slot_index
@@ -368,7 +378,7 @@ func show_slots() -> void:
 			var progress := "Final encounter" if checkpoint.week == Loop.BOSS_STAGE else "Week %d" % int(checkpoint.week)
 			if checkpoint.phase == "workshop": progress += " complete"
 			if checkpoint.phase == "won": progress = "Winter defeated!"
-			button(panel, record.name + "\n" + progress, Rect2(16, y, 202, 57), func(): load_slot(i))
+			button(panel, record.name + "\n" + progress + " · " + Loop.DIFFICULTIES[int(checkpoint.get("difficulty", 1))].name, Rect2(16, y, 202, 57), func(): load_slot(i))
 			button(panel, "Edit", Rect2(229, y, 79, 57), func(): show_slot_name(i, true), true)
 	button(panel, "Back to menu", Rect2(78, 351, 168, 36), show_title, true)
 	if campaign.error != "": text_label(panel, campaign.error, Rect2(8, 386, 308, 19), 8, INK)
@@ -376,24 +386,39 @@ func show_slots() -> void:
 
 func show_slot_name(index: int, editing: bool) -> void:
 	mode = "name"
-	var panel := new_panel(Rect2(25, 187, 310, 275))
+	var panel := new_panel(Rect2(25, 157, 310, 355))
 	text_label(panel, "Name your garden", Rect2(10, 18, 290, 36), 22, INK, true)
 	var input := LineEdit.new()
-	input.position = Vector2(24, 75)
+	input.position = Vector2(24, 105)
 	input.size = Vector2(262, 40)
 	input.max_length = 18
 	input.text = campaign.slots[index].name if editing else "Garden %d" % (index + 1)
 	input.add_theme_font_override("font", BODY_FONT)
 	input.add_theme_font_size_override("font_size", 16)
 	panel.add_child(input)
+	if not editing:
+		var group := ButtonGroup.new()
+		for i in range(3):
+			var choice := button(panel, Loop.DIFFICULTIES[i].name, Rect2(18 + i * 92, 60, 88, 35), func(): selected_difficulty = i, true)
+			choice.add_theme_font_size_override("font_size", 10)
+			choice.add_theme_stylebox_override("pressed", panel_style(INK, 8))
+			choice.add_theme_color_override("font_pressed_color", CREAM)
+			choice.toggle_mode = true
+			choice.button_group = group
+			choice.button_pressed = selected_difficulty == i
+		text_label(panel, "Difficulty stays with this garden.
+Each has its own local top ten.", Rect2(14, 213, 282, 43), 10, INK)
+	else:
+		var difficulty: int = campaign.slots[index].checkpoint.get("difficulty", 1)
+		text_label(panel, Loop.DIFFICULTIES[difficulty].name + " · Difficulty stays with this garden", Rect2(12, 62, 286, 28), 10, INK)
 	var accept := func():
 		if editing:
 			campaign.rename_slot(index, input.text)
 			show_slots()
 		else: start_run(index, input.text)
-	button(panel, "Save name" if editing else "Start week 1", Rect2(24, 135, 262, 40), accept)
-	button(panel, "Back", Rect2(24, 187, 120, 36), show_slots, true)
-	if editing: button(panel, "Start over", Rect2(158, 187, 128, 36), func(): confirm_reset_slot(index), true)
+	button(panel, "Save name" if editing else "Start week 1", Rect2(24, 165, 262, 40), accept)
+	button(panel, "Back", Rect2(24, 278, 120, 36), show_slots, true)
+	if editing: button(panel, "Start over", Rect2(158, 278, 128, 36), func(): confirm_reset_slot(index), true)
 	input.text_submitted.connect(func(_text): accept.call())
 	input.grab_focus()
 	input.select_all()
@@ -404,7 +429,7 @@ func confirm_reset_slot(index: int) -> void:
 	text_label(panel, "Start this garden over?", Rect2(10, 20, 290, 35), 20, INK, true)
 	text_label(panel, "This replaces its saved campaign.\nYour other gardens will not change.", Rect2(10, 65, 290, 43), 11, INK)
 	button(panel, "Keep my save", Rect2(24, 125, 262, 36), show_slots)
-	button(panel, "Replace with a new campaign", Rect2(24, 176, 262, 36), func(): start_run(index, campaign.slots[index].name), true)
+	button(panel, "Replace with a new campaign", Rect2(24, 176, 262, 36), func(): start_run(index, campaign.slots[index].name, int(campaign.slots[index].checkpoint.get("difficulty", 1))), true)
 
 
 func load_slot(index: int) -> void:
@@ -523,7 +548,7 @@ func show_title() -> void:
 	preview_victory = false
 	preview_mode = false
 	clear_input()
-	var panel := new_panel(Rect2(26, 154, 308, 338))
+	var panel := new_panel(Rect2(26, 154, 308, 405))
 	var logo := RichTextLabel.new()
 	logo.bbcode_enabled = true
 	logo.text = "[center]s[color=#bd5430]NO[/color]w[/center]"
@@ -538,8 +563,10 @@ func show_title() -> void:
 	text_label(panel, "One magical tree. One stubborn autumn.", Rect2(12, 107, 284, 22), 11, INK)
 	button(panel, "Continue / New garden", Rect2(25, 147, 258, 45), show_slots)
 	button(panel, "Explore the seasons", Rect2(25, 203, 258, 40), show_season_lab, true)
-	text_label(panel, "Move: A / D or arrows  ·  Blow: hold Space\nOn a phone, hold the buttons below.", Rect2(12, 254, 284, 43), 10, INK)
-	add_options(panel, 302)
+	text_label(panel, "Move: A / D or arrows  ·  Blow: hold Space\nOn a phone, hold the buttons below.", Rect2(12, 299, 284, 43), 10, INK)
+	button(panel, "High Scores", Rect2(25, 254, 123, 38), func(): show_high_scores(), true)
+	button(panel, "License", Rect2(160, 254, 123, 38), show_license, true)
+	add_options(panel, 354)
 
 
 func add_options(parent: Node, y: float) -> void:
@@ -563,6 +590,117 @@ func add_options(parent: Node, y: float) -> void:
 	sound.add_theme_color_override("font_color", INK)
 	sound.toggled.connect(func(value: bool): muted = value)
 	parent.add_child(sound)
+
+
+func show_license() -> void:
+	clear_input()
+	mode = "license"
+	var panel := new_panel(Rect2(18, 74, 324, 492))
+	text_label(panel, "License & acknowledgements", Rect2(8, 14, 308, 35), 18, INK, true)
+	var sections := ThirdParty.sections()
+	var content := RichTextLabel.new()
+	content.position = Vector2(16, 154)
+	content.size = Vector2(292, 284)
+	content.selection_enabled = true
+	content.add_theme_font_override("normal_font", BODY_FONT)
+	content.add_theme_font_size_override("normal_font_size", 11)
+	content.add_theme_color_override("default_color", INK)
+	content.text = sections.values()[0]
+	license_section = "About"
+	license_characters = content.text.length()
+	panel.add_child(content)
+	var group := ButtonGroup.new()
+	for index in range(sections.size()):
+		var select := func():
+			content.text = sections.values()[index]
+			license_section = sections.keys()[index]
+			license_characters = content.text.length()
+			content.scroll_to_line(0)
+		var tab := button(panel, sections.keys()[index], Rect2(16 + (index % 2) * 152, 58 + int(index / 2) * 46, 140, 40), select, true)
+		tab.add_theme_font_size_override("font_size", 11)
+		tab.add_theme_stylebox_override("pressed", panel_style(INK, 8))
+		tab.add_theme_color_override("font_pressed_color", CREAM)
+		tab.toggle_mode = true
+		tab.button_group = group
+		tab.button_pressed = index == 0
+	button(panel, "Back to menu", Rect2(80, 449, 164, 36), show_title, true)
+
+
+func show_high_scores(difficulty := -1, from_result := false) -> void:
+	clear_input()
+	mode = "scores"
+	scores_return_to_result = from_result
+	var selected: int = selected_difficulty if difficulty < 0 else difficulty
+	var panel := new_panel(Rect2(18, 70, 324, 514))
+	text_label(panel, "High Scores", Rect2(8, 15, 308, 36), 25, INK, true)
+	for i in range(3):
+		var tab := button(panel, Loop.DIFFICULTIES[i].name, Rect2(12 + i * 102, 65, 96, 38), func(): show_high_scores(i, from_result), i != selected)
+		tab.add_theme_font_size_override("font_size", 11)
+	text_label(panel, "LOCAL TOP TEN · INITIALS / SCORE / PROGRESS", Rect2(8, 111, 308, 21), 9, INK)
+	var table: Array = high_scores.tables[selected]
+	if table.is_empty():
+		text_label(panel, "No scores yet.\n\nRescue some leaves and finish a run\nto put your initials here.", Rect2(10, 175, 304, 125), 13, INK)
+	for i in range(table.size()):
+		var record: Dictionary = table[i]
+		var y := 139 + i * 27
+		text_label(panel, str(i + 1), Rect2(9, y, 22, 25), 10, INK)
+		text_label(panel, record.initials, Rect2(32, y, 41, 25), 12, INK)
+		text_label(panel, "%06d" % int(record.score), Rect2(76, y, 83, 25), 13, INK)
+		var stage := "Final encounter" if record.week == Loop.BOSS_STAGE else "Week %d" % int(record.week)
+		text_label(panel, ("WIN" if record.won else "LOSS") + " · " + stage + "\nBoots %d · Fan %d · Cell %d" % [record.tiers[0], record.tiers[1], record.tiers[2]], Rect2(164, y, 152, 26), 8, INK)
+	text_label(panel, "Best result per garden · Local to this device" if high_scores.error.is_empty() else high_scores.error, Rect2(12, 416, 300, 40), 10, INK)
+	button(panel, "Back" if from_result else "Back to menu", Rect2(80, 465, 164, 36), return_from_scores, true)
+
+
+func return_from_scores() -> void:
+	if scores_return_to_result:
+		mode = sim.status
+		show_result()
+	else: show_title()
+
+
+func show_initials() -> void:
+	if not high_scores.qualifies(sim):
+		show_high_scores(sim.difficulty, true)
+		return
+	clear_input()
+	mode = "initials"
+	var panel := new_panel(Rect2(28, 145, 304, 352))
+	text_label(panel, "Make your mark", Rect2(10, 16, 284, 35), 23, INK, true)
+	text_label(panel, "%d points · %s" % [sim.score, Loop.DIFFICULTIES[sim.difficulty].name], Rect2(10, 55, 284, 27), 12, INK)
+	var input := LineEdit.new()
+	input.position = Vector2(70, 92)
+	input.size = Vector2(164, 42)
+	input.text = "AAA"
+	input.max_length = 3
+	input.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	input.add_theme_font_override("font", BODY_FONT)
+	input.add_theme_font_size_override("font_size", 24)
+	panel.add_child(input)
+	input.text_changed.connect(func(value):
+		var clean := ""
+		for character in value.to_upper():
+			if character >= "A" and character <= "Z": clean += character
+		if input.text != clean:
+			var caret := input.caret_column
+			input.text = clean
+			input.caret_column = mini(caret, clean.length()))
+	for column in range(3):
+		for direction in [-1, 1]:
+			button(panel, "+" if direction == 1 else "−", Rect2(54 + column * 68, 149 if direction == 1 else 194, 54, 38), func():
+				var initials := HighScores.clean_initials(input.text)
+				initials[column] = char(65 + posmod(initials.unicode_at(column) - 65 + direction, 26))
+				input.text = initials, true)
+	text_label(panel, "A–Z · Type or use the letter buttons", Rect2(8, 236, 288, 23), 10, INK)
+	var submit := func():
+		high_scores.submit(sim, input.text)
+		show_high_scores(sim.difficulty, true)
+	button(panel, "Save score", Rect2(18, 279, 140, 42), submit)
+	button(panel, "Not now", Rect2(170, 279, 116, 42), func(): mode = sim.status; show_result(), true)
+	input.text_submitted.connect(func(_text): submit.call())
+	if not DisplayServer.is_touchscreen_available():
+		input.grab_focus()
+		input.select_all()
 
 
 func show_season_lab() -> void:
@@ -629,12 +767,14 @@ func continue_week() -> void:
 
 func show_result() -> void:
 	var won := mode == "won"
-	var panel := new_panel(Rect2(30, 205, 300, 250))
-	text_label(panel, "Winter can wait!" if won else "Winter found a way.", Rect2(10, 17, 280, 37), 23, INK, true)
-	text_label(panel, "Twelve weeks. One North Wind defeated." if won else "Your checkpoint is safe. Try this level again.", Rect2(8, 58, 284, 23), 10, INK)
-	text_label(panel, "%s points · %s\n%d leaves returned to the trees" % [str(sim.score), "Final encounter" if sim.is_boss() else "Week %d" % sim.week, sim.rescued], Rect2(10, 88, 280, 40), 12, INK)
-	button(panel, "Your gardens" if won else "Retry this level", Rect2(24, 144, 252, 39), show_slots if won else restart_level)
-	button(panel, "Main menu", Rect2(24, 195, 252, 35), show_title, true)
+	var panel := new_panel(Rect2(30, 167, 300, 320))
+	text_label(panel, "Winter can wait!" if won else "Winter found a way.", Rect2(10, 12, 280, 37), 23, INK, true)
+	text_label(panel, "Twelve weeks. One North Wind defeated." if won else "Your checkpoint is safe. Try this level again.", Rect2(8, 50, 284, 23), 10, INK)
+	text_label(panel, "%s points · %s\n%d leaves returned to the trees" % [str(sim.score), "Final encounter" if sim.is_boss() else "Week %d" % sim.week, sim.rescued], Rect2(10, 80, 280, 40), 12, INK)
+	button(panel, "New high score · Enter initials" if high_scores.qualifies(sim) else "View high scores", Rect2(24, 130, 252, 40), show_initials if high_scores.qualifies(sim) else func(): show_high_scores(sim.difficulty, true), true)
+	text_label(panel, Loop.DIFFICULTIES[sim.difficulty].name + " · Best result per garden", Rect2(8, 280, 284, 25), 10, INK)
+	button(panel, "Your gardens" if won else "Retry this level", Rect2(24, 181, 252, 40), show_slots if won else restart_level)
+	button(panel, "Main menu", Rect2(24, 232, 252, 38), show_title, true)
 
 
 func weather() -> float:
@@ -645,7 +785,9 @@ func weather() -> float:
 
 
 func visual_mode() -> String:
-	return paused_mode if mode == "paused" else mode
+	var current := paused_mode if mode == "paused" else mode
+	if current == "initials" or (current == "scores" and scores_return_to_result): return sim.status
+	return current
 
 
 func _draw() -> void:
@@ -889,7 +1031,7 @@ func draw_hud() -> void:
 	write("%d°C" % sim.temperature(), Vector2(88, 66), 10, GOLD)
 	draw_snowflake(Vector2(141, 30), 6.0, 0, CREAM)
 	write("WINTER", Vector2(155, 27), 8, CREAM)
-	write("%d / %d" % [sim.missed, Loop.CAPACITY], Vector2(254, 27), 8, CREAM)
+	write("%d / %d" % [sim.missed, sim.capacity()], Vector2(254, 27), 8, CREAM)
 	draw_bar(Rect2(155, 33, 133, 7), sim.pressure(), Color("c5deea"))
 	draw_fan(Vector2(141, 57), 6, elapsed * 4 if sim.blowing else 0, GOLD)
 	write("BATTERY", Vector2(155, 52), 8, CREAM)

@@ -9,11 +9,18 @@ const Canopy = preload("res://scripts/canopy.gd")
 const CAPTURE_RADIUS := 15.0
 const MAX_ACTIVE := 150
 const BASE_SPEED := 122.0
-const CAPACITY := 28
+const CAPACITY := 28 # Existing Blustery saves retain their tuning.
+const DIFFICULTIES := [
+	{"name": "Breezy", "capacity": 34, "leaves": 14, "cadence": 1.15, "wind": 0.70, "fall": 0.88},
+	{"name": "Blustery", "capacity": 28, "leaves": 16, "cadence": 1.0, "wind": 1.0, "fall": 1.0},
+	{"name": "Gale", "capacity": 22, "leaves": 18, "cadence": 0.85, "wind": 1.30, "fall": 1.12},
+]
 const MAIN_WEEKS := 12
 const BOSS_STAGE := MAIN_WEEKS + 1
 const LEAF_COLOURS := [Color("e6ae3d"), Color("d96a32"), Color("b54332"), Color("b5b352")]
 
+var difficulty := 1
+var run_id := ""
 var rng := RandomNumberGenerator.new()
 var week := 1
 var x := 180.0
@@ -42,7 +49,9 @@ var tiers := [0, 0, 0]
 var events: Array[Dictionary] = []
 
 
-func _init(seed_value: int = 641023) -> void:
+func _init(seed_value: int = 641023, difficulty_value := 1) -> void:
+	difficulty = clampi(difficulty_value, 0, 2)
+	run_id = (str(Time.get_unix_time_from_system()) + ":" + str(Time.get_ticks_usec()) + ":" + str(randi())).sha256_text().substr(0, 32)
 	rng.seed = seed_value
 	piles.resize(12)
 	piles.fill(0)
@@ -62,8 +71,12 @@ func stats(build: Array = tiers) -> Dictionary:
 	}
 
 
+func capacity() -> int:
+	return DIFFICULTIES[difficulty].capacity
+
+
 func pressure() -> float:
-	return clampf(float(missed) / CAPACITY, 0.0, 1.0)
+	return clampf(float(missed) / capacity(), 0.0, 1.0)
 
 
 func week_leaf_count() -> int:
@@ -95,7 +108,7 @@ func prepare_shedding() -> void:
 		var value := shedding_order[i]
 		shedding_order[i] = shedding_order[j]
 		shedding_order[j] = value
-	shedding_order.resize(mini(shedding_order.size(), 16 + (week - 1)))
+	shedding_order.resize(mini(shedding_order.size(), int(DIFFICULTIES[difficulty].leaves) + (week - 1)))
 
 
 func temperature() -> int:
@@ -163,7 +176,7 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 	spawn_timer -= dt
 	if spawn_timer <= 0.0 and spawned < week_leaf_count() and leaves.size() < MAX_ACTIVE:
 		spawn_leaf()
-		spawn_timer += (0.38 if boss_phase() == "blast" else maxf(0.65, 1.30 - week * 0.045))
+		spawn_timer += (0.38 if boss_phase() == "blast" else maxf(0.65, 1.30 - week * 0.045)) * DIFFICULTIES[difficulty].cadence
 	var origin := nozzle()
 	for leaf in leaves:
 		if leaf.state != "air":
@@ -175,20 +188,20 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 		var height := origin.y - p.y
 		var center_x := origin.x + direction * height * 0.15
 		var in_gust: bool = blowing and height > -8.0 and height < 335.0 and absf(p.x - center_x) < s.width * (0.7 + height / 340.0)
-		var wind := sin(week_time * 0.9 + week) * (5.0 + week * 1.6)
+		var wind := sin(week_time * 0.9 + week) * (5.0 + week * 1.6) * float(DIFFICULTIES[difficulty].wind)
 		# Smooth, seeded aerodynamic variation: broad drifting arcs, never frame noise.
 		var flutter: float = leaf.age * leaf.get("flutter_rate", 2.8) + leaf.get("flutter_phase", float(leaf.id))
 		var flutter_x: float = sin(flutter) * leaf.get("flutter_strength", 26.0)
 		v.x += (wind + flutter_x - v.x) * 1.8 * dt
 		var drag_coefficient: float = leaf.get("drag", 0.65) * (0.75 + 0.25 * cos(flutter * 2))
-		v.y += (GRAVITY - v.y * drag_coefficient + sin(flutter * 2) * 8.0) * dt
+		v.y += (GRAVITY * float(DIFFICULTIES[difficulty].fall) - v.y * drag_coefficient + sin(flutter * 2) * 8.0) * dt
 		if boss_phase() == "blast": v.y += 32.0 * dt
 		if in_gust:
 			leaf.lifted = true
 			v.y -= s.force * dt
 			# Directional airflow with mild flutter, rather than a corkscrew vortex.
 			v.x += ((center_x - p.x) * 0.55 + sin(flutter) * 12.0) * dt
-		v.y = clampf(v.y, -158.0, 45.0 + week * 1.5)
+		v.y = clampf(v.y, -158.0, (45.0 + week * 1.5) * float(DIFFICULTIES[difficulty].fall))
 		v.x = clampf(v.x, -85.0, 85.0)
 		p += v * dt
 		if p.x < 24.0 or p.x > 336.0:
@@ -211,7 +224,7 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 			break
 	leaves = leaves.filter(func(leaf: Dictionary) -> bool: return leaf.state == "air")
 	if status == "playing" and spawned >= week_leaf_count() and leaves.is_empty():
-		score += 500 + 50 * (CAPACITY - missed)
+		score += 500 + 50 * (capacity() - missed)
 		blowing = false
 		if is_boss():
 			score += 5000
@@ -270,7 +283,7 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 		combo = 0
 		var segment := clampi(int(leaf.position.x / 30.0), 0, 11)
 		piles[segment] += 1
-		if missed >= CAPACITY:
+		if missed >= capacity():
 			status = "lost"
 			blowing = false
 	events.append({"position": leaf.position, "saved": saved})

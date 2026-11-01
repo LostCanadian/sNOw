@@ -152,6 +152,19 @@ def run(url: str, executable: str):
         page.wait_for_function("window.snowSnapshot.result_visible", timeout=20000)
         page.screenshot(path=str(output / "browser-winter-loss.png"))
         record("misses trigger actual winter loss and its result screen")
+        ended_score = snap()["score"]
+        click(180, 318)
+        page.wait_for_function("window.snowSnapshot.mode === 'initials'")
+        click(180, 258)
+        page.keyboard.press("Control+A")
+        page.keyboard.type("xyz", delay=20)
+        click(116, 445)
+        page.wait_for_function("window.snowSnapshot.mode === 'scores' && window.snowSnapshot.score_rows[1] === 1")
+        score_document = page.evaluate("JSON.parse(localStorage.getItem('snow.highscores.v1'))")
+        assert score_document["tables"][1][0]["initials"] == "XYZ"
+        assert score_document["tables"][1][0]["score"] == ended_score
+        click(180, 554)
+        page.wait_for_function("window.snowSnapshot.mode === 'lost'")
         click(180, 368)
         page.wait_for_function("window.snowSnapshot.mode === 'play'")
         assert snap()["week"] == 2 and snap()["tiers"] == [0, 1, 0]
@@ -162,6 +175,15 @@ def run(url: str, executable: str):
         click(180, 382)
         page.wait_for_function("window.snowSnapshot.mode === 'title'")
         record("loss retries the same week; confirmed exit retains the saved campaign")
+        page.reload(wait_until="networkidle")
+        page.wait_for_function("window.snowSnapshot?.mode === 'title'", timeout=90000)
+        click(113, 427)
+        page.wait_for_function("window.snowSnapshot.mode === 'scores' && window.snowSnapshot.score_rows[1] === 1")
+        page.screenshot(path=str(output / "browser-high-scores.png"))
+        page.locator("canvas").screenshot(path="docs/images/prototype-high-scores.png")
+        record("initials entry saves the actual terminal score; local top ten survives reload")
+        click(180, 554)
+        page.wait_for_function("window.snowSnapshot.mode === 'title'")
         click(180, 377)
         page.wait_for_function("window.snowSnapshot.mode === 'preview'")
         for x, key, target, filename in [
