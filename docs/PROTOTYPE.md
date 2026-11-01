@@ -19,7 +19,22 @@ For the exact save/retry contract, clothing progression, final encounter and def
 
 ## Run and export
 
-Install Godot 4.6.3 stable and matching export templates using Godot's export-template manager. A plain `godot --path .` or opening `project.godot` works on a configured desktop. The Bash wrapper checks the pinned version and gives cloud tasks writable Godot data/cache/config locations under `/workspace/.snow-tools`; outside `/workspace`, it preserves normal platform locations. Set `SNOW_GODOT_BIN` to the executable path if it is not named `godot`.
+For a fully command-line browser setup, install Python **3.9+**, then run from the checkout:
+
+```sh
+# macOS / Linux:
+python3 tools/play_web.py --open
+# Windows:
+py -3 tools/play_web.py --open
+```
+
+The launcher downloads the pinned Standard Godot editor and official template archive over HTTPS, checks their SHA-512 hashes against the matching release manifest, imports/exports without opening the editor, then serves only `build/web` on loopback at **http://localhost:8000**. It uses Python’s standard library: no pip dependencies, Bash, system Godot installation or administrator privileges are required. It supports x86-64/ARM64 Windows and Linux, plus the universal macOS build. Linux is tested here; native Windows/macOS execution still needs verification.
+
+The first download includes the approximately **1.2 GB** template archive; only its four browser templates and version metadata are installed. Executables and cached downloads live in ignored `.snow-tools/` in this checkout. Linux/Windows Godot data are isolated there too; macOS templates use `~/Library/Application Support/Godot/export_templates/4.6.3.stable/`. After successful installation, `.snow-tools/downloads/` may be deleted to recover archive space. Existing browser saves remain in the browser’s localStorage.
+
+Subsequent launches reuse installed files and export current source again. `--serve-only` skips installation/export, `--build-only` exits after export, `--port 8080` selects another local port, and `--open` opens the browser after the server starts. Keep the terminal open and stop with Ctrl+C. Use the same hostname/port between sessions to keep the same browser save origin. When port 8000 is already occupied, stop that server or select a different port.
+
+For an existing Godot installation, install Godot 4.6.3 stable and matching export templates using Godot's export-template manager. A plain `godot --path .` or opening `project.godot` works on a configured desktop. The Bash wrapper checks the pinned version and gives cloud tasks writable Godot data/cache/config locations under `/workspace/.snow-tools`; outside `/workspace`, it preserves normal platform locations. Set `SNOW_GODOT_BIN` to the executable path if it is not named `godot`.
 
 ```sh
 # From the repository root:
@@ -98,3 +113,5 @@ The selected runtime tree is explicitly `assets/art/season_tree.png`; the previo
 The cutout mesh updates at 30 Hz while fixed-step movement/leaf forces and wind animation run at 60 Hz; settled idle poses reuse their mesh. Joint transforms are cached before skinning. Reduced effects lowers torso/motor motion and wind streak count. Animation clocks and physics freeze together when paused. Seeded leaf variation is generated on shedding, never from per-frame noise, preserving repeatable retries. These are prototype motion systems, not a finished hand-authored walk cycle.
 
 To regenerate the seven art screenshots from a release export, run `tests/visual_fixture.gd`, serve `build/web`, then `python3 tests/capture_art.py`. The optional `--video` uses Playwright’s ffmpeg to capture real input and system ffmpeg to encode the trimmed MP4. The resulting [motion clip](images/prototype-motion.mp4) demonstrates the running browser build; software rendering in the cloud does not establish device frame rate.
+
+Launcher verification: `python3 tests/test_launcher.py` checks platform selection, cached-download reuse, checksum/incomplete-download failures and archive path containment without network access. The fresh Linux download/import/export and loopback HTTP serve are also exercised separately.

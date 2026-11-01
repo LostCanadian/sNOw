@@ -13,11 +13,23 @@ The title is **sNOw**, with **NO** treated as a playful, emphatic visual element
 
 ## Play the technical art prototype
 
-Use **Godot 4.6.3 stable**. Open `project.godot` in the editor and run the main scene, or:
+From the repository folder, use **Python 3.9 or newer** to download Godot and its matching export templates, export the game headlessly, and start a local server. No Godot UI, package installation or admin access is needed.
+
+**macOS / Linux:**
 
 ```sh
-bash tools/godot.sh --editor
+python3 tools/play_web.py --open
 ```
+
+**Windows (PowerShell or Command Prompt):**
+
+```powershell
+py -3 tools/play_web.py --open
+```
+
+The browser opens at **http://localhost:8000** once the export finishes. Leave the terminal running; press **Ctrl+C** to stop. The first run downloads the portable Godot **4.6.3** executable and roughly **1.2 GB** of official export templates, verifies the archives against the release’s SHA-512 checksums, and installs only browser templates. Later runs reuse the installation and rebuild the game. Downloads/tooling stay in ignored `.snow-tools/`; macOS puts matching templates in its standard Godot Application Support directory.
+
+To serve an existing build quickly, add `--serve-only`; to export without starting a server, use `--build-only`. Change the local port with `--port 8080`. Omit `--open` to open the printed address yourself. See [setup details](docs/PROTOTYPE.md#run-and-export) for the existing-Godot workflow.
 
 Move with **A/D** or **Left/Right**. Hold **Space** to blow and release to recharge. **Escape** or the pause button pauses any screen. Switching away pauses automatically; returning requires Resume. Completed levels and workshop choices autosave locally in three named slots; a failed or exited level restarts from its checkpoint. Phones use the on-screen direction and fan buttons simultaneously. Choose **Explore the seasons** from the menu to preview warning snow, winter defeat, and flowering victory.
 
