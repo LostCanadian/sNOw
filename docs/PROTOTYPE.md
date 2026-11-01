@@ -3,10 +3,11 @@
 ## What is implemented
 
 - Godot **4.6.3 stable**, GDScript, Compatibility rendering, no third-party engine plugins.
-- Paper-textured environment and a transparent electric-blower character, with runtime gust ribbons, local paper-leaf piles, gentle light/fog overlays, and soft shadows.
+- Modern rural paper-textured scenery with ordinary houses and a solar roof, plus independently drawn bare trees, textured paper-leaf sprites, a transparent electric-blower character, directional wind streaks, local leaf piles, gentle light/fog overlays, and soft shadows.
 - Fixed-camera, fixed **360 × 640** logical playfield, uniformly fitted inside browser safe-area padding. Screen shape changes decorative margins, not gameplay geometry.
 - Keyboard and independent multi-touch movement/blowing, input release on touch cancellation, pause on application focus loss, and explicit pause/resume.
-- Upward leaf force and swirl, once-only rescue/miss outcomes, pile slowdown, battery depletion/release-to-recharge, score/combo, seven short day profiles, and cumulative winter pressure.
+- Upward leaf force with mild flutter, once-only rescue/miss outcomes, pile slowdown, battery depletion/release-to-recharge, score/combo, seven short day profiles, and cumulative winter pressure.
+- A conserved canopy of 48 individually occupied branch positions. Shedding opens a gap; an upward-blown leaf reattaches only near a real empty position, including one other than its original spot. Missed leaves leave the trees barer across days, rather than resetting the foliage overnight. Daily schedules only use the remaining attached leaves. Late-day colours turn orange/red independently of canopy occupancy.
 - Between-day workshop with boots, blower and battery branches; prerequisites, one point per completed day 1–6, weight/energy tradeoffs, reallocation, and carryover within a run.
 - Small warning flakes near defeat; clouds, cut-paper snowflakes and ground snow on loss; flowers on victory. Main-menu season previews allow immediate art review.
 - Soft-effects and mute options; a quiet synthesized electric whirr after starting a run. No microphone input or external audio service.
@@ -44,9 +45,9 @@ Leaving the blower held at zero charge will not refill it: release first. Upgrad
 
 ## Reproducible validation
 
-Current-instance results: **52 simulation checks and 17 scene/input checks passed**. The debug browser pass completed all seven integration scenarios with no browser/runtime errors, including actual touch-driven movement/blowing, a rescue, a workshop purchase and winter loss. Five aspect ratios and simulated safe-area padding retained the full logical playfield. These observations are from Linux/headless Chromium, not physical phones.
+Current-instance headless results: **66 simulation checks and 19 scene/input checks passed**. The additional canopy checks cover occupied-slot rejection, swept capture, cross-slot reattachment, leaf conservation, persistent gaps and a complete 48-leaf shed scenario. The browser pass completed all seven scenarios without runtime errors, including touch-driven movement/blowing, real branch reattachment, a workshop purchase, persistent foliage gaps and winter loss, plus five aspect ratios and simulated safe-area padding. These observations are from Linux/headless Chromium, not physical phones; see the latest generated browser report for its run outcome.
 
-An actual [gameplay screenshot](images/prototype-gameplay.png) is included in the repository. The generated release is under ignored `build/web/`; a portable browser bundle is `build/snow-web-prototype.zip`. The bundle must still be served over HTTP/HTTPS, not opened directly from disk.
+Actual screenshots of [gameplay](images/prototype-gameplay.png), the [sparse late-autumn warning preview](images/prototype-warning.png), and the [bare-tree winter preview](images/prototype-winter.png) are included in the repository. The generated release is under ignored `build/web/`; a portable browser bundle is `build/snow-web-prototype.zip`. The bundle must still be served over HTTP/HTTPS, not opened directly from disk.
 
 The simulation and scene/input suites have no extra dependencies:
 
@@ -67,18 +68,18 @@ The debug browser check enables a read-only `window.snowSnapshot` only in debug 
 
 ### Validation boundaries
 
-The headless suites cover leaf rescue/miss accounting, battery recovery, movement bounds, upgrade economics, minimum mobility for all builds, final-leaf loss precedence, seeded repeatability, a 150-leaf scenario, focus loss, touch release/cancellation, workshop transitions and run reset. The browser suite checks rendering/runtime errors, touch and keyboard, a real rescue, five screen ratios, simulated safe-area padding, day completion/purchase/carryover, actual winter defeat, and ending previews.
+The headless suites cover leaf rescue/miss accounting, branch occupancy, persistent canopy gaps, battery recovery, movement bounds, upgrade economics, minimum mobility for all builds, final-leaf loss precedence, seeded repeatability, a full-canopy 48-leaf scenario, focus loss, touch release/cancellation, workshop transitions and run reset. The browser suite checks rendering/runtime errors, touch and keyboard, a real reattachment, five screen ratios, simulated safe-area padding, day completion/purchase/carryover, foliage conservation across days, actual winter defeat, and ending previews.
 
 Headless Chromium uses software WebGL in this environment. It can establish functionality and geometry, not phone frame rate, thermal behaviour, perceived sound quality, native touch comfort, Safari compatibility, or cross-platform deterministic scoring. Real Android/iOS and mobile-browser tests remain required. No signed native builds or store submissions are included.
 
 ## Deliberate prototype limits
 
-- Environment art is one composited background plate. Runtime overlays add atmosphere, but individual background trees are not yet separate cutout layers with dynamic lights. No claim of a final rigged 2.5D asset pipeline.
+- Distant scenery remains a composited background plate with baked lighting. Gameplay trees, their foliage and atmospheric overlays are separate runtime layers; the bare branch paths and leaf anchors share `scripts/canopy.gd`. This is not a final rigged 2.5D or fully dynamic lighting pipeline.
 - The character is a single transparent pose with a walk bob. Dedicated walking, looking-up, celebration and blower-idle animations remain production work.
-- Canopy capture uses a forgiving horizontal band rather than branch anchors. Scene geometry and art must be reconciled in the next gameplay pass.
+- Branch capture has a forgiving 15-logical-pixel radius and sweeps each motion segment to avoid missing slots at higher speeds. The radius, branch layout, foliage density and marker visibility need phone-scale playtesting. Arriving at an arbitrary sky height never counts as a rescue.
 - Weather/endings demonstrate the visual states rather than finished cinematic direction. Warning flakes do not collide with leaves or change movement.
 - Workshop purchases immediately change the visible build readout; production needs a fuller before/after preview and confirmation flow.
 - No saved high scores, initials entry, difficulty selector, persistent settings, resume checkpoints, global leaderboard, production music, or temporary pickups. These remain in the staged design plan.
 - Art readability, battery cadence, day difficulty, scoring and all upgrade numbers need human playtesting. Fixed-step logic and equal viewports do not solve every future ranked-play fairness issue.
 
-Next gate: play this on physical Android and iPhone browsers, review the interaction and paper effect at phone scale, then decide whether to invest in separate scenery layers and animated character assets.
+Next gate: play this on physical Android and iPhone browsers, review empty-branch aiming and the paper effect at phone scale, then refine branch art, scenery depth and animated character assets.

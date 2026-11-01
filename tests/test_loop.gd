@@ -26,11 +26,15 @@ func _initialize() -> void:
 	for i in range(240): game.step(1.0 / 60.0, 0.0, false)
 	check(game.charge > 0.99 and not game.energy_locked, "release restores usable energy")
 	game = Loop.new()
+	game.shedding_order.erase(16)
+	game.shedding_order.push_front(16)
 	game.spawn_leaf()
 	var leaf: Dictionary = game.leaves[0]
-	leaf.position = Vector2(180, 300)
+	var home: Vector2 = game.slots[leaf.home_slot].position
+	leaf.position = home + Vector2(0, 90)
+	game.x = home.x - 13
 	for i in range(180): game.step(1.0 / 60.0, 0.0, true)
-	check(game.rescued >= 1 and game.score >= 100, "a real gust carries a falling leaf to the canopy")
+	check(game.rescued >= 1 and game.score >= 100 and game.slots[leaf.home_slot].leaf_id == leaf.id, "a real gust reattaches a leaf to an actual empty branch position")
 	var before: int = game.score
 	game.resolve_leaf(leaf, true)
 	check(game.score == before, "a rescued leaf cannot score twice")
@@ -86,9 +90,48 @@ func _initialize() -> void:
 	game.step(1.0 / 60.0, 0, false)
 	check(game.status == "won" and game.score == 6900 and game.points == 0, "final-day success awards the win bonus and no unusable upgrade point")
 	game = Loop.new()
-	game.spawned = 150
-	for i in range(150): game.spawn_leaf()
+	game.shedding_order.clear()
+	for slot in game.slots: game.shedding_order.append(slot.leaf_id)
+	for i in range(game.slots.size()): game.spawn_leaf()
+	check(game.leaves.size() == 48 and game.attached_count() == 0, "the complete canopy can shed without phantom or duplicated leaves")
 	for i in range(600): game.step(1.0 / 60.0, sin(i / 50.0), i % 300 < 180)
-	check(game.leaves.size() <= 150 and is_finite(game.charge), "150-leaf stress scenario stays bounded")
+	check(game.leaves.size() <= 48 and is_finite(game.charge), "full-canopy stress scenario stays bounded")
+	test_canopy()
 	print("Simulation: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
+
+
+func test_canopy() -> void:
+	var game = Loop.new()
+	check(game.attached_count() == 48 and game.leaves.is_empty(), "every initial canopy leaf occupies a visible branch slot")
+	check(game.capture_slot(Vector2(180, 300), Vector2(180, 75)) == -1, "occupied branches cannot accept another leaf")
+	game.spawn_leaf()
+	var first: Dictionary = game.leaves[0]
+	var empty: int = first.home_slot
+	var p: Vector2 = game.slots[empty].position
+	check(game.attached_count() == 47 and game.slots[empty].leaf_id == -1, "shedding removes the attached leaf and exposes its exact gap")
+	check(first.position.distance_to(p) <= 10.0, "falling leaves originate at their branch rather than an arbitrary sky band")
+	check(game.capture_slot(p + Vector2(0, 50), p - Vector2(0, 50)) == empty, "swept capture finds a gap even at upgraded velocity")
+	check(game.capture_slot(Vector2(180, 310), Vector2(180, 300)) == -1, "a lifted leaf away from a real empty spot does not count as saved")
+	var before: int = game.score
+	game.resolve_leaf(first, true)
+	check(game.score == before and first.state == "air", "the former blanket canopy scoring shortcut is rejected")
+	game.spawn_leaf()
+	var second: Dictionary = game.leaves[1]
+	game.resolve_leaf(second, true, empty)
+	check(game.slots[empty].leaf_id == second.id and game.slots[second.home_slot].leaf_id == -1, "a leaf can fill a different empty branch position")
+	game.resolve_leaf(first, true, empty)
+	check(first.state == "air" and game.rescued == 1, "an already-filled spot rejects a second leaf and score")
+	game.resolve_leaf(first, false)
+	game.leaves.clear()
+	game.spawned = game.day_leaf_count()
+	game.step(1.0 / 60.0, 0, false)
+	var remaining: int = game.attached_count()
+	var gap: int = second.home_slot
+	game.next_day()
+	check(game.attached_count() == remaining and game.slots[gap].leaf_id == -1, "missed-leaf gaps remain bare after the overnight workshop")
+	check(game.attached_count() + game.missed == 48, "canopy conservation survives a miss, cross-slot rescue, and day transition")
+	check(game.day_leaf_count() <= game.attached_count(), "later shedding schedules never invent leaves to refill a depleted canopy")
+	var id: int = game.slots[empty].leaf_id
+	game.day = 7
+	check(game.leaf_colour(id) != Color("8fa65c"), "late-season attached leaves use the autumn palette")

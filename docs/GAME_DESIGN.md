@@ -24,7 +24,7 @@ The paper-cut direction and between-day upgrades are selected features. Exact re
 
 ## Player experience
 
-An approachable opening gives way to increasingly frantic, readable leaf juggling. The fun comes from positioning beneath a falling cluster, catching it in a gust, and watching it spiral back into a tree. The player should understand a miss immediately, recover from small mistakes, and see why a run ended.
+An approachable opening gives way to increasingly frantic, readable leaf juggling. The fun comes from positioning beneath a falling cluster, catching it in a gust, and watching it click back into an empty branch position. The player should understand a miss immediately, recover from small mistakes, and see why a run ended.
 
 Keep the camera fixed. No scrolling world, platforming, jumping, combat, or off-screen objectives. Seasonal changes, character reactions, and animated scenery make the same small space feel alive.
 
@@ -33,6 +33,8 @@ Keep the camera fixed. No scrolling world, platforming, jumping, combat, or off-
 Selected creative direction: **Paper & Lanterns**, following the six-style comparison and four-state seasonal mockup review. Build illustrated 2D gameplay from layered cut-paper scenery, fibrous textures, folded edges, dimensional shadows, and warm backlighting. Use rounded silhouettes, restrained animation, and slightly exaggerated proportions. Retro character comes from shape language and timing; strict pixel art is not a requirement. The concept images establish mood, not production-ready sprites or a final HUD.
 
 Place two or three trees across the upper playfield, open air in the middle, and the character and accumulating leaves along the bottom. Keep trunks, branches, and foreground props from hiding catchable leaves. Reserve the bottom safe area for controls and the top for a compact HUD.
+
+Use a relatable modern rural setting: ordinary houses, wooden fences and optional solar panels, with distant forest and small mountains. No castle, medieval spires or stone bridge. Render the gameplay trees as bare branch structures separately from the scenery, and place all their foliage as independent paper leaves. Attached, falling and piled leaves share the same textured cut-paper asset. The trees' visible emptiness reflects actual missing leaves, especially late in a struggling run; never paint a permanently full canopy into the backdrop.
 
 Create depth with overlapping scenery planes, contact shadows, soft light shafts, a gentle canopy glow, and sparse fog. Fog stays behind important action or uses very low opacity. Colour and contrast must distinguish leaves from the backdrop, including during orange/red late days. Leaf shape, motion, and markings supplement colour cues.
 
@@ -64,9 +66,9 @@ This gives the player two deliberate choices—where to stand and when to blow�
 
 ### Leaf lifecycle
 
-Each day starts with a finite set of leaf IDs attached to defined canopy anchors. A seeded shedding schedule detaches leaves in increasingly difficult patterns. A leaf can be attached, falling, airborne in a gust, or grounded.
+Each run starts with a finite set of leaf IDs attached to defined branch anchors. A seeded daily schedule detaches a subset of the remaining attached leaves in increasingly difficult patterns. A leaf can be attached, falling, airborne in a gust, or grounded. Shedding exposes its exact position; a miss leaves a persistent empty position. New days do not refill foliage lost earlier in the run. Cap the day's scheduled count by the number of attached leaves rather than inventing new leaves when the canopy is depleted.
 
-The blower applies a cone-shaped upward force with a small sideways component and swirling motion. Wind and gravity continue outside the cone. Returning leaves attach only when entering a valid canopy capture region below a speed threshold; use generous capture regions rather than demanding exact branch collisions. Brief attachment immunity and gusts that do not detach attached leaves prevent flicker and immediate re-shedding.
+The blower applies a cone-shaped upward force with a small sideways component and mild flutter. Show short outward-moving wind streaks with shallow bends, not spiral/helical ribbons. Wind and gravity continue outside the cone. A lifted, upward-moving leaf reattaches only when its path crosses the forgiving capture radius of an empty branch position; sweep the motion segment so upgraded speed does not skip it. Reaching the top of the screen or an occupied position does not score. Any empty position may receive a leaf, not just its original position. Snap the leaf into place, show a brief attachment pulse, and make the position occupied atomically so two leaves cannot fill it. Gusts do not detach attached leaves.
 
 A returned leaf is marked rescued for that day and cannot shed again that day. A grounded leaf counts as missed once and remains in a local pile. Grounded leaves are not recoverable in version one; a later cleanup mechanic would need a separate balance pass. Decorative ambient particles never count toward scores, piles, or loss.
 
@@ -94,7 +96,7 @@ Warning flakes are decorative: no collisions, slowdown, scoring, or extra loss c
 - Each day has a finite shedding schedule, initially targeting 45–75 seconds, followed by a short resolution period. End the day once the schedule is finished and every shed leaf is rescued or grounded; force lingering airborne leaves to resolve naturally with no further scheduled wind bursts.
 - A run ends immediately if grounded leaves reach the chosen difficulty's cumulative ground capacity. Freeze scoring and gameplay before the loss sequence.
 - Between days, show a short summary, then explicitly continue. The character clears the ground overnight: reset local slowdown and pile visuals, but carry the missed-leaf total and danger meter across the run. Show this as “winter pressure” that persists despite clearing the path.
-- Refill blower charge between days and open the upgrade workshop after days 1–6. Run upgrades carry forward; new canopy leaves and a new schedule begin the next day. Day seven goes directly to the ending.
+- Refill blower charge between days and open the upgrade workshop after days 1–6. Run upgrades and the remaining canopy carry forward; a new shedding schedule begins the next day without restoring missed leaves. Day seven goes directly to the ending.
 - Completing day seven below capacity wins. If the final miss reaches capacity as the final leaf resolves, loss takes precedence. Process leaf outcomes once in a stable order.
 
 The overnight cleanup is a recommended balance choice, not a required part of the original concept. Playtest its clarity alongside persistent piles before locking it.

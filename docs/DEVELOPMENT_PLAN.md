@@ -2,6 +2,8 @@
 
 Status: an initial [technical art prototype](PROTOTYPE.md) now implements a subset of these stages in Godot 4.6.3, with a browser export, automated simulation/input checks, original prototype assets, and a small upgrade workshop. This is not a completed cross-platform gate or production vertical slice. Physical-device performance, native exports, full animation/layered-art production, difficulties and persistence remain outstanding. Complete each exit gate before expanding scope; the list below remains the broader delivery plan.
 
+The revised prototype uses modern rural homes instead of the original medieval backdrop. Bare gameplay trees and all foliage now render independently: occupied positions shed real leaves, misses leave persistent gaps, and returning leaves reattach to vacant positions. Shared branch/anchor geometry, textured leaf sprites and directional wind streaks replace the static painted canopy, blanket sky capture and spiral blower ribbons. The current finite canopy has 48 leaves; the earlier 150-leaf budget below remains a future scale target, not a claim about the current stress scenario.
+
 ## Technology recommendation and evaluation
 
 The prototype pins **Godot 4.6.3 stable, GDScript, 2D scenes, and the Compatibility renderer**, with matching export templates and a single-threaded web export. This fits scene animation, UI, paper effects, and a potential native Android/iOS workflow while preserving a browser target. The headless Chromium functionality checks pass; native export and minimum-device compatibility remain open gates. Verify the chosen release's actual platform requirements before relying on any export feature.

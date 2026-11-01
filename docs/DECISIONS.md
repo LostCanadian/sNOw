@@ -13,6 +13,10 @@ This log separates the requested game from proposed implementation choices. “R
 | Branding | sNOw with emphasized, stylized NO | User requirement; logo exploration pending |
 | Difficulty | Three choices, each with its own score table | User requirement; names and balance recommended |
 | Rendering | Paper & Lanterns: layered cut-paper 2D, textured materials, soft shadows and backlighting | User-selected creative direction; runtime/mobile-performance spike pending |
+| Setting | Modern rural homes and optional solar roof, forest and small hills; no castle or stone bridge | User direction adopted in the revised backdrop |
+| Canopy | Bare branch geometry plus separately rendered paper leaves; misses leave persistent gaps across days | Implemented; no overnight foliage refill |
+| Reattachment | Lifted leaves fill nearby empty branch slots; occupied positions and arbitrary sky heights do not score | Implemented with swept capture and exactly-once occupancy |
+| Blower visual | Short directional wind streaks and restrained leaf flutter | User-requested replacement for the earlier spiral effect |
 | Warning weather | Small paper snowflakes begin before loss, increasing with winter pressure | User requirement; thresholds/readability to test |
 | HUD symbols | Blower/fan gauge with battery charge; separate snowflake winter-pressure meter; no flame | Fan gauge accepted by user; charge behaviour proposed |
 | Aspect ratios | Fixed logical 9:16 playfield, uniformly fit inside safe area, decorative margins only | Recommended fairness rule; device and control-size validation pending |

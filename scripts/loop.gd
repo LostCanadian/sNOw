@@ -2,7 +2,8 @@ extends RefCounted
 ## Presentation-independent fixed-step arcade simulation. All coordinates are logical 360 x 640.
 
 const GROUND := 502.0
-const CAPTURE_Y := 176.0
+const Canopy = preload("res://scripts/canopy.gd")
+const CAPTURE_RADIUS := 15.0
 const MAX_ACTIVE := 150
 const BASE_SPEED := 122.0
 const CAPACITY := 28
@@ -26,9 +27,10 @@ var day_rescued := 0
 var day_missed := 0
 var day_time := 0.0
 var spawn_timer := 0.5
-var next_id := 0
 var status := "playing"
 var leaves: Array[Dictionary] = []
+var slots: Array[Dictionary] = []
+var shedding_order: Array[int] = []
 var piles: Array[int] = []
 var points := 0
 var earned_points := 0
@@ -40,6 +42,8 @@ func _init(seed_value: int = 641023) -> void:
 	rng.seed = seed_value
 	piles.resize(12)
 	piles.fill(0)
+	slots = Canopy.slot_layout()
+	prepare_shedding()
 
 
 func stats(build: Array = tiers) -> Dictionary:
@@ -59,7 +63,48 @@ func pressure() -> float:
 
 
 func day_leaf_count() -> int:
-	return 16 + (day - 1) * 2
+	return shedding_order.size()
+
+
+func attached_count() -> int:
+	var count := 0
+	for slot in slots:
+		if slot.leaf_id >= 0: count += 1
+	return count
+
+
+func leaf_colour(id: int, season_day: int = 0) -> Color:
+	var colour_day := day if season_day <= 0 else season_day
+	var autumn_fraction := clampf(float(colour_day) / 7.0, 0, 1)
+	if fmod(id * 0.61803398875, 1.0) > autumn_fraction:
+		return Color("8fa65c") if id % 2 == 0 else Color("bbc16b")
+	return LEAF_COLOURS[id % 3]
+
+
+func prepare_shedding() -> void:
+	shedding_order.clear()
+	for slot in slots:
+		slot.attached_at = -10.0
+		if slot.leaf_id >= 0: shedding_order.append(slot.leaf_id)
+	for i in range(shedding_order.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var value := shedding_order[i]
+		shedding_order[i] = shedding_order[j]
+		shedding_order[j] = value
+	shedding_order.resize(mini(shedding_order.size(), 16 + (day - 1) * 2))
+
+
+func capture_slot(from: Vector2, to: Vector2) -> int:
+	var best := -1
+	var nearest := CAPTURE_RADIUS * CAPTURE_RADIUS
+	for i in range(slots.size()):
+		if slots[i].leaf_id >= 0: continue
+		var point := Geometry2D.get_closest_point_to_segment(slots[i].position, from, to)
+		var distance := point.distance_squared_to(slots[i].position)
+		if distance < nearest:
+			nearest = distance
+			best = i
+	return best
 
 
 func pile_at(at_x: float) -> int:
@@ -103,6 +148,7 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 			continue
 		leaf.age += dt
 		var p: Vector2 = leaf.position
+		var previous := p
 		var v: Vector2 = leaf.velocity
 		var height := origin.y - p.y
 		var center_x := origin.x + direction * height * 0.15
@@ -113,7 +159,8 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 		if in_gust:
 			leaf.lifted = true
 			v.y -= s.force * dt
-			v.x += ((center_x - p.x) * 2.0 + sin(leaf.age * 10.0 + leaf.id) * 95.0) * dt
+			# Directional airflow with mild flutter, rather than a corkscrew vortex.
+			v.x += ((center_x - p.x) * 0.55 + sin(leaf.age * 5.0 + leaf.id) * 18.0) * dt
 		v.y = clampf(v.y, -158.0, 45.0 + day * 1.5)
 		v.x = clampf(v.x, -85.0, 85.0)
 		p += v * dt
@@ -122,12 +169,16 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 			v.x = -v.x * 0.6
 		leaf.position = p
 		leaf.velocity = v
-		leaf.angle += dt * (1.8 if in_gust else 0.7)
-		# A broad canopy band guarantees upgrades cannot shoot through a tiny target.
-		if leaf.lifted and p.y <= CAPTURE_Y:
-			resolve_leaf(leaf, true)
+		leaf.angle += dt * (0.7 if in_gust else 0.45)
+		var target := capture_slot(previous, p) if leaf.lifted and v.y < 0.0 else -1
+		if target >= 0:
+			resolve_leaf(leaf, true, target)
 		elif p.y >= GROUND - minf(14.0, pile_at(p.x) * 2.0):
 			resolve_leaf(leaf, false)
+		elif p.y < 75.0:
+			# Missing a real gap never scores. Let the leaf fall back into reach.
+			leaf.position.y = 75.0
+			leaf.velocity.y = maxf(8.0, -leaf.velocity.y * 0.25)
 		if status == "lost":
 			break
 	leaves = leaves.filter(func(leaf: Dictionary) -> bool: return leaf.state == "air")
@@ -143,21 +194,38 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 			status = "workshop"
 
 
-func spawn_leaf() -> void:
-	var start_x := rng.randf_range(48.0, 312.0)
+func spawn_leaf() -> bool:
+	if spawned >= shedding_order.size() or leaves.size() >= MAX_ACTIVE: return false
+	var id := shedding_order[spawned]
+	var slot_index := -1
+	for i in range(slots.size()):
+		if slots[i].leaf_id == id:
+			slot_index = i
+			break
+	if slot_index < 0: return false
+	var slot: Dictionary = slots[slot_index]
+	slot.leaf_id = -1
 	leaves.append({
-		"id": next_id, "position": Vector2(start_x, 166.0 + rng.randf_range(0, 18)),
+		"id": id, "position": slot.position + Vector2(0, 9), "home_slot": slot_index,
 		"velocity": Vector2(rng.randf_range(-10, 10), 8.0),
 		"state": "air", "lifted": false, "age": 0.0,
-		"angle": rng.randf_range(-PI, PI), "colour": LEAF_COLOURS[next_id % LEAF_COLOURS.size()],
+		"angle": slot.angle, "colour": leaf_colour(id),
 	})
-	next_id += 1
 	spawned += 1
+	return true
 
 
-func resolve_leaf(leaf: Dictionary, saved: bool) -> void:
+func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 	if leaf.state != "air":
 		return
+	if saved:
+		if slot_index < 0 or slot_index >= slots.size() or slots[slot_index].leaf_id >= 0: return
+		if leaf.id < 0 or leaf.id >= slots.size(): return
+		for slot in slots:
+			if slot.leaf_id == leaf.id: return
+		slots[slot_index].leaf_id = leaf.id
+		slots[slot_index].attached_at = day_time
+		leaf.position = slots[slot_index].position
 	leaf.state = "rescued" if saved else "grounded"
 	if saved:
 		combo += 1
@@ -209,5 +277,6 @@ func next_day() -> bool:
 	spawn_timer = 0.5
 	piles.fill(0)
 	leaves.clear()
+	prepare_shedding()
 	status = "playing"
 	return true

@@ -55,11 +55,21 @@ def run(url: str, executable: str):
         page.keyboard.down("a")
         page.wait_for_function("window.snowSnapshot.x < 185")
         page.keyboard.up("a")
+        page.wait_for_function("window.snowSnapshot.air > 0")
+        # Position beneath a real, newly opened branch gap rather than the old sky band.
+        target_x = max(29, min(331, snap()["gaps"][0][0] - 13))
+        if abs(snap()["x"] - target_x) > 5:
+            direction_key = "d" if snap()["x"] < target_x else "a"
+            page.keyboard.down(direction_key)
+            page.wait_for_function("target => Math.abs(window.snowSnapshot.x - target) < 6", arg=target_x)
+            page.keyboard.up(direction_key)
         page.keyboard.down("Space")
         page.wait_for_function("window.snowSnapshot.rescued > 0", timeout=20000)
         page.screenshot(path=str(output / "browser-gameplay.png"))
         page.keyboard.up("Space")
-        record("keyboard movement and actual gust-to-canopy rescue")
+        state = snap()
+        assert state["attached"] + state["air"] + state["missed"] == state["slots"]
+        record("keyboard movement and actual gust-to-empty-branch reattachment with conserved leaves")
 
         page.keyboard.press("Escape")
         page.wait_for_function("window.snowSnapshot.mode === 'paused'")
@@ -89,16 +99,20 @@ def run(url: str, executable: str):
         page.wait_for_function("window.snowSnapshot.mode === 'play'")
         page.wait_for_function("window.snowSnapshot.mode === 'workshop'", timeout=45000)
         assert snap()["points"] == 1
+        assert snap()["attached"] == snap()["slots"] - snap()["missed"]
+        bare_count = snap()["attached"]
         page.screenshot(path=str(output / "browser-workshop.png"))
         click(180, 244)
         page.wait_for_function("window.snowSnapshot.tiers[1] === 1 && window.snowSnapshot.points === 0")
         click(235, 485)
         page.wait_for_function("window.snowSnapshot.mode === 'play' && window.snowSnapshot.day === 2")
         assert snap()["tiers"] == [0, 1, 0]
-        record("real day completion, workshop purchase and upgrade carryover")
+        assert snap()["attached"] <= bare_count, "new days must not refill the bare canopy"
+        page.locator("canvas").screenshot(path=str(output / "browser-depleted-canopy.png"))
+        record("real day completion, workshop purchase, upgrade carryover and persistent bare branches")
 
         page.wait_for_function("window.snowSnapshot.mode === 'lost'", timeout=60000)
-        page.wait_for_timeout(4500)
+        page.wait_for_function("window.snowSnapshot.result_visible", timeout=20000)
         page.screenshot(path=str(output / "browser-winter-loss.png"))
         record("misses trigger actual winter loss and its result screen")
         click(180, 418)

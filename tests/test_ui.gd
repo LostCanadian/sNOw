@@ -75,6 +75,13 @@ func run() -> void:
 	main.show_title()
 	main.start_run()
 	check(main.sim.tiers == [0, 0, 0] and main.sim.points == 0 and main.sim.score == 0, "new run resets equipment, currency and score")
+	for ending in ["lost", "won"]:
+		main.sim.status = ending
+		main._physics_process(1.0 / 60.0)
+		main._physics_process(4.1)
+		check(main.mode == ending and main.overlay != null, ending + " opens its result controls after the cinematic")
+		main.show_title()
+		main.start_run()
 	main.audio.stop()
 	main.playback = null
 	main.queue_free()

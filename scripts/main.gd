@@ -2,7 +2,9 @@ extends Node2D
 ## A small paper theatre: simulation stays separate from cutout presentation and UI.
 
 const Loop = preload("res://scripts/loop.gd")
+const Canopy = preload("res://scripts/canopy.gd")
 const BACKDROP = preload("res://assets/art/autumn_stage.png")
+const PAPER_LEAF = preload("res://assets/art/paper_leaf.png")
 const CARETAKER = preload("res://assets/art/caretaker.png")
 const SNOWFLAKE = preload("res://assets/art/snowflake.svg")
 const BODY_FONT = preload("res://assets/fonts/DejaVuSans.ttf")
@@ -35,6 +37,8 @@ var preview_victory := false
 var preview_mode := false
 var anim_move := 0.0
 var character_region: Rect2
+var leaf_region: Rect2
+var tree_paths := Canopy.tree_paths()
 var audio: AudioStreamPlayer
 var playback: AudioStreamGeneratorPlayback
 var audio_phase := 0.0
@@ -46,6 +50,7 @@ var telemetry_tick := 0
 func _ready() -> void:
 	ambient_rng.seed = 90582
 	character_region = Rect2(CARETAKER.get_image().get_used_rect())
+	leaf_region = Rect2(PAPER_LEAF.get_image().get_used_rect())
 	for i in range(65):
 		snow.append({"x": ambient_rng.randf_range(0, 360), "y": ambient_rng.randf_range(-640, 640), "size": ambient_rng.randf_range(1.0, 3.6), "phase": ambient_rng.randf_range(0, TAU)})
 	ui = Control.new()
@@ -110,7 +115,16 @@ func _physics_process(dt: float) -> void:
 	if test_hooks:
 		telemetry_tick += 1
 		if telemetry_tick % 6 == 0:
-			var snapshot := {"mode": mode, "day": sim.day, "x": sim.x, "charge": sim.charge, "blowing": sim.blowing, "rescued": sim.rescued, "missed": sim.missed, "points": sim.points, "tiers": sim.tiers, "touches": touches.size(), "time": sim.day_time, "weather": weather(), "victory": preview_victory, "logical_size": [get_viewport_rect().size.x, get_viewport_rect().size.y]}
+			var snapshot := {
+				"mode": mode, "day": sim.day, "x": sim.x, "charge": sim.charge,
+				"blowing": sim.blowing, "rescued": sim.rescued, "missed": sim.missed,
+				"points": sim.points, "tiers": sim.tiers, "touches": touches.size(),
+				"time": sim.day_time, "weather": weather(), "victory": preview_victory,
+				"attached": sim.attached_count(), "slots": sim.slots.size(), "air": sim.leaves.size(),
+				"result_visible": mode in ["lost", "won"] and overlay != null,
+				"gaps": sim.slots.filter(func(slot: Dictionary): return slot.leaf_id < 0).map(func(slot: Dictionary): return [slot.position.x, slot.position.y]),
+				"logical_size": [get_viewport_rect().size.x, get_viewport_rect().size.y],
+			}
 			JavaScriptBridge.eval("window.snowSnapshot = " + JSON.stringify(snapshot), true)
 
 
@@ -313,6 +327,7 @@ func button(parent: Node, content: String, rect: Rect2, callback: Callable, seco
 
 
 func show_title() -> void:
+	sim = Loop.new()
 	mode = "title"
 	preview_weather = -1
 	preview_victory = false
@@ -446,6 +461,8 @@ func _draw() -> void:
 		draw_rect(Rect2(0, 0, 360, 640), Color(0.12, 0.24, 0.38, (cold - 0.45) * 0.65))
 	draw_light(victory)
 	draw_fog(cold)
+	draw_trees()
+	draw_canopy(winter, ending, victory)
 	if cold > 0.55:
 		draw_clouds(cold, ending if winter else 0.4)
 		draw_snow(cold, winter)
@@ -457,7 +474,7 @@ func _draw() -> void:
 		draw_piles()
 	for leaf in sim.leaves:
 		if mode not in ["title", "preview"]:
-			draw_leaf(leaf.position, leaf.angle, leaf.colour, 6.7)
+			draw_leaf(leaf.position, leaf.angle, leaf.colour, 9.5)
 	if sim.blowing and mode == "play": draw_gust()
 	draw_character(winter, victory)
 	for spark in sparks:
@@ -469,8 +486,8 @@ func _draw() -> void:
 		draw_hud()
 	if mode == "play": draw_controls()
 	if mode == "play" and sim.day == 1 and sim.day_time < 8.0:
-		var hint := "Hold the fan to lift leaves into the canopy"
-		if sim.day_time > 4.0: hint = "Release to recharge. Keep the path clear."
+		var hint := "Blow leaves into empty spots on the branches"
+		if sim.day_time > 4.0: hint = "Leaves click back on. Release to recharge."
 		paper_box(Rect2(24, 525, 312, 25), Color(0.13, 0.23, 0.20, 0.88), 6)
 		write_center(hint, 180, 541, 10, CREAM)
 
@@ -494,6 +511,54 @@ func draw_fog(cold: float) -> void:
 		pts.append(Vector2(380, y + 45))
 		pts.append(Vector2(-10, y + 45))
 		draw_colored_polygon(pts, Color(0.89, 0.88, 0.74, 0.032 + cold * 0.018))
+
+
+func draw_trees() -> void:
+	for branch in range(tree_paths.size()):
+		var path: PackedVector2Array = tree_paths[branch]
+		var trunk := branch % Canopy.LEFT_PATHS.size() == 0
+		for segment in range(path.size() - 1):
+			var a := path[segment]
+			var b := path[segment + 1]
+			var normal := (b - a).normalized().orthogonal()
+			var width_a := lerpf(12.0 if trunk else 4.8, 1.0, float(segment) / (path.size() - 1))
+			var width_b := lerpf(12.0 if trunk else 4.8, 0.6, float(segment + 1) / (path.size() - 1))
+			var polygon := PackedVector2Array([a + normal * width_a, b + normal * width_b, b - normal * width_b, a - normal * width_a])
+			var shadow := PackedVector2Array()
+			for point in polygon: shadow.append(point + Vector2(2.0, 2.5))
+			draw_colored_polygon(shadow, Color(0.12, 0.14, 0.09, 0.20))
+			draw_colored_polygon(polygon, Color("68503b") if trunk else Color("73553a"))
+			draw_line(a + normal * width_a * 0.55, b + normal * width_b * 0.55, Color("a58254"), 1.2, true)
+			# Fine fibres in the cutout bark, authored from the same branch geometry.
+			for fibre in range(3):
+				var t := 0.15 + fibre * 0.23
+				var p := a.lerp(b, t) + normal * sin(branch * 3.1 + fibre) * width_a * 0.4
+				draw_line(p, p.lerp(b, 0.18), Color(0.25, 0.19, 0.13, 0.5), 0.55, true)
+
+
+func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
+	for i in range(sim.slots.size()):
+		var slot: Dictionary = sim.slots[i]
+		var keep: bool = slot.leaf_id >= 0
+		if preview_mode:
+			# Preview actual bare/occupied positions without changing a live run.
+			keep = fmod(i * 0.61803398875, 1.0) >= preview_weather * Loop.CAPACITY / sim.slots.size()
+		if winter and fmod(i * 0.61803398875, 1.0) < ending: keep = false
+		if victory: keep = true
+		var p: Vector2 = slot.position
+		draw_line(slot.stem, p + Vector2(0, 9).rotated(slot.angle), Color("886341"), 1.0, true)
+		if keep:
+			var colour_day: int = 6 if preview_mode and preview_weather > 0.5 else sim.day
+			if victory: colour_day = 1
+			var colour: Color = sim.leaf_colour(slot.leaf_id if slot.leaf_id >= 0 else i, colour_day)
+			if winter: colour = colour.lerp(Color("aabac3"), ending * 0.8)
+			var sway := 0.0 if reduced_effects else sin(elapsed * 1.5 + i) * 0.045
+			draw_leaf(p, slot.angle + sway, colour, 12.5)
+			var since: float = sim.day_time - slot.attached_at
+			if since >= 0 and since < 0.5 and mode == "play":
+				draw_arc(p, 10 + since * 10, 0, TAU, 24, Color(1, 0.92, 0.6, 0.8 * (1.0 - since * 2)), 1.2, true)
+		elif mode == "play":
+			draw_arc(p, 2.7, 0, TAU, 12, Color(0.65, 0.38, 0.14, 0.6), 0.85, true)
 
 
 func draw_clouds(cold: float, progress: float) -> void:
@@ -545,10 +610,10 @@ func draw_snow_cover(amount: float) -> void:
 		pts.append(Vector2(i * 10, 508 - amount * (13.0 + sin(i * 0.6) * 6.0)))
 	pts.append(Vector2(360, 640))
 	draw_colored_polygon(pts, Color(0.88, 0.93, 0.96, amount * 0.9))
-	for side in [0.0, 255.0]:
-		for i in range(5):
-			var p := Vector2(side + i * 22, 151 + sin(i * 0.7) * 25)
-			draw_line(p, p + Vector2(25, -6), Color(0.95, 0.97, 0.98, amount * 0.8), 7.0, true)
+	for path in tree_paths:
+		for segment in range(path.size() - 1):
+			if path[segment].y < 285 and absf(path[segment].x - path[segment + 1].x) > 15:
+				draw_line(path[segment] + Vector2(0, -3), path[segment + 1] + Vector2(0, -3), Color(0.95, 0.97, 0.98, amount * 0.9), 4.0, true)
 
 
 func draw_flowers(amount: float) -> void:
@@ -574,19 +639,11 @@ func draw_piles() -> void:
 
 
 func draw_leaf(p: Vector2, angle: float, colour: Color, size_px: float) -> void:
-	var shape := PackedVector2Array([Vector2(0, -1), Vector2(0.33, -0.5), Vector2(0.84, -0.67), Vector2(0.65, -0.12), Vector2(1, 0.05), Vector2(0.48, 0.40), Vector2(0.45, 0.78), Vector2(0, 0.55), Vector2(-0.45, 0.78), Vector2(-0.48, 0.4), Vector2(-1, 0.05), Vector2(-0.65, -0.12), Vector2(-0.84, -0.67), Vector2(-0.33, -0.5)])
-	var points := PackedVector2Array()
-	var shadow := PackedVector2Array()
-	for vertex in shape:
-		var v := p + (vertex * size_px).rotated(angle)
-		points.append(v)
-		shadow.append(v + Vector2(1.3, 1.6))
-	draw_colored_polygon(shadow, Color(0.16, 0.16, 0.11, 0.25))
-	draw_colored_polygon(points, colour)
-	var outline := points.duplicate()
-	outline.append(points[0])
-	draw_polyline(outline, colour.darkened(0.45), 0.65, true)
-	draw_line(p + Vector2(0, -size_px * 0.7).rotated(angle), p + Vector2(0, size_px).rotated(angle), colour.darkened(0.3), 0.65, true)
+	var dimensions := Vector2(size_px * 2, size_px * 2 * leaf_region.size.y / leaf_region.size.x)
+	draw_set_transform(p, angle)
+	draw_texture_rect_region(PAPER_LEAF, Rect2(-dimensions * 0.5 + Vector2(1.2, 1.5), dimensions), leaf_region, Color(0.17, 0.17, 0.10, 0.22))
+	draw_texture_rect_region(PAPER_LEAF, Rect2(-dimensions * 0.5, dimensions), leaf_region, colour)
+	draw_set_transform(Vector2.ZERO)
 
 
 func draw_character(winter: bool, victory: bool) -> void:
@@ -607,14 +664,21 @@ func draw_character(winter: bool, victory: bool) -> void:
 
 func draw_gust() -> void:
 	var origin: Vector2 = sim.nozzle()
-	for trail in range(3 if not reduced_effects else 1):
+	var strength: Dictionary = sim.stats()
+	for trail in range(16 if not reduced_effects else 5):
+		var cycle := fmod(elapsed * 1.4 + trail * 0.61803398875, 1.0)
+		var lane := sin(trail * 9.3)
+		var height := cycle * 290.0
+		var length_px := 16.0 + fmod(trail * 13.0, 24.0)
 		var points := PackedVector2Array()
-		for j in range(32):
-			var h := j * 9.0
-			var spread := 3.0 + h * 0.085
-			points.append(origin + Vector2(sin(j * 0.40 - elapsed * 6.0 + trail * 2.0) * spread + sim.direction * h * 0.15, -h))
-		draw_polyline(points, Color(1.0, 0.97, 0.77, 0.20), 3.2, true)
-		draw_polyline(points, Color(1.0, 0.99, 0.89, 0.52), 0.8, true)
+		for j in range(6):
+			var h := height + j * length_px / 5.0
+			var spread: float = strength.width * (0.12 + h / 420.0)
+			# Short streaks travel away from the nozzle. Only a shallow bend, no helix.
+			points.append(origin + Vector2(lane * spread + sim.direction * h * 0.15 + sin(h * 0.012 + trail) * 2.0, -h))
+		var alpha := sin(cycle * PI) * 0.55
+		draw_polyline(points, Color(1.0, 0.99, 0.89, alpha * 0.3), 2.0, true)
+		draw_polyline(points, Color(1.0, 0.99, 0.89, alpha), 0.85, true)
 
 
 func draw_hud() -> void:

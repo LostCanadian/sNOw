@@ -1,6 +1,6 @@
 # sNOw
 
-A portrait, single-screen arcade game about holding back winter with a leaf blower. Catch falling leaves in swirling gusts and blow them back onto the trees before the ground becomes impassable.
+A portrait, single-screen arcade game about holding back winter with an electric leaf blower. Catch falling paper leaves in the wind and blow them into empty branch positions before the ground becomes impassable. Set among familiar rural houses, forest and small hills, the trees grow visibly barer as leaves are missed.
 
 The title is **sNOw**, with **NO** treated as a playful, emphatic visual element in the eventual logo.
 
