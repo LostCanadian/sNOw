@@ -3,10 +3,11 @@
 ## What is implemented
 
 - Godot **4.6.3 stable**, GDScript, Compatibility rendering, no third-party engine plugins.
-- Modern rural paper-textured scenery with ordinary houses and a solar roof, plus a single central magical tree using the original textured illustration, textured paper-leaf sprites, a transparent electric-blower character, directional wind streaks, local leaf piles, gentle light/fog overlays, and soft shadows.
+- Modern rural paper-textured scenery with ordinary houses and a solar roof, plus a single central magical tree adapted from the user’s attached textured, asymmetric ancient-tree reference, textured paper-leaf sprites, a transparent electric-blower character, directional wind streaks, local leaf piles, gentle light/fog overlays, and soft shadows.
 - Fixed-camera, fixed **360 × 640** logical playfield, uniformly fitted inside browser safe-area padding. Screen shape changes decorative margins, not gameplay geometry.
 - Keyboard and independent multi-touch movement/blowing, input release on touch cancellation, pause on application focus loss, and explicit pause/resume.
-- Upward leaf force with mild flutter, once-only rescue/miss outcomes, pile slowdown, battery depletion/release-to-recharge, score/combo, 12 main weeks and a final North Wind encounter, and cumulative winter pressure.
+- A basic procedural cutout rig with hip/knee/ankle chains, distance-driven forward/backward strides, subtle torso motion and weighted electric-blower vibration. Feet stop cycling against boundaries and follow actual slowed/upgraded movement. Wind streaks travel away from the visual nozzle; physics uses its shared rest position.
+- Seeded per-leaf flutter phase/frequency, aerodynamic drag, gravity, lateral wind, tumble and foreshortening, with upward blower force, once-only rescue/miss outcomes, pile slowdown, battery depletion/release-to-recharge, score/combo, 12 main weeks and a final North Wind encounter, and cumulative winter pressure.
 - A conserved canopy of 48 individually occupied branch positions. Shedding opens a gap; an upward-blown leaf reattaches only near a real empty position, including one other than its original spot. Missed leaves leave the trees barer across weeks, rather than resetting the foliage overnight. Weekly schedules only use the remaining attached leaves. Late-week colours turn orange/red independently of canopy occupancy.
 - Between-week workshop with boots, blower and battery branches; prerequisites, one point per completed week 1–12, weight/energy tradeoffs, reallocation, and carryover within a run.
 - Small warning flakes near defeat; clouds, cut-paper snowflakes and ground snow on loss; flowers on victory. Main-menu season previews allow immediate art review.
@@ -47,7 +48,7 @@ Leaving the blower held at zero charge will not refill it: release first. Upgrad
 
 ## Reproducible validation
 
-Current-instance validation: **175 headless checks passed** (108 simulation, 36 scene/input, 31 campaign-save checks). All **nine browser integration scenarios passed without runtime errors**, plus separate browser denied-storage and corrupt-primary/backup recovery checks. The headless suites cover simulation, weekly/boss progression, artwork/pausing, and local campaign persistence. Browser checks include real multi-touch, reattachment, five aspect ratios, automatic pause/explicit resume, level completion, named-save reload, retry, exit confirmation and ending previews. The latest run outcome is recorded in ignored `test-results/browser-results.json`; native phone performance is not established by these checks.
+Current-instance validation: **191 headless checks passed** (108 simulation, 38 scene/input, 31 campaign-save and 14 cutout-animation/flutter checks). All **nine browser integration scenarios passed without runtime errors**, with denied-storage and corrupt-primary/backup recovery separately verified in the preceding save-system pass. The headless suites cover simulation, weekly/boss progression, artwork/pausing, and local campaign persistence. Browser checks include real multi-touch, reattachment, five aspect ratios, automatic pause/explicit resume, level completion, named-save reload, retry, exit confirmation and ending previews. The latest run outcome is recorded in ignored `test-results/browser-results.json`; native phone performance is not established by these checks.
 
 Actual screenshots of [gameplay](images/prototype-gameplay.png), [save slots](images/prototype-save-slots.png), [week 12](images/prototype-week-12.png), [the boss study](images/prototype-boss.png), [victory](images/prototype-victory.png), the [sparse late-autumn warning preview](images/prototype-warning.png), and the [bare-tree winter preview](images/prototype-winter.png) are included in the repository. The generated release is under ignored `build/web/`; a portable browser bundle is `build/snow-web-prototype.zip`. The bundle must still be served over HTTP/HTTPS, not opened directly from disk.
 
@@ -57,6 +58,7 @@ The simulation and scene/input suites have no extra dependencies:
 bash tools/godot.sh --headless --script tests/test_loop.gd
 bash tools/godot.sh --headless --script tests/test_ui.gd
 bash tools/godot.sh --headless --script tests/test_campaign.gd
+bash tools/godot.sh --headless --script tests/test_actor.gd
 ```
 
 Browser integration uses **Python Playwright 1.62.0** and an installed Chromium. Those are test tools, not game/runtime dependencies. To reproduce in a machine that lacks them, install that Playwright version in a development virtual environment and install its Chromium browser or supply your system Chromium path. Build a separate debug export, leave the server above running, then:
@@ -78,7 +80,7 @@ Headless Chromium uses software WebGL in this environment. It can establish func
 ## Deliberate prototype limits
 
 - Distant scenery remains a composited background plate with baked lighting. The Season Tree, its foliage and atmospheric overlays are separate runtime layers; the whole illustrated tree sprite is paired with twig-coordinate/orientation metadata in `scripts/canopy.gd`. This is not a final rigged 2.5D or fully dynamic lighting pipeline.
-- The character uses 12 wardrobe atlas frames plus separate warm victory and bundled sad-defeat poses, with smooth mipmapped filtering. Full walking, looking-up, celebration and blower-idle animation rigs remain production work.
+- The character uses 12 wardrobe atlas frames plus separate warm victory and bundled sad-defeat poses, with smooth mipmapped filtering. A lightweight CPU-skinned cutout mesh provides the first distance-synchronized stride, torso motion and blower vibration; it reuses the costume artwork rather than separately painted limb layers. It currently strafes/backpedals while keeping the blower aimed consistently. Production needs artist-separated limbs, richer arm/face poses, turn transitions and bespoke looking-up/celebration animation.
 - Branch capture has a forgiving 15-logical-pixel radius and sweeps each motion segment to avoid missing slots at higher speeds. The radius, branch layout, foliage density and marker visibility need phone-scale playtesting. Arriving at an arbitrary sky height never counts as a rescue.
 - Weather/endings demonstrate the visual states rather than finished cinematic direction. Warning flakes do not collide with leaves or change movement.
 - Workshop purchases immediately change the visible build readout; production needs a fuller before/after preview and confirmation flow.
@@ -88,3 +90,11 @@ Headless Chromium uses software WebGL in this environment. It can establish func
 Next gate: play this on physical Android and iPhone browsers, review empty-branch aiming and the paper effect at phone scale, then refine branch art, scenery depth and animated character assets.
 
 Week-12 and boss screenshots use validated art-review checkpoint fixtures generated by `tests/visual_fixture.gd`, not a claim that a human completed the full campaign. Main browser integration plays real early levels, saves/reloads the workshop, loses and retries a level. Human full-campaign pacing and physical-device playtests remain outstanding.
+
+## Motion and art review
+
+The selected runtime tree is explicitly `assets/art/season_tree.png`; the previously misidentified `bare_tree.png` is retired. The rural backdrop has houses at the far edges and a quiet central clearing. Branch positions were remapped while retaining all 48 save-compatible identities.
+
+The cutout mesh updates at 30 Hz while fixed-step movement/leaf forces and wind animation run at 60 Hz; settled idle poses reuse their mesh. Joint transforms are cached before skinning. Reduced effects lowers torso/motor motion and wind streak count. Animation clocks and physics freeze together when paused. Seeded leaf variation is generated on shedding, never from per-frame noise, preserving repeatable retries. These are prototype motion systems, not a finished hand-authored walk cycle.
+
+To regenerate the seven art screenshots from a release export, run `tests/visual_fixture.gd`, serve `build/web`, then `python3 tests/capture_art.py`. The optional `--video` uses Playwright’s ffmpeg to capture real input and system ffmpeg to encode the trimmed MP4. The resulting [motion clip](images/prototype-motion.mp4) demonstrates the running browser build; software rendering in the cloud does not establish device frame rate.

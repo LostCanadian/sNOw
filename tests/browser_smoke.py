@@ -66,7 +66,7 @@ def run(url: str, executable: str):
         page.keyboard.up("a")
         page.wait_for_function("window.snowSnapshot.air > 0")
         # Position beneath a real, newly opened branch gap rather than the old sky band.
-        target_x = max(29, min(331, snap()["gaps"][0][0] - 13))
+        target_x = max(29, min(331, snap()["gaps"][0][0] - 42.9))
         if abs(snap()["x"] - target_x) > 5:
             direction_key = "d" if snap()["x"] < target_x else "a"
             page.keyboard.down(direction_key)
@@ -94,7 +94,12 @@ def run(url: str, executable: str):
         assert snap()["mode"] == "paused", "returning to the page must not auto-resume"
         for width, height in [(360, 640), (390, 844), (360, 840), (768, 1024), (1280, 720)]:
             page.set_viewport_size({"width": width, "height": height})
-            page.wait_for_timeout(300)
+            page.wait_for_function("""() => {
+                const r = document.querySelector('canvas').getBoundingClientRect();
+                return r.y >= -0.5 && r.y + r.height <= innerHeight + 1 &&
+                       r.x >= -0.5 && r.x + r.width <= innerWidth + 1 &&
+                       Math.abs(r.width / r.height - 9 / 16) < 0.002;
+            }""")
             box = page.locator("canvas").bounding_box()
             assert abs(box["width"] / box["height"] - 9 / 16) < 0.002
             assert box["x"] >= -0.5 and box["y"] >= -0.5

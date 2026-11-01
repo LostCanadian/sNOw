@@ -2,12 +2,13 @@ extends Node2D
 ## A small paper theatre: simulation stays separate from cutout presentation and UI.
 
 const Loop = preload("res://scripts/loop.gd")
+const PaperActor = preload("res://scripts/paper_actor.gd")
 const Canopy = preload("res://scripts/canopy.gd")
 const Campaign = preload("res://scripts/campaign.gd")
 const BACKDROP = preload("res://assets/art/autumn_stage.png")
 const PAPER_LEAF = preload("res://assets/art/paper_leaf.png")
 const CARETAKER = preload("res://assets/art/caretaker.png")
-const TREE = preload("res://assets/art/bare_tree.png")
+const TREE = preload("res://assets/art/season_tree.png")
 const WARDROBE = preload("res://assets/art/wardrobe.png")
 const ENDINGS = preload("res://assets/art/endings.png")
 const SNOWFLAKE = preload("res://assets/art/snowflake.svg")
@@ -39,7 +40,9 @@ var muted := false
 var preview_weather := -1.0
 var preview_victory := false
 var preview_mode := false
-var anim_move := 0.0
+var actor = PaperActor.new()
+var actor_region := Rect2()
+var actor_mesh_active := false
 var character_region: Rect2
 var leaf_region: Rect2
 var wardrobe_regions: Array[Rect2] = []
@@ -67,6 +70,7 @@ func _ready() -> void:
 	leaf_region = Rect2(PAPER_LEAF.get_image().get_used_rect())
 	wardrobe_regions = atlas_regions(WARDROBE, 4, 3)
 	ending_regions = atlas_regions(ENDINGS, 2, 1)
+	update_actor_mesh()
 	for i in range(65):
 		snow.append({"x": ambient_rng.randf_range(0, 360), "y": ambient_rng.randf_range(-640, 640), "size": ambient_rng.randf_range(1.0, 3.6), "phase": ambient_rng.randf_range(0, TAU)})
 	ui = Control.new()
@@ -102,8 +106,10 @@ func _physics_process(dt: float) -> void:
 				axis += 1.0
 			elif action == "blow":
 				blow = true
+		var previous_x: float = sim.x
 		sim.step(dt, clampf(axis, -1, 1), blow)
-		anim_move = move_toward(anim_move, absf(axis), dt * 7.0)
+		actor.advance(sim.x - previous_x, dt, sim.blowing, reduced_effects)
+		update_actor_mesh()
 		for event in sim.events:
 			if sparks.size() < 50:
 				sparks.append({"position": event.position, "time": 0.0, "saved": event.saved})
@@ -122,6 +128,7 @@ func _physics_process(dt: float) -> void:
 		if ending_time >= 4.0 and overlay == null:
 			show_result()
 	if mode != "paused":
+		if mode != "play": update_actor_mesh()
 		elapsed += dt
 		for flake in snow:
 			flake.y += dt * (12.0 + flake.size * 8.0)
@@ -146,6 +153,7 @@ func _physics_process(dt: float) -> void:
 				"attached": sim.attached_count(), "slots": sim.slots.size(), "air": sim.leaves.size(),
 				"result_visible": mode in ["lost", "won"] and overlay != null,
 				"active_slot": active_slot, "phase": sim.status, "temperature": sim.temperature(), "boss_phase": sim.boss_phase(),
+				"gait_phase": actor.phase(), "travel": actor.travel, "motor": actor.motor,
 				"save_error": save_notice, "storage_error": campaign.error,
 				"gaps": sim.slots.filter(func(slot: Dictionary): return slot.leaf_id < 0).map(func(slot: Dictionary): return [slot.position.x, slot.position.y]),
 				"logical_size": [get_viewport_rect().size.x, get_viewport_rect().size.y],
@@ -237,6 +245,8 @@ func _notification(what: int) -> void:
 func start_run(slot_index := -1, slot_name := "") -> void:
 	clear_paused_overlay()
 	sim = Loop.new()
+	actor.reset()
+	update_actor_mesh(true)
 	active_slot = slot_index
 	level_checkpoint = Campaign.snapshot(sim)
 	if active_slot >= 0:
@@ -334,6 +344,8 @@ func restart_level() -> void:
 	clear_overlay()
 	clear_input()
 	sim = restored
+	actor.reset()
+	update_actor_mesh(true)
 	mode = "play"
 	ending_time = 0
 	sparks.clear()
@@ -402,6 +414,8 @@ func load_slot(index: int) -> void:
 	if restored == null: return
 	active_slot = index
 	sim = restored
+	actor.reset()
+	update_actor_mesh(true)
 	level_checkpoint = record.checkpoint.duplicate(true) if sim.status == "playing" else {}
 	clear_overlay()
 	clear_input()
@@ -500,6 +514,8 @@ func button(parent: Node, content: String, rect: Rect2, callback: Callable, seco
 func show_title() -> void:
 	clear_paused_overlay()
 	sim = Loop.new()
+	actor.reset()
+	update_actor_mesh(true)
 	active_slot = -1
 	level_checkpoint = {}
 	mode = "title"
@@ -659,7 +675,7 @@ func _draw() -> void:
 		draw_piles()
 	for leaf in sim.leaves:
 		if mode not in ["title", "preview"]:
-			draw_leaf(leaf.position, leaf.angle, leaf.colour, 9.5)
+			draw_leaf(leaf.position, leaf.angle, leaf.colour, 9.5, leaf.get("roll", 1.0))
 	if sim.blowing and mode == "play": draw_gust()
 	draw_character(winter, victory)
 	for spark in sparks:
@@ -808,36 +824,47 @@ func draw_piles() -> void:
 			draw_leaf(Vector2(px, py), i * 2.4, Loop.LEAF_COLOURS[(segment + i) % 4], 5.0)
 
 
-func draw_leaf(p: Vector2, angle: float, colour: Color, size_px: float) -> void:
+func draw_leaf(p: Vector2, angle: float, colour: Color, size_px: float, roll := 1.0) -> void:
 	var dimensions := Vector2(size_px * 2, size_px * 2 * leaf_region.size.y / leaf_region.size.x)
-	draw_set_transform(p, angle)
+	draw_set_transform(p, angle, Vector2(roll, 1))
 	draw_texture_rect_region(PAPER_LEAF, Rect2(-dimensions * 0.5 + Vector2(1.2, 1.5), dimensions), leaf_region, Color(0.17, 0.17, 0.10, 0.22))
 	draw_texture_rect_region(PAPER_LEAF, Rect2(-dimensions * 0.5, dimensions), leaf_region, colour)
 	draw_set_transform(Vector2.ZERO)
 
 
-func draw_character(winter: bool, victory: bool) -> void:
-	var px: float = 180.0 if visual_mode() in ["title", "preview"] else sim.x
-	var bob := sin(elapsed * 12.0) * 1.2 * anim_move if mode == "play" and not reduced_effects else 0.0
+func update_actor_mesh(force := false) -> void:
+	if wardrobe_regions.is_empty(): return
 	var stage: int = clampi(sim.week - 1, 0, 11)
 	if preview_mode: stage = 10 if preview_weather > 0.5 else 0
 	var region: Rect2 = wardrobe_regions[stage]
-	var texture: Texture2D = WARDROBE
-	if winter or victory:
-		texture = ENDINGS
-		region = ending_regions[0 if victory else 1]
-		bob = sin(elapsed * 4.0) * 1.5 if victory and not reduced_effects else 0.0
-	var height := 76.0
-	var width := height * region.size.x / region.size.y
+	if not force and region == actor_region:
+		if actor.movement == 0 and not actor.motor and not actor_mesh_active: return
+		if (actor.movement > 0 or actor.motor) and Engine.get_physics_frames() % 2 != 0: return
+	actor.rebuild(WARDROBE, region)
+	actor_region = region
+	actor_mesh_active = actor.movement > 0 or actor.motor
+
+
+func draw_character(winter: bool, victory: bool) -> void:
+	var px: float = 180.0 if visual_mode() in ["title", "preview"] else sim.x
 	draw_set_transform(Vector2(px, Loop.GROUND + 1), 0, Vector2(1, 0.22))
 	draw_circle(Vector2.ZERO, 22, Color(0.12, 0.16, 0.1, 0.24))
 	draw_set_transform(Vector2.ZERO)
+	if not winter and not victory:
+		draw_set_transform(Vector2(px, Loop.GROUND))
+		draw_mesh(actor.mesh, WARDROBE)
+		draw_set_transform(Vector2.ZERO)
+		return
+	var region: Rect2 = ending_regions[0 if victory else 1]
+	var bob := sin(elapsed * 4.0) * 1.5 if victory and not reduced_effects else 0.0
+	var height := 76.0
+	var width := height * region.size.x / region.size.y
 	var rect := Rect2(px - width * 0.48, Loop.GROUND - height + bob, width, height)
-	draw_texture_rect_region(texture, rect, region, Color("d8e4eb") if winter else Color.WHITE)
+	draw_texture_rect_region(ENDINGS, rect, region, Color("d8e4eb") if winter else Color.WHITE)
 
 
 func draw_gust() -> void:
-	var origin: Vector2 = sim.nozzle()
+	var origin := Vector2(sim.x, Loop.GROUND) + actor.nozzle()
 	var strength: Dictionary = sim.stats()
 	for trail in range(16 if not reduced_effects else 5):
 		var cycle := fmod(elapsed * 1.4 + trail * 0.61803398875, 1.0)

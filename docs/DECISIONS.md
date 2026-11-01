@@ -14,7 +14,7 @@ This log separates the requested game from proposed implementation choices. “R
 | Difficulty | Three choices, each with its own score table | User requirement; names and balance recommended |
 | Rendering | Paper & Lanterns: layered cut-paper 2D, textured materials, soft shadows and backlighting | User-selected creative direction; runtime/mobile-performance spike pending |
 | Setting | Modern rural homes and optional solar roof, forest and small hills; no castle or stone bridge | User direction adopted in the revised backdrop |
-| Hero tree | One central Season Tree governing the valley’s seasons; use the original richly textured tree illustration | Working mythos/layout direction; prototype implemented for review |
+| Hero tree | One central Season Tree governing the valley’s seasons; use the user-attached ancient asymmetric tree as the authoritative textured reference | Working mythos/layout direction; prototype implemented for review |
 | Canopy | One whole textured tree plus separate paper leaves; 48 artist-authored twig/stem anchors; gaps persist across weeks | Implemented; stable slot identities preserve existing checkpoints |
 | Reattachment | Lifted leaves fill nearby empty branch slots; occupied positions and arbitrary sky heights do not score | Implemented with swept capture and exactly-once occupancy |
 | Blower visual | Short directional wind streaks and restrained leaf flutter | User-requested replacement for the earlier spiral effect |
@@ -51,3 +51,5 @@ This log separates the requested game from proposed implementation choices. “R
 6. **Do upgrades create meaningful build choices?** Compare mobility, power, endurance, and mixed builds against identical schedules. Check weight/energy tradeoffs, clear previews, and reliable canopy captures at maximum force. Tune upgrade points and costs before considering temporary pickups.
 
 When a choice is validated, record the result, relevant build/device or playtest evidence, and any consequences here. Change the design and plan together so they remain consistent.
+
+Motion prototype: CPU-skinned cutout mesh with two hip/knee/ankle chains, stance tied to signed ground distance, a weighted electric-blower vibration control, and advancing wind streaks. Seeded per-leaf aerodynamics supply gravity, flutter, drift and tumble. Artist-separated limbs and authored turning/ending performances remain later art work.

@@ -222,3 +222,7 @@ Use a soft electric blower whirr and airy gust loop, leaf rustles, a distinct ca
 Required: one polished scene, one character with weekly outfits, 12 configured weeks plus a final encounter, three difficulties, touch and keyboard controls, leaf physics and captures, local piles and slowdown, rechargeable blower energy, between-week upgrade tree with weight tradeoffs, readable scoring, local per-difficulty high scores, menus/settings/tutorial, three named local campaign saves, a final encounter, and both ending sequences. Temporary pickups are deferred until the upgrade progression is balanced.
 
 Deferred: global leaderboards, accounts, cloud saves, permanent cross-run stat progression, endless mode, multiplayer, multiple biomes, elaborate narrative, monetization, and full 3D assets. A satisfying complete run matters more than breadth.
+
+### Current motion prototype
+
+Use the supplied ancient, asymmetric tree as the authoritative visual reference. Keep rural houses at the sides of an open central clearing. The implemented cutout rig drives stance from actual ground distance, including pile slowdown, equipment weight, reverse travel and boundaries. The electric blower vibrates while running, and short wind streaks advance from its nozzle. Leaves combine gravity and drag with individually seeded flutter, wind drift, tumble and foreshortening; upward airflow retains lateral drift. Pause freezes the animation clocks alongside physics. Artist-separated limbs, richer turning and bespoke ending performances remain planned.

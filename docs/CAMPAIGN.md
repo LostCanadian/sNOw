@@ -6,7 +6,7 @@ This supersedes the original seven-day arcade-run proposal. Current prototype sc
 
 The main campaign contains **12 weeks**, followed by **The North Wind**, a separately named boss encounter. The UI never calls it Week 13. Temperature drops 2°C each week from 22°C to 0°C; the finale shows −2°C. These temperatures provide seasonal feedback alongside clothing, cooler lighting and pressure-driven warning snow. Clothing is cosmetic and does not alter speed or energy.
 
-Each of the twelve main weeks has its own outfit in the wardrobe atlas: T-shirt/shorts, light neck layer, vest, long sleeves, sweater, padded vest, hoodie, windbreaker, thicker jacket/gloves, hat/scarf, winter coat, then the heaviest bundled outfit. Victory switches to a happy T-shirt/shorts celebration; defeat switches to a separate sad, bundled pose. Full animation rigs are still future production work.
+Each of the twelve main weeks has its own outfit in the wardrobe atlas: T-shirt/shorts, light neck layer, vest, long sleeves, sweater, padded vest, hoodie, windbreaker, thicker jacket/gloves, hat/scarf, winter coat, then the heaviest bundled outfit. Victory switches to a happy T-shirt/shorts celebration; defeat switches to a separate sad, bundled pose. A basic distance-driven cutout leg rig and blower vibration now animate these outfits. Artist-separated limb rigs and bespoke ending animation remain production work.
 
 The prototype boss is a mischievous paper cloud. Its repeating cycle gives 1.5 seconds of warning, then a 2.5-second downward gust with quicker shedding and snow, followed by a 3.5-second recovery window. All detached leaves still come from the actual canopy: the boss cannot invent extra leaf IDs or award repeated rescue points. Snow is a readable visual cue; the gust is the mechanical hazard. Final enemy art, sound and tuning need playtesting.
 
@@ -36,7 +36,7 @@ Switching apps/tabs, hiding the document or losing window focus automatically pa
 
 ## Art correction
 
-The composition uses **one central magical tree**, preserving the original richly textured full-tree illustration requested by the user. It is not the later simplified line-style tree, a mirrored pair, or a silhouette reconstructed from little branch polygons. Twig attachment metadata is authored against actual opaque points in that image; leaf stems meet the wood and blades face outward, rather than receiving arbitrary random rotations.
+The composition uses **one central magical tree**, using a transparent adaptation of the richly textured, asymmetric ancient tree attached by the user. It is not the later simplified line-style tree, a mirrored pair, or a silhouette reconstructed from little branch polygons. The background frames a quiet central clearing, with houses moved to the far sides. Twig attachment metadata is authored against actual opaque points in that image; leaf stems meet the wood and blades face outward, rather than receiving arbitrary random rotations.
 
 Its leaves hold autumn in the valley: the Season Tree is a provisional name for this visual mythos. The caretaker moves in front of the roots without collision, and the North Wind threatens the same focal tree.
 

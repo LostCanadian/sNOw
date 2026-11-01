@@ -25,6 +25,7 @@ func run() -> void:
 	check(main.wardrobe_regions.size() == 12 and main.ending_regions.size() == 2, "twelve weekly outfits and distinct warm/sad ending art load")
 	check(main.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS, "paper art is smoothly filtered with mipmaps")
 	var oriented := true
+	check(main.TREE.resource_path == "res://assets/art/season_tree.png", "runtime selects the user-reference Season Tree asset")
 	var tree_image: Image = main.TREE.get_image()
 	for slot in main.sim.slots:
 		var direction: Vector2 = (slot.position - slot.stem).normalized()
@@ -63,9 +64,12 @@ func run() -> void:
 	main.keys["right"] = true
 	main._notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
 	check(main.mode == "paused" and main.keys.is_empty() and main.touches.is_empty(), "focus loss pauses and releases every input")
+	var actor_time: float = main.actor.time
+	var actor_travel: float = main.actor.travel
 	var before: float = main.sim.week_time
 	main._physics_process(1.0)
 	check(main.sim.week_time == before, "pause freezes the simulation")
+	check(main.actor.time == actor_time and main.actor.travel == actor_travel, "pause freezes both motor and stride clocks")
 	main.resume_game()
 	main.sim.leaves.clear()
 	main.sim.spawned = main.sim.week_leaf_count()

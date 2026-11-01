@@ -1,6 +1,9 @@
 extends RefCounted
 ## Presentation-independent fixed-step arcade simulation. All coordinates are logical 360 x 640.
 
+const PaperActor = preload("res://scripts/paper_actor.gd")
+const NOZZLE_OFFSET := PaperActor.NOZZLE_OFFSET
+const GRAVITY := 48.0
 const GROUND := 502.0
 const Canopy = preload("res://scripts/canopy.gd")
 const CAPTURE_RADIUS := 15.0
@@ -131,7 +134,7 @@ func pile_at(at_x: float) -> int:
 
 
 func nozzle() -> Vector2:
-	return Vector2(x + 13.0, GROUND - 53.0)
+	return Vector2(x, GROUND) + NOZZLE_OFFSET
 
 
 func step(dt: float, move_axis: float, wants_blow: bool) -> void:
@@ -173,14 +176,18 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 		var center_x := origin.x + direction * height * 0.15
 		var in_gust: bool = blowing and height > -8.0 and height < 335.0 and absf(p.x - center_x) < s.width * (0.7 + height / 340.0)
 		var wind := sin(week_time * 0.9 + week) * (5.0 + week * 1.6)
-		v.x += (wind + sin(leaf.age * 4.0 + leaf.id) * 12.0 - v.x * 0.60) * dt
-		v.y += (38.0 - v.y * 0.16) * dt
+		# Smooth, seeded aerodynamic variation: broad drifting arcs, never frame noise.
+		var flutter: float = leaf.age * leaf.get("flutter_rate", 2.8) + leaf.get("flutter_phase", float(leaf.id))
+		var flutter_x: float = sin(flutter) * leaf.get("flutter_strength", 26.0)
+		v.x += (wind + flutter_x - v.x) * 1.8 * dt
+		var drag_coefficient: float = leaf.get("drag", 0.65) * (0.75 + 0.25 * cos(flutter * 2))
+		v.y += (GRAVITY - v.y * drag_coefficient + sin(flutter * 2) * 8.0) * dt
 		if boss_phase() == "blast": v.y += 32.0 * dt
 		if in_gust:
 			leaf.lifted = true
 			v.y -= s.force * dt
 			# Directional airflow with mild flutter, rather than a corkscrew vortex.
-			v.x += ((center_x - p.x) * 0.55 + sin(leaf.age * 5.0 + leaf.id) * 18.0) * dt
+			v.x += ((center_x - p.x) * 0.55 + sin(flutter) * 12.0) * dt
 		v.y = clampf(v.y, -158.0, 45.0 + week * 1.5)
 		v.x = clampf(v.x, -85.0, 85.0)
 		p += v * dt
@@ -189,7 +196,8 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 			v.x = -v.x * 0.6
 		leaf.position = p
 		leaf.velocity = v
-		leaf.angle += dt * (0.7 if in_gust else 0.45)
+		leaf.angle = leaf.get("rest_angle", 0.0) + sin(flutter) * 0.65 + leaf.age * leaf.get("spin", 0.2)
+		leaf.roll = 0.62 + 0.38 * absf(cos(flutter * 0.7))
 		var target := capture_slot(previous, p) if leaf.lifted and v.y < 0.0 else -1
 		if target >= 0:
 			resolve_leaf(leaf, true, target)
@@ -229,7 +237,10 @@ func spawn_leaf() -> bool:
 		"id": id, "position": slot.position + Vector2(0, 9), "home_slot": slot_index,
 		"velocity": Vector2(rng.randf_range(-10, 10), 8.0),
 		"state": "air", "lifted": false, "age": 0.0,
-		"angle": slot.angle, "colour": leaf_colour(id),
+		"angle": slot.angle, "rest_angle": slot.angle, "colour": leaf_colour(id),
+		"flutter_phase": rng.randf_range(0, TAU), "flutter_rate": rng.randf_range(2.1, 3.8),
+		"flutter_strength": rng.randf_range(23, 37), "drag": rng.randf_range(0.48, 0.85),
+		"spin": rng.randf_range(-0.35, 0.35), "roll": 1.0,
 	})
 	spawned += 1
 	return true
