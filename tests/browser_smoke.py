@@ -41,7 +41,16 @@ def run(url: str, executable: str):
 
         page.screenshot(path=str(output / "browser-title.png"))
         click(180, 323)
+        # Create a named local campaign through the actual three-slot UI.
+        page.wait_for_function("window.snowSnapshot?.mode === 'slots'")
+        click(180, 242)
+        page.wait_for_function("window.snowSnapshot?.mode === 'name'")
+        click(180, 282)
+        page.keyboard.press("Control+A")
+        page.keyboard.type("Browser garden", delay=20)
+        click(180, 342)
         page.wait_for_function("window.snowSnapshot?.mode === 'play'")
+        assert page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1')).slots[0].name") == "Browser garden"
         first = snap()
         cdp = context.new_cdp_session(page)
         points = [dict(position(116, 596), id=0), dict(position(301, 593), id=1)]
@@ -76,6 +85,13 @@ def run(url: str, executable: str):
         frozen = snap()["time"]
         page.wait_for_timeout(500)
         assert snap()["time"] == frozen
+        page.keyboard.press("Escape")
+        page.wait_for_function("window.snowSnapshot.mode === 'play'")
+        page.evaluate("window.dispatchEvent(new Event('blur'))")
+        page.wait_for_function("window.snowSnapshot.mode === 'paused'")
+        page.evaluate("window.dispatchEvent(new Event('focus'))")
+        page.wait_for_timeout(300)
+        assert snap()["mode"] == "paused", "returning to the page must not auto-resume"
         for width, height in [(360, 640), (390, 844), (360, 840), (768, 1024), (1280, 720)]:
             page.set_viewport_size({"width": width, "height": height})
             page.wait_for_timeout(300)
@@ -104,19 +120,43 @@ def run(url: str, executable: str):
         page.screenshot(path=str(output / "browser-workshop.png"))
         click(180, 244)
         page.wait_for_function("window.snowSnapshot.tiers[1] === 1 && window.snowSnapshot.points === 0")
+        assert snap()["save_error"] == "", snap()
+        assert page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1')).slots[0].checkpoint.tiers") == [0, 1, 0]
+        page.screenshot(path=str(output / "browser-workshop-purchased.png"))
+        page.wait_for_timeout(100)
+        page.reload()
+        page.wait_for_function("window.snowSnapshot?.mode === 'title'", timeout=90000)
+        click(180, 323)
+        page.wait_for_function("window.snowSnapshot.mode === 'slots'")
+        click(160, 242)
+        page.wait_for_function("window.snowSnapshot.active_slot === 0")
+        loaded = snap()
+        assert loaded["phase"] == "workshop", f"Wrong restored checkpoint: {loaded}"
+        if loaded["mode"] == "paused": page.keyboard.press("Escape")
+        page.wait_for_function("window.snowSnapshot.mode === 'workshop'")
+        assert snap()["tiers"] == [0, 1, 0] and snap()["points"] == 0, f"Reload lost upgrade: {snap()}"
+        record("named local save survives a real browser reload without duplicate upgrade rewards")
         click(235, 485)
-        page.wait_for_function("window.snowSnapshot.mode === 'play' && window.snowSnapshot.day === 2")
+        page.wait_for_function("window.snowSnapshot.mode === 'play' && window.snowSnapshot.week === 2")
         assert snap()["tiers"] == [0, 1, 0]
-        assert snap()["attached"] <= bare_count, "new days must not refill the bare canopy"
+        assert snap()["attached"] <= bare_count, "new weeks must not refill the bare canopy"
         page.locator("canvas").screenshot(path=str(output / "browser-depleted-canopy.png"))
-        record("real day completion, workshop purchase, upgrade carryover and persistent bare branches")
+        record("real week completion, workshop purchase, upgrade carryover and persistent bare branches")
 
         page.wait_for_function("window.snowSnapshot.mode === 'lost'", timeout=60000)
         page.wait_for_function("window.snowSnapshot.result_visible", timeout=20000)
         page.screenshot(path=str(output / "browser-winter-loss.png"))
         record("misses trigger actual winter loss and its result screen")
-        click(180, 418)
+        click(180, 368)
+        page.wait_for_function("window.snowSnapshot.mode === 'play'")
+        assert snap()["week"] == 2 and snap()["tiers"] == [0, 1, 0]
+        page.keyboard.press("Escape")
+        page.wait_for_function("window.snowSnapshot.mode === 'paused'")
+        click(180, 386)
+        page.wait_for_timeout(200)
+        click(180, 382)
         page.wait_for_function("window.snowSnapshot.mode === 'title'")
+        record("loss retries the same week; confirmed exit retains the saved campaign")
         click(180, 377)
         page.wait_for_function("window.snowSnapshot.mode === 'preview'")
         for x, key, target, filename in [

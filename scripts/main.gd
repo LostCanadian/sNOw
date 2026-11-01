@@ -3,9 +3,13 @@ extends Node2D
 
 const Loop = preload("res://scripts/loop.gd")
 const Canopy = preload("res://scripts/canopy.gd")
+const Campaign = preload("res://scripts/campaign.gd")
 const BACKDROP = preload("res://assets/art/autumn_stage.png")
 const PAPER_LEAF = preload("res://assets/art/paper_leaf.png")
 const CARETAKER = preload("res://assets/art/caretaker.png")
+const TREE = preload("res://assets/art/bare_tree.png")
+const WARDROBE = preload("res://assets/art/wardrobe.png")
+const ENDINGS = preload("res://assets/art/endings.png")
 const SNOWFLAKE = preload("res://assets/art/snowflake.svg")
 const BODY_FONT = preload("res://assets/fonts/DejaVuSans.ttf")
 const TITLE_FONT = preload("res://assets/fonts/DejaVuSerif.ttf")
@@ -38,7 +42,15 @@ var preview_mode := false
 var anim_move := 0.0
 var character_region: Rect2
 var leaf_region: Rect2
-var tree_paths := Canopy.tree_paths()
+var wardrobe_regions: Array[Rect2] = []
+var ending_regions: Array[Rect2] = []
+var campaign = Campaign.new()
+var active_slot := -1
+var level_checkpoint: Dictionary = {}
+var paused_mode := "play"
+var paused_overlay: Control
+var lifecycle_callback: JavaScriptObject
+var save_notice := ""
 var audio: AudioStreamPlayer
 var playback: AudioStreamGeneratorPlayback
 var audio_phase := 0.0
@@ -48,15 +60,22 @@ var telemetry_tick := 0
 
 
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	get_tree().auto_accept_quit = false
 	ambient_rng.seed = 90582
 	character_region = Rect2(CARETAKER.get_image().get_used_rect())
 	leaf_region = Rect2(PAPER_LEAF.get_image().get_used_rect())
+	wardrobe_regions = atlas_regions(WARDROBE, 4, 3)
+	ending_regions = atlas_regions(ENDINGS, 2, 1)
 	for i in range(65):
 		snow.append({"x": ambient_rng.randf_range(0, 360), "y": ambient_rng.randf_range(-640, 640), "size": ambient_rng.randf_range(1.0, 3.6), "phase": ambient_rng.randf_range(0, TAU)})
 	ui = Control.new()
 	ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(ui)
+	if OS.has_feature("web"):
+		lifecycle_callback = JavaScriptBridge.create_callback(func(_args): pause_game())
+		JavaScriptBridge.get_interface("window").snowPauseRequested = lifecycle_callback
 	var stream := AudioStreamGenerator.new()
 	stream.mix_rate = 22050
 	stream.buffer_length = 0.08
@@ -91,11 +110,13 @@ func _physics_process(dt: float) -> void:
 		if sim.status == "workshop":
 			mode = "workshop"
 			clear_input()
+			save_boundary()
 			show_workshop()
 		elif sim.status in ["lost", "won"]:
 			mode = sim.status
 			ending_time = 0.0
 			clear_input()
+			if mode == "won": save_boundary()
 	if mode in ["lost", "won"]:
 		ending_time += dt
 		if ending_time >= 4.0 and overlay == null:
@@ -112,16 +133,20 @@ func _physics_process(dt: float) -> void:
 		sparks = sparks.filter(func(spark: Dictionary) -> bool: return spark.time < 0.8)
 	queue_redraw()
 	fill_audio()
+	if OS.has_feature("web"):
+		JavaScriptBridge.get_interface("window").snowShouldConfirmExit = active_slot >= 0 and sim.status == "playing" and sim.week_time > 0
 	if test_hooks:
 		telemetry_tick += 1
 		if telemetry_tick % 6 == 0:
 			var snapshot := {
-				"mode": mode, "day": sim.day, "x": sim.x, "charge": sim.charge,
+				"mode": mode, "week": sim.week, "x": sim.x, "charge": sim.charge,
 				"blowing": sim.blowing, "rescued": sim.rescued, "missed": sim.missed,
 				"points": sim.points, "tiers": sim.tiers, "touches": touches.size(),
-				"time": sim.day_time, "weather": weather(), "victory": preview_victory,
+				"time": sim.week_time, "weather": weather(), "victory": preview_victory,
 				"attached": sim.attached_count(), "slots": sim.slots.size(), "air": sim.leaves.size(),
 				"result_visible": mode in ["lost", "won"] and overlay != null,
+				"active_slot": active_slot, "phase": sim.status, "temperature": sim.temperature(), "boss_phase": sim.boss_phase(),
+				"save_error": save_notice, "storage_error": campaign.error,
 				"gaps": sim.slots.filter(func(slot: Dictionary): return slot.leaf_id < 0).map(func(slot: Dictionary): return [slot.position.x, slot.position.y]),
 				"logical_size": [get_viewport_rect().size.x, get_viewport_rect().size.y],
 			}
@@ -129,6 +154,12 @@ func _physics_process(dt: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	var pressed: bool = (event is InputEventScreenTouch and event.pressed and not event.canceled) or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed)
+	if pressed and PAUSE.has_point(event.position):
+		if mode == "paused": resume_game()
+		else: pause_game()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey:
 		if event.echo:
 			return
@@ -139,8 +170,8 @@ func _input(event: InputEvent) -> void:
 			KEY_SPACE: action = "blow"
 			KEY_ESCAPE:
 				if event.pressed:
-					if mode == "play": pause_game()
-					elif mode == "paused": resume_game()
+					if mode == "paused": resume_game()
+					else: pause_game()
 		if action != "":
 			keys[action] = event.pressed and mode == "play"
 			if mode == "play": get_viewport().set_input_as_handled()
@@ -197,11 +228,20 @@ func clear_input() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
 		clear_input()
-		if mode == "play": pause_game()
+		if is_instance_valid(ui) and mode != "paused": pause_game()
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and is_instance_valid(ui):
+		if mode != "paused": pause_game()
+		confirm_discard(func(): get_tree().quit())
 
 
-func start_run() -> void:
+func start_run(slot_index := -1, slot_name := "") -> void:
+	clear_paused_overlay()
 	sim = Loop.new()
+	active_slot = slot_index
+	level_checkpoint = Campaign.snapshot(sim)
+	if active_slot >= 0:
+		campaign.store(active_slot, slot_name, level_checkpoint)
+		save_notice = campaign.error
 	preview_mode = false
 	preview_weather = -1
 	preview_victory = false
@@ -220,25 +260,34 @@ func _exit_tree() -> void:
 
 
 func pause_game() -> void:
-	if mode != "play": return
+	if mode == "paused" or not is_instance_valid(ui): return
+	paused_mode = mode
+	paused_overlay = overlay
+	if is_instance_valid(paused_overlay): paused_overlay.hide()
+	overlay = null
 	mode = "paused"
 	clear_input()
-	var panel := new_panel(Rect2(28, 183, 304, 286))
+	var panel := new_panel(Rect2(28, 158, 304, 333))
 	text_label(panel, "A moment of calm", Rect2(20, 19, 264, 36), 22, INK, true)
 	text_label(panel, "Autumn will wait for you.", Rect2(20, 59, 264, 24), 11, INK)
 	button(panel, "Resume", Rect2(24, 105, 256, 44), resume_game)
-	button(panel, "Restart run", Rect2(24, 159, 256, 40), confirm_restart, true)
-	button(panel, "Main menu", Rect2(24, 209, 256, 40), confirm_menu, true)
+	if not level_checkpoint.is_empty(): button(panel, "Restart current level", Rect2(24, 159, 256, 40), confirm_restart, true)
+	button(panel, "Exit to menu", Rect2(24, 209, 256, 40), confirm_menu, true)
+	text_label(panel, "Completed weeks are saved.\nThis level resumes only when you choose.", Rect2(14, 265, 276, 45), 10, INK)
 
 
 func resume_game() -> void:
+	if mode != "paused": return
 	clear_overlay()
 	clear_input()
-	mode = "play"
+	overlay = paused_overlay
+	paused_overlay = null
+	if is_instance_valid(overlay): overlay.show()
+	mode = paused_mode
 
 
 func confirm_restart() -> void:
-	confirm_discard(start_run)
+	confirm_discard(restart_level)
 
 
 func confirm_menu() -> void:
@@ -247,10 +296,132 @@ func confirm_menu() -> void:
 
 func confirm_discard(next: Callable) -> void:
 	var panel := new_panel(Rect2(28, 203, 304, 224))
-	text_label(panel, "Leave this run?", Rect2(20, 18, 264, 38), 22, INK, true)
-	text_label(panel, "This run and its upgrades will be lost.", Rect2(14, 66, 276, 23), 10, INK)
+	text_label(panel, "Are you sure you want to exit?", Rect2(12, 18, 280, 38), 16, INK, true)
+	text_label(panel, "Current level progress will be lost.\nCompleted weeks remain saved.", Rect2(14, 66, 276, 38), 10, INK)
 	button(panel, "Keep playing", Rect2(24, 109, 256, 40), resume_game)
-	button(panel, "Leave run", Rect2(24, 160, 256, 40), next, true)
+	button(panel, "Exit", Rect2(24, 160, 256, 40), next, true)
+
+
+func clear_paused_overlay() -> void:
+	if is_instance_valid(paused_overlay): paused_overlay.queue_free()
+	paused_overlay = null
+
+
+func atlas_regions(texture: Texture2D, columns: int, rows: int) -> Array[Rect2]:
+	var regions: Array[Rect2] = []
+	var image := texture.get_image()
+	var cell := Vector2i(image.get_width() / columns, image.get_height() / rows)
+	for row in range(rows):
+		for column in range(columns):
+			var origin := Vector2i(column, row) * cell
+			var used := image.get_region(Rect2i(origin, cell)).get_used_rect()
+			regions.append(Rect2(used.position + origin, used.size))
+	return regions
+
+
+func save_boundary() -> void:
+	var checkpoint := Campaign.snapshot(sim)
+	if active_slot >= 0 and campaign.slots[active_slot] != null:
+		campaign.store(active_slot, campaign.slots[active_slot].name, checkpoint)
+		save_notice = campaign.error
+	if sim.status == "playing": level_checkpoint = checkpoint
+
+
+func restart_level() -> void:
+	var restored = Campaign.restore(level_checkpoint)
+	if restored == null: return
+	clear_paused_overlay()
+	clear_overlay()
+	clear_input()
+	sim = restored
+	mode = "play"
+	ending_time = 0
+	sparks.clear()
+
+
+func show_slots() -> void:
+	clear_paused_overlay()
+	clear_input()
+	mode = "slots"
+	var panel := new_panel(Rect2(18, 116, 324, 409))
+	text_label(panel, "Your autumn gardens", Rect2(8, 17, 308, 34), 23, INK, true)
+	text_label(panel, "3 local save slots · autosave after each level", Rect2(8, 56, 308, 24), 10, INK)
+	for i in range(3):
+		var record = campaign.slots[i]
+		var y := 98 + i * 80
+		if record == null:
+			button(panel, "Slot %d · New garden" % (i + 1), Rect2(16, y, 292, 57), func(): show_slot_name(i, false))
+		else:
+			var checkpoint: Dictionary = record.checkpoint
+			var progress := "Final encounter" if checkpoint.week == Loop.BOSS_STAGE else "Week %d" % int(checkpoint.week)
+			if checkpoint.phase == "workshop": progress += " complete"
+			if checkpoint.phase == "won": progress = "Winter defeated!"
+			button(panel, record.name + "\n" + progress, Rect2(16, y, 202, 57), func(): load_slot(i))
+			button(panel, "Edit", Rect2(229, y, 79, 57), func(): show_slot_name(i, true), true)
+	button(panel, "Back to menu", Rect2(78, 351, 168, 36), show_title, true)
+	if campaign.error != "": text_label(panel, campaign.error, Rect2(8, 386, 308, 19), 8, INK)
+
+
+func show_slot_name(index: int, editing: bool) -> void:
+	mode = "name"
+	var panel := new_panel(Rect2(25, 187, 310, 275))
+	text_label(panel, "Name your garden", Rect2(10, 18, 290, 36), 22, INK, true)
+	var input := LineEdit.new()
+	input.position = Vector2(24, 75)
+	input.size = Vector2(262, 40)
+	input.max_length = 18
+	input.text = campaign.slots[index].name if editing else "Garden %d" % (index + 1)
+	input.add_theme_font_override("font", BODY_FONT)
+	input.add_theme_font_size_override("font_size", 16)
+	panel.add_child(input)
+	var accept := func():
+		if editing:
+			campaign.rename_slot(index, input.text)
+			show_slots()
+		else: start_run(index, input.text)
+	button(panel, "Save name" if editing else "Start week 1", Rect2(24, 135, 262, 40), accept)
+	button(panel, "Back", Rect2(24, 187, 120, 36), show_slots, true)
+	if editing: button(panel, "Start over", Rect2(158, 187, 128, 36), func(): confirm_reset_slot(index), true)
+	input.text_submitted.connect(func(_text): accept.call())
+	input.grab_focus()
+	input.select_all()
+
+
+func confirm_reset_slot(index: int) -> void:
+	var panel := new_panel(Rect2(25, 202, 310, 236))
+	text_label(panel, "Start this garden over?", Rect2(10, 20, 290, 35), 20, INK, true)
+	text_label(panel, "This replaces its saved campaign.\nYour other gardens will not change.", Rect2(10, 65, 290, 43), 11, INK)
+	button(panel, "Keep my save", Rect2(24, 125, 262, 36), show_slots)
+	button(panel, "Replace with a new campaign", Rect2(24, 176, 262, 36), func(): start_run(index, campaign.slots[index].name), true)
+
+
+func load_slot(index: int) -> void:
+	var record = campaign.slots[index]
+	if record == null: return
+	var restored = Campaign.restore(record.checkpoint)
+	if restored == null: return
+	active_slot = index
+	sim = restored
+	level_checkpoint = record.checkpoint.duplicate(true) if sim.status == "playing" else {}
+	clear_overlay()
+	clear_input()
+	preview_mode = false
+	preview_weather = -1
+	preview_victory = false
+	sparks.clear()
+	if sim.status == "workshop":
+		mode = "workshop"
+		show_workshop()
+	elif sim.status == "won":
+		mode = "won"
+		ending_time = 6.0
+		show_result()
+	else:
+		mode = "play"
+		pause_game()
+	if DisplayServer.get_name() != "headless" and not audio.playing:
+		audio.play()
+		playback = audio.get_stream_playback()
 
 
 func clear_overlay() -> void:
@@ -327,7 +498,10 @@ func button(parent: Node, content: String, rect: Rect2, callback: Callable, seco
 
 
 func show_title() -> void:
+	clear_paused_overlay()
 	sim = Loop.new()
+	active_slot = -1
+	level_checkpoint = {}
 	mode = "title"
 	preview_weather = -1
 	preview_victory = false
@@ -346,7 +520,7 @@ func show_title() -> void:
 	panel.add_child(logo)
 	text_label(panel, "P A P E R  &  L A N T E R N S", Rect2(12, 77, 284, 20), 9, INK)
 	text_label(panel, "A little blower. One stubborn autumn.", Rect2(12, 107, 284, 22), 11, INK)
-	button(panel, "Keep winter waiting", Rect2(25, 147, 258, 45), start_run)
+	button(panel, "Continue / New garden", Rect2(25, 147, 258, 45), show_slots)
 	button(panel, "Explore the seasons", Rect2(25, 203, 258, 40), show_season_lab, true)
 	text_label(panel, "Move: A / D or arrows  ·  Blow: hold Space\nOn a phone, hold the buttons below.", Rect2(12, 254, 284, 43), 10, INK)
 	add_options(panel, 302)
@@ -400,7 +574,7 @@ func set_preview(index: int) -> void:
 func show_workshop() -> void:
 	var panel := new_panel(Rect2(18, 84, 324, 467))
 	text_label(panel, "The paper workshop", Rect2(10, 12, 304, 34), 23, INK, true)
-	text_label(panel, "DAY %d KEPT WARM  ·  %d LEAVES SAVED" % [sim.day, sim.day_rescued], Rect2(10, 47, 304, 22), 9, INK)
+	text_label(panel, "WEEK %d KEPT WARM  ·  %d LEAVES SAVED" % [sim.week, sim.week_rescued], Rect2(10, 47, 304, 22), 9, INK)
 	text_label(panel, "%d upgrade point%s  ·  score %s" % [sim.points, "" if sim.points == 1 else "s", str(sim.score)], Rect2(10, 72, 304, 23), 11, INK)
 	var titles := ["BOOTS", "BLOWER", "BATTERY"]
 	var names := [["Trail boots", "Sure footing"], ["Torque fan", "Heavy duty"], ["Efficiency", "Larger pack"]]
@@ -410,7 +584,7 @@ func show_workshop() -> void:
 		text_label(panel, titles[branch], Rect2(bx, 108, 98, 23), 11, INK, true)
 		for tier in range(2):
 			var owned: bool = sim.tiers[branch] > tier
-			var cost := 1 if tier == 0 else 2
+			var cost := 1 if tier == 0 else 3
 			var label: String = ("✓ " if owned else "") + names[branch][tier] + "\n" + ("Owned" if owned else "%d point%s" % [cost, "" if cost == 1 else "s"])
 			var b := button(panel, label, Rect2(bx + 1, 138 + tier * 93, 95, 45), func(): purchase(branch))
 			b.add_theme_font_size_override("font_size", 10)
@@ -418,17 +592,20 @@ func show_workshop() -> void:
 			text_label(panel, details[branch][tier], Rect2(bx - 1, 186 + tier * 93, 101, 30), 8, INK)
 	var s: Dictionary = sim.stats()
 	text_label(panel, "YOUR KIT  ·  Speed %d%%  ·  Force %d%%\nBurst %.1fs  ·  Recharge %.1fs  ·  Max pile drag %d%%" % [roundi(s.speed / Loop.BASE_SPEED * 100), roundi(s.force / 410.0 * 100), s.burst, s.recharge, roundi(s.pile_penalty * 100)], Rect2(8, 326, 308, 44), 10, INK)
-	button(panel, "Reallocate", Rect2(15, 384, 106, 35), func(): sim.refund_build(); show_workshop(), true)
-	button(panel, "Start day %d →" % (sim.day + 1), Rect2(132, 384, 177, 35), continue_day)
-	text_label(panel, "You can bank points. Your build lasts for this run.", Rect2(7, 431, 310, 23), 9, INK)
+	button(panel, "Reallocate", Rect2(15, 384, 106, 35), func(): sim.refund_build(); save_boundary(); show_workshop(), true)
+	button(panel, "Face the North Wind →" if sim.week == Loop.MAIN_WEEKS else "Start week %d →" % (sim.week + 1), Rect2(132, 384, 177, 35), continue_week)
+	text_label(panel, "Autosaved locally." if active_slot >= 0 and save_notice == "" else (save_notice if save_notice != "" else "You can bank points. Upgrades last for this campaign."), Rect2(7, 431, 310, 23), 9, INK)
 
 
 func purchase(branch: int) -> void:
-	if sim.buy(branch): show_workshop()
+	if sim.buy(branch):
+		save_boundary()
+		show_workshop()
 
 
-func continue_day() -> void:
-	if sim.next_day():
+func continue_week() -> void:
+	if sim.next_week():
+		save_boundary()
 		clear_overlay()
 		clear_input()
 		mode = "play"
@@ -438,29 +615,37 @@ func show_result() -> void:
 	var won := mode == "won"
 	var panel := new_panel(Rect2(30, 205, 300, 250))
 	text_label(panel, "Winter can wait!" if won else "Winter found a way.", Rect2(10, 17, 280, 37), 23, INK, true)
-	text_label(panel, "Seven days of stubborn sunshine." if won else "A warm little effort. Another autumn awaits.", Rect2(8, 58, 284, 23), 10, INK)
-	text_label(panel, "%s points  ·  day %d\n%d leaves returned to the trees" % [str(sim.score), sim.day, sim.rescued], Rect2(10, 88, 280, 40), 12, INK)
-	button(panel, "Try another autumn", Rect2(24, 144, 252, 39), start_run)
+	text_label(panel, "Twelve weeks. One North Wind defeated." if won else "Your checkpoint is safe. Try this level again.", Rect2(8, 58, 284, 23), 10, INK)
+	text_label(panel, "%s points · %s\n%d leaves returned to the trees" % [str(sim.score), "Final encounter" if sim.is_boss() else "Week %d" % sim.week, sim.rescued], Rect2(10, 88, 280, 40), 12, INK)
+	button(panel, "Your gardens" if won else "Retry this level", Rect2(24, 144, 252, 39), show_slots if won else restart_level)
 	button(panel, "Main menu", Rect2(24, 195, 252, 35), show_title, true)
 
 
 func weather() -> float:
 	if preview_mode: return maxf(preview_weather, 0.0)
-	if mode == "lost": return 1.0
-	if mode in ["title", "won"]: return 0.0
+	if visual_mode() == "lost": return 1.0
+	if visual_mode() in ["title", "won"]: return 0.0
 	return sim.pressure()
+
+
+func visual_mode() -> String:
+	return paused_mode if mode == "paused" else mode
 
 
 func _draw() -> void:
 	draw_texture_rect(BACKDROP, Rect2(0, 0, 360, 640), false)
 	var cold := weather()
-	var winter := mode == "lost" or (preview_mode and preview_weather >= 1.0)
-	var victory := mode == "won" or preview_victory
+	var scene_mode := visual_mode()
+	var winter := scene_mode == "lost" or (preview_mode and preview_weather >= 1.0)
+	var victory := scene_mode == "won" or preview_victory
 	var ending := clampf(ending_time / 3.5, 0.0, 1.0)
 	if cold > 0.45:
 		draw_rect(Rect2(0, 0, 360, 640), Color(0.12, 0.24, 0.38, (cold - 0.45) * 0.65))
+	if sim.week > 1 and mode != "title" and not victory:
+		draw_rect(Rect2(0, 0, 360, 640), Color(0.25, 0.38, 0.52, (mini(sim.week, 12) - 1) * 0.012))
 	draw_light(victory)
 	draw_fog(cold)
+	if sim.is_boss() and scene_mode == "play": draw_boss()
 	draw_trees()
 	draw_canopy(winter, ending, victory)
 	if cold > 0.55:
@@ -482,14 +667,18 @@ func _draw() -> void:
 		if spark.saved:
 			draw_arc(spark.position, 5 + spark.time * 13, 0, TAU, 18, Color(1, 0.94, 0.68, alpha), 1.2, true)
 			write("+", spark.position + Vector2(6, -spark.time * 15), 12, Color(1, 1, 0.86, alpha))
-	if mode in ["play", "paused", "workshop"]:
+	if scene_mode in ["play", "workshop"]:
 		draw_hud()
 	if mode == "play": draw_controls()
-	if mode == "play" and sim.day == 1 and sim.day_time < 8.0:
+	if mode == "play" and sim.week == 1 and sim.week_time < 8.0:
 		var hint := "Blow leaves into empty spots on the branches"
-		if sim.day_time > 4.0: hint = "Leaves click back on. Release to recharge."
+		if sim.week_time > 4.0: hint = "Leaves click back on. Release to recharge."
 		paper_box(Rect2(24, 525, 312, 25), Color(0.13, 0.23, 0.20, 0.88), 6)
 		write_center(hint, 180, 541, 10, CREAM)
+	if save_notice != "" and mode == "play":
+		paper_box(Rect2(10, 521, 340, 27), INK, 5)
+		write_center(save_notice, 180, 538, 8, CREAM)
+	draw_pause_button()
 
 
 func draw_light(victory: bool) -> void:
@@ -514,26 +703,11 @@ func draw_fog(cold: float) -> void:
 
 
 func draw_trees() -> void:
-	for branch in range(tree_paths.size()):
-		var path: PackedVector2Array = tree_paths[branch]
-		var trunk := branch % Canopy.LEFT_PATHS.size() == 0
-		for segment in range(path.size() - 1):
-			var a := path[segment]
-			var b := path[segment + 1]
-			var normal := (b - a).normalized().orthogonal()
-			var width_a := lerpf(12.0 if trunk else 4.8, 1.0, float(segment) / (path.size() - 1))
-			var width_b := lerpf(12.0 if trunk else 4.8, 0.6, float(segment + 1) / (path.size() - 1))
-			var polygon := PackedVector2Array([a + normal * width_a, b + normal * width_b, b - normal * width_b, a - normal * width_a])
-			var shadow := PackedVector2Array()
-			for point in polygon: shadow.append(point + Vector2(2.0, 2.5))
-			draw_colored_polygon(shadow, Color(0.12, 0.14, 0.09, 0.20))
-			draw_colored_polygon(polygon, Color("68503b") if trunk else Color("73553a"))
-			draw_line(a + normal * width_a * 0.55, b + normal * width_b * 0.55, Color("a58254"), 1.2, true)
-			# Fine fibres in the cutout bark, authored from the same branch geometry.
-			for fibre in range(3):
-				var t := 0.15 + fibre * 0.23
-				var p := a.lerp(b, t) + normal * sin(branch * 3.1 + fibre) * width_a * 0.4
-				draw_line(p, p.lerp(b, 0.18), Color(0.25, 0.19, 0.13, 0.5), 0.55, true)
+	for side in range(2):
+		if side == 1: draw_set_transform(Vector2(360, 0), 0, Vector2(-1, 1))
+		draw_texture_rect(TREE, Rect2(Canopy.TREE_RECT.position + Vector2(2, 3), Canopy.TREE_RECT.size), false, Color(0.13, 0.14, 0.10, 0.16))
+		draw_texture_rect(TREE, Canopy.TREE_RECT, false)
+		draw_set_transform(Vector2.ZERO)
 
 
 func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
@@ -548,13 +722,13 @@ func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 		var p: Vector2 = slot.position
 		draw_line(slot.stem, p + Vector2(0, 9).rotated(slot.angle), Color("886341"), 1.0, true)
 		if keep:
-			var colour_day: int = 6 if preview_mode and preview_weather > 0.5 else sim.day
-			if victory: colour_day = 1
-			var colour: Color = sim.leaf_colour(slot.leaf_id if slot.leaf_id >= 0 else i, colour_day)
+			var colour_week: int = 11 if preview_mode and preview_weather > 0.5 else sim.week
+			if victory: colour_week = 1
+			var colour: Color = sim.leaf_colour(slot.leaf_id if slot.leaf_id >= 0 else i, colour_week)
 			if winter: colour = colour.lerp(Color("aabac3"), ending * 0.8)
 			var sway := 0.0 if reduced_effects else sin(elapsed * 1.5 + i) * 0.045
 			draw_leaf(p, slot.angle + sway, colour, 12.5)
-			var since: float = sim.day_time - slot.attached_at
+			var since: float = sim.week_time - slot.attached_at
 			if since >= 0 and since < 0.5 and mode == "play":
 				draw_arc(p, 10 + since * 10, 0, TAU, 24, Color(1, 0.92, 0.6, 0.8 * (1.0 - since * 2)), 1.2, true)
 		elif mode == "play":
@@ -610,10 +784,9 @@ func draw_snow_cover(amount: float) -> void:
 		pts.append(Vector2(i * 10, 508 - amount * (13.0 + sin(i * 0.6) * 6.0)))
 	pts.append(Vector2(360, 640))
 	draw_colored_polygon(pts, Color(0.88, 0.93, 0.96, amount * 0.9))
-	for path in tree_paths:
-		for segment in range(path.size() - 1):
-			if path[segment].y < 285 and absf(path[segment].x - path[segment + 1].x) > 15:
-				draw_line(path[segment] + Vector2(0, -3), path[segment + 1] + Vector2(0, -3), Color(0.95, 0.97, 0.98, amount * 0.9), 4.0, true)
+	for slot in sim.slots:
+		var p: Vector2 = slot.stem
+		draw_arc(p + Vector2(0, -2), 3.0, PI, TAU, 12, Color(0.95, 0.97, 0.98, amount * 0.8), 2.0, true)
 
 
 func draw_flowers(amount: float) -> void:
@@ -647,19 +820,23 @@ func draw_leaf(p: Vector2, angle: float, colour: Color, size_px: float) -> void:
 
 
 func draw_character(winter: bool, victory: bool) -> void:
-	var px: float = 180.0 if mode in ["title", "preview"] else sim.x
-	var bob := sin(elapsed * 17.0) * 1.5 * anim_move if mode == "play" else 0.0
-	var height := 73.0
-	var width := height * character_region.size.x / character_region.size.y
-	draw_set_transform(Vector2(px, Loop.GROUND + 1))
+	var px: float = 180.0 if visual_mode() in ["title", "preview"] else sim.x
+	var bob := sin(elapsed * 12.0) * 1.2 * anim_move if mode == "play" and not reduced_effects else 0.0
+	var stage: int = clampi(sim.week - 1, 0, 11)
+	if preview_mode: stage = 10 if preview_weather > 0.5 else 0
+	var region: Rect2 = wardrobe_regions[stage]
+	var texture: Texture2D = WARDROBE
+	if winter or victory:
+		texture = ENDINGS
+		region = ending_regions[0 if victory else 1]
+		bob = sin(elapsed * 4.0) * 1.5 if victory and not reduced_effects else 0.0
+	var height := 76.0
+	var width := height * region.size.x / region.size.y
 	draw_set_transform(Vector2(px, Loop.GROUND + 1), 0, Vector2(1, 0.22))
-	draw_circle(Vector2.ZERO, 23, Color(0.12, 0.16, 0.1, 0.24))
+	draw_circle(Vector2.ZERO, 22, Color(0.12, 0.16, 0.1, 0.24))
 	draw_set_transform(Vector2.ZERO)
 	var rect := Rect2(px - width * 0.48, Loop.GROUND - height + bob, width, height)
-	var tint := Color("cbd9e4") if winter else Color.WHITE
-	draw_texture_rect_region(CARETAKER, rect, character_region, tint)
-	if victory:
-		write_center("✦", px, Loop.GROUND - 82 + sin(elapsed * 2.0) * 3, 19, GOLD)
+	draw_texture_rect_region(texture, rect, region, Color("d8e4eb") if winter else Color.WHITE)
 
 
 func draw_gust() -> void:
@@ -683,8 +860,9 @@ func draw_gust() -> void:
 
 func draw_hud() -> void:
 	paper_box(Rect2(12, 12, 291, 65), Color(0.10, 0.20, 0.17, 0.92), 9)
-	write("DAY %d / 7" % sim.day, Vector2(24, 31), 11, GOLD)
-	write("%05d" % sim.score, Vector2(24, 59), 22, CREAM, true)
+	write(sim.stage_title(), Vector2(24, 31), 8 if sim.is_boss() else 10, GOLD)
+	write("%05d" % sim.score, Vector2(24, 53), 18, CREAM, true)
+	write("%d°C" % sim.temperature(), Vector2(88, 66), 10, GOLD)
 	draw_snowflake(Vector2(141, 30), 6.0, 0, CREAM)
 	write("WINTER", Vector2(155, 27), 8, CREAM)
 	write("%d / %d" % [sim.missed, Loop.CAPACITY], Vector2(254, 27), 8, CREAM)
@@ -721,6 +899,31 @@ func draw_controls() -> void:
 		else:
 			var sign_x := -1 if action == "left" else 1
 			draw_polyline(PackedVector2Array([center + Vector2(-sign_x * 4, -8), center + Vector2(sign_x * 4, 0), center + Vector2(-sign_x * 4, 8)]), colour, 2.5, true)
+
+
+func draw_pause_button() -> void:
+	paper_box(PAUSE, INK, 8)
+	if mode == "paused":
+		draw_colored_polygon(PackedVector2Array([Vector2(323, 27), Vector2(334, 35), Vector2(323, 43)]), CREAM)
+	else:
+		draw_line(Vector2(324, 28), Vector2(324, 42), CREAM, 2)
+		draw_line(Vector2(332, 28), Vector2(332, 42), CREAM, 2)
+
+
+func draw_boss() -> void:
+	var phase: String = sim.boss_phase()
+	var position := Vector2(180 + sin(elapsed * 0.7) * 35, 120)
+	for i in range(5):
+		draw_circle(position + Vector2((i - 2) * 11, sin(i) * 5), 15, Color("8aabbb"))
+	draw_circle(position + Vector2(-8, -1), 2, INK)
+	draw_circle(position + Vector2(8, -1), 2, INK)
+	draw_arc(position + Vector2(0, 5), 5, 0, PI, 12, INK, 1.4, true)
+	var message := "THE NORTH WIND · Catch your breath"
+	if phase == "warning": message = "THE NORTH WIND · Gust incoming!"
+	elif phase == "blast": message = "THE NORTH WIND · Hold those leaves!"
+	paper_box(Rect2(40, 150, 280, 23), Color(0.13, 0.23, 0.25, 0.9), 6)
+	write_center(message, 180, 165, 9, CREAM)
+	if phase == "blast": draw_snow(0.9, false)
 
 
 func draw_fan(p: Vector2, radius: float, angle: float, colour: Color) -> void:

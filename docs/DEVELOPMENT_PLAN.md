@@ -2,7 +2,9 @@
 
 Status: an initial [technical art prototype](PROTOTYPE.md) now implements a subset of these stages in Godot 4.6.3, with a browser export, automated simulation/input checks, original prototype assets, and a small upgrade workshop. This is not a completed cross-platform gate or production vertical slice. Physical-device performance, native exports, full animation/layered-art production, difficulties and persistence remain outstanding. Complete each exit gate before expanding scope; the list below remains the broader delivery plan.
 
-The revised prototype uses modern rural homes instead of the original medieval backdrop. Bare gameplay trees and all foliage now render independently: occupied positions shed real leaves, misses leave persistent gaps, and returning leaves reattach to vacant positions. Shared branch/anchor geometry, textured leaf sprites and directional wind streaks replace the static painted canopy, blanket sky capture and spiral blower ribbons. The current finite canopy has 48 leaves; the earlier 150-leaf budget below remains a future scale target, not a claim about the current stress scenario.
+The revised prototype uses modern rural homes instead of the original medieval backdrop. Bare gameplay trees and all foliage now render independently: occupied positions shed real leaves, misses leave persistent gaps, and returning leaves reattach to vacant positions. Whole-tree illustrated sprites and artist-authored twig metadata, textured leaf sprites and directional wind streaks replace the static painted canopy, blanket sky capture and spiral blower ribbons. The current finite canopy has 48 leaves; the earlier 150-leaf budget below remains a future scale target, not a claim about the current stress scenario.
+
+The campaign prototype now includes 12 weekly outfit frames, two ending poses, falling temperature, all-screen pausing, and three named local boundary-save slots. Final boss mechanics are a first North Wind gust/snow study. Full animation rigs, human difficulty tuning and native device validation remain open.
 
 ## Technology recommendation and evaluation
 
@@ -46,15 +48,15 @@ Exit gate: a recorded engine/rendering decision with playable touch/browser buil
 
 ## Stage 2 — greybox core loop
 
-Implement fixed-screen movement, the upward blower cone, wind/gravity/swirl, canopy capture, and the finite leaf lifecycle. Add rechargeable blower energy, ground segments, visible pile depth, capped slowdown, cumulative danger, and exact day/loss transitions. Prototype one mobility upgrade and one heavy blower upgrade to measure movement/force tradeoffs before expanding the tree. Use simple shapes and temporary audio.
+Implement fixed-screen movement, the upward blower cone, wind/gravity/swirl, canopy capture, and the finite leaf lifecycle. Add rechargeable blower energy, ground segments, visible pile depth, capped slowdown, cumulative danger, and exact week/loss transitions. Prototype one mobility upgrade and one heavy blower upgrade to measure movement/force tradeoffs before expanding the tree. Use simple shapes and temporary audio.
 
 Prototype at least two cone widths and wind strengths. Check whether automatic upward aiming is satisfying before investing in an aim stick. Add a developer overlay for leaf states, capture bounds, current forces, and frame time, kept out of release UI.
 
-Exit gate: a first-time player can catch leaves intentionally, understand a miss and slowdown, finish a day, and lose for a visible reason. No leaf can score twice, vanish without resolution, remain permanently airborne, or trap the player in an immovable pile. The loop should be enjoyable before final art or power-ups.
+Exit gate: a first-time player can catch leaves intentionally, understand a miss and slowdown, finish a week, and lose for a visible reason. No leaf can score twice, vanish without resolution, remain permanently airborne, or trap the player in an immovable pile. The loop should be enjoyable before final art or power-ups.
 
 ## Stage 3 — representative vertical slice
 
-Polish one representative mid-autumn day with a final-quality character, tree, leaf style, gust trails, layered background, restrained lighting/fog, audio cues, and touch controls. Implement the main menu, difficulty selection, HUD, pause, first-play prompts, and day summary.
+Polish one representative mid-autumn week with a final-quality character, tree, leaf style, gust trails, layered background, restrained lighting/fog, audio cues, and touch controls. Implement the main menu, difficulty selection, HUD, pause, first-play prompts, and week summary.
 
 Create short versions of both ending sequences now to test the game's promise. Implement score/combo rules and a minimal local per-difficulty score table so a complete run flow can be tested.
 
@@ -62,13 +64,15 @@ Exit gate: a new player can go from menu to gameplay to an ending and replay wit
 
 ## Stage 4 — full progression and arcade systems
 
-Author seven day profiles and all three difficulty variants as data. Add the colour progression, telegraphed crosswinds, heavy-leaf introduction, day transitions, and persistent run danger. Implement the three-branch, two-tier upgrade tree, once-per-day point awards, prerequisites, between-day reallocation, weight effects, and workshop stat previews. Finish all score bonuses, initials entry, top-ten tables with build records, settings, and versioned persistence.
+Author twelve week profiles and a final encounter and all three difficulty variants as data. Add the colour progression, telegraphed crosswinds, heavy-leaf introduction, week transitions, and persistent run danger. Implement the three-branch, two-tier upgrade tree, once-per-week point awards, prerequisites, between-week reallocation, weight effects, and workshop stat previews. Finish all score bonuses, initials entry, top-ten tables with build records, settings, and versioned persistence.
 
-Test mobility, power, endurance, and mixed builds against the same day profiles. Check that no heavy build becomes immobile, no high-power build loses capture reliability, and no refund/transition grants extra points. Tune the difficulty curve from observed rescue rates, run duration, recharge downtime, and reasons for loss; avoid adjusting every variable at once. Temporary pickups are deferred.
+Test mobility, power, endurance, and mixed builds against the same week profiles. Check that no heavy build becomes immobile, no high-power build loses capture reliability, and no refund/transition grants extra points. Tune the difficulty curve from observed rescue rates, run duration, recharge downtime, and reasons for loss; avoid adjusting every variable at once. Temporary pickups are deferred.
 
-Exit gate: each difficulty supports a complete seven-day win and an understandable loss; score rules cannot be farmed; upgrades support viable alternative builds. Verify scores and settings survive restart, including all three independent tables. Confirm storage failure does not block play.
+Exit gate: each difficulty supports a complete twelve-week win and an understandable loss; score rules cannot be farmed; upgrades support viable alternative builds. Verify scores and settings survive restart, including all three independent tables. Confirm storage failure does not block play.
 
 ## Stage 5 — art, animation, audio, and accessibility polish
+
+Later environment pass: slow clouds, occasional noncolliding squirrels, and a possible night/storm week with restrained background lightning. Keep these behind readable gameplay, pause them with the game, provide reduced-motion/flash alternatives, and profile on minimum phones. These specific ambient features remain planned. See [campaign direction](CAMPAIGN.md).
 
 Finish the seasonal scene, sNOw logo, pressure-driven warning snowfall, winter cloud/snow-cover animation with intricate paper snowflakes, sunshine/unfolding-paper-flower victory, transitions, UI states, and audio mix. Replace the mockup flame icon with a labelled blower/fan charge gauge and battery symbol; use a separate snowflake winter-pressure indicator. Add reduced-effects settings, reduced-motion endings, optional haptics, and blower toggle. Make HUD and menu navigation usable with touch, mouse, and keyboard.
 
@@ -102,7 +106,7 @@ Track each asset's creator, source URL where applicable, license, attribution, e
 
 Automate gameplay invariants once the implementation exists: exactly-once leaf outcomes, capture eligibility, bounded force/charge/slowdown, combo reset, capacity threshold, final-leaf win/loss precedence, deterministic schedule generation, and upgrade cost/prerequisite/refund rules. Test exactly-once point awards, run resets, build-stat calculation, viable minimum speed, and upgrade-independent score formulas. Test persistence round trips, malformed files, rules-version changes, and stable leaderboard ordering independently of rendering.
 
-Add integration checks for menu → day → summary → next day, full win/loss → score entry → replay, and pause/background behaviour. Include simultaneous touches, touch cancellation, held inputs during pause, score submission once, and cinematic skip/interruption. A simulation-only pass cannot establish mobile input or graphical readiness.
+Add integration checks for menu → week → summary → next week, full win/loss → score entry → replay, and pause/background behaviour. Include simultaneous touches, touch cancellation, held inputs during pause, score submission once, and cinematic skip/interruption. A simulation-only pass cannot establish mobile input or graphical readiness.
 
 Maintain a small manual device matrix covering minimum hardware, browser/native builds, safe areas, low-effect settings, sound unlock, offline/reload expectations, and local score retention. Use short playtests to discover confusion and sustained runs to measure performance. Record the build, device, scenario, result, and outstanding issue; do not label skipped platform checks as passed.
 
@@ -111,7 +115,7 @@ Maintain a small manual device matrix covering minimum hardware, browser/native 
 - If atmospheric effects hide leaves or harm frame time, reduce fog/particles/light count before reducing gameplay responsiveness.
 - If pile slowdown creates an unrecoverable spiral, reduce its cap and improve pile warnings before adding rescue powers.
 - If browser export compatibility fails, resolve it in the engine spike before art production; evaluate the Phaser fallback.
-- If seven days make mobile sessions too long, shorten schedules before designing campaign saves. Any resumable run needs its own persistence/scoring tests.
+- If twelve weeks plus the finale make sessions long, rely on completed-level checkpoints and keep individual attempts short. Test retry score rollback, backup recovery and browser persistence; do not silently switch to arbitrary mid-level saving.
 - If production capacity is limited, defer temporary pickups and extra leaf types first; keep the requested upgrade tree small rather than remove it. Preserve the three difficulties, local high scores, both endings, and readable core loop.
 
 Next: review the playable art prototype on physical Android/iPhone browsers, record minimum-device assumptions and performance, and complete the remaining Stage 1 native/export gates before treating the engine choice as validated across platforms. See PROTOTYPE.md for the implemented subset and exact checks.

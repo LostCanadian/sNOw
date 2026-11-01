@@ -70,6 +70,15 @@
     // Keep the CSS-defined portrait rectangle inside the safe area, without stretching the simulation.
     window.addEventListener('resize', resize);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) resize(); });
+    window.addEventListener('blur', () => window.snowPauseRequested?.());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) window.snowPauseRequested?.(); });
+    window.addEventListener('beforeunload', event => {
+      if (window.snowShouldConfirmExit) {
+        window.snowPauseRequested?.();
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    });
   </script>
 </body>
 </html>

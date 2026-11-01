@@ -7,11 +7,12 @@ const CAPTURE_RADIUS := 15.0
 const MAX_ACTIVE := 150
 const BASE_SPEED := 122.0
 const CAPACITY := 28
-const TOTAL_DAYS := 7
+const MAIN_WEEKS := 12
+const BOSS_STAGE := MAIN_WEEKS + 1
 const LEAF_COLOURS := [Color("e6ae3d"), Color("d96a32"), Color("b54332"), Color("b5b352")]
 
 var rng := RandomNumberGenerator.new()
-var day := 1
+var week := 1
 var x := 180.0
 var charge := 1.0
 var idle_charge_time := 0.0
@@ -23,9 +24,9 @@ var combo := 0
 var rescued := 0
 var missed := 0
 var spawned := 0
-var day_rescued := 0
-var day_missed := 0
-var day_time := 0.0
+var week_rescued := 0
+var week_missed := 0
+var week_time := 0.0
 var spawn_timer := 0.5
 var status := "playing"
 var leaves: Array[Dictionary] = []
@@ -62,7 +63,7 @@ func pressure() -> float:
 	return clampf(float(missed) / CAPACITY, 0.0, 1.0)
 
 
-func day_leaf_count() -> int:
+func week_leaf_count() -> int:
 	return shedding_order.size()
 
 
@@ -73,9 +74,9 @@ func attached_count() -> int:
 	return count
 
 
-func leaf_colour(id: int, season_day: int = 0) -> Color:
-	var colour_day := day if season_day <= 0 else season_day
-	var autumn_fraction := clampf(float(colour_day) / 7.0, 0, 1)
+func leaf_colour(id: int, season_week: int = 0) -> Color:
+	var colour_week := week if season_week <= 0 else season_week
+	var autumn_fraction := clampf(float(colour_week) / MAIN_WEEKS, 0, 1)
 	if fmod(id * 0.61803398875, 1.0) > autumn_fraction:
 		return Color("8fa65c") if id % 2 == 0 else Color("bbc16b")
 	return LEAF_COLOURS[id % 3]
@@ -91,7 +92,25 @@ func prepare_shedding() -> void:
 		var value := shedding_order[i]
 		shedding_order[i] = shedding_order[j]
 		shedding_order[j] = value
-	shedding_order.resize(mini(shedding_order.size(), 16 + (day - 1) * 2))
+	shedding_order.resize(mini(shedding_order.size(), 16 + (week - 1)))
+
+
+func temperature() -> int:
+	return 22 - 2 * (mini(week, MAIN_WEEKS) - 1) - (2 if is_boss() else 0)
+
+
+func is_boss() -> bool:
+	return week == BOSS_STAGE
+
+
+func stage_title() -> String:
+	return "FINAL ENCOUNTER" if is_boss() else "WEEK %d / %d" % [week, MAIN_WEEKS]
+
+
+func boss_phase() -> String:
+	if not is_boss(): return ""
+	var t := fmod(week_time, 7.5)
+	return "warning" if t < 1.5 else ("blast" if t < 4.0 else "rest")
 
 
 func capture_slot(from: Vector2, to: Vector2) -> int:
@@ -137,11 +156,11 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 		if charge <= 0.0:
 			energy_locked = true
 			blowing = false
-	day_time += dt
+	week_time += dt
 	spawn_timer -= dt
-	if spawn_timer <= 0.0 and spawned < day_leaf_count() and leaves.size() < MAX_ACTIVE:
+	if spawn_timer <= 0.0 and spawned < week_leaf_count() and leaves.size() < MAX_ACTIVE:
 		spawn_leaf()
-		spawn_timer += maxf(0.60, 1.30 - day * 0.075)
+		spawn_timer += (0.38 if boss_phase() == "blast" else maxf(0.65, 1.30 - week * 0.045))
 	var origin := nozzle()
 	for leaf in leaves:
 		if leaf.state != "air":
@@ -153,15 +172,16 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 		var height := origin.y - p.y
 		var center_x := origin.x + direction * height * 0.15
 		var in_gust: bool = blowing and height > -8.0 and height < 335.0 and absf(p.x - center_x) < s.width * (0.7 + height / 340.0)
-		var wind := sin(day_time * 0.9 + day) * (5.0 + day * 1.6)
+		var wind := sin(week_time * 0.9 + week) * (5.0 + week * 1.6)
 		v.x += (wind + sin(leaf.age * 4.0 + leaf.id) * 12.0 - v.x * 0.60) * dt
 		v.y += (38.0 - v.y * 0.16) * dt
+		if boss_phase() == "blast": v.y += 32.0 * dt
 		if in_gust:
 			leaf.lifted = true
 			v.y -= s.force * dt
 			# Directional airflow with mild flutter, rather than a corkscrew vortex.
 			v.x += ((center_x - p.x) * 0.55 + sin(leaf.age * 5.0 + leaf.id) * 18.0) * dt
-		v.y = clampf(v.y, -158.0, 45.0 + day * 1.5)
+		v.y = clampf(v.y, -158.0, 45.0 + week * 1.5)
 		v.x = clampf(v.x, -85.0, 85.0)
 		p += v * dt
 		if p.x < 24.0 or p.x > 336.0:
@@ -182,10 +202,10 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 		if status == "lost":
 			break
 	leaves = leaves.filter(func(leaf: Dictionary) -> bool: return leaf.state == "air")
-	if status == "playing" and spawned >= day_leaf_count() and leaves.is_empty():
+	if status == "playing" and spawned >= week_leaf_count() and leaves.is_empty():
 		score += 500 + 50 * (CAPACITY - missed)
 		blowing = false
-		if day == TOTAL_DAYS:
+		if is_boss():
 			score += 5000
 			status = "won"
 		else:
@@ -224,18 +244,18 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 		for slot in slots:
 			if slot.leaf_id == leaf.id: return
 		slots[slot_index].leaf_id = leaf.id
-		slots[slot_index].attached_at = day_time
+		slots[slot_index].attached_at = week_time
 		leaf.position = slots[slot_index].position
 	leaf.state = "rescued" if saved else "grounded"
 	if saved:
 		combo += 1
 		rescued += 1
-		day_rescued += 1
+		week_rescued += 1
 		var multiplier := 1 if combo < 5 else (2 if combo < 10 else (3 if combo < 15 else 4))
 		score += 100 * multiplier
 	else:
 		missed += 1
-		day_missed += 1
+		week_missed += 1
 		combo = 0
 		var segment := clampi(int(leaf.position.x / 30.0), 0, 11)
 		piles[segment] += 1
@@ -248,7 +268,7 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 func buy(branch: int) -> bool:
 	if status != "workshop" or branch < 0 or branch > 2 or tiers[branch] >= 2:
 		return false
-	var cost: int = 1 if tiers[branch] == 0 else 2
+	var cost: int = 1 if tiers[branch] == 0 else 3
 	if points < cost:
 		return false
 	points -= cost
@@ -263,17 +283,17 @@ func refund_build() -> void:
 	points = earned_points
 
 
-func next_day() -> bool:
+func next_week() -> bool:
 	if status != "workshop":
 		return false
-	day += 1
+	week += 1
 	charge = 1.0
 	energy_locked = false
 	idle_charge_time = 0.0
 	spawned = 0
-	day_rescued = 0
-	day_missed = 0
-	day_time = 0.0
+	week_rescued = 0
+	week_missed = 0
+	week_time = 0.0
 	spawn_timer = 0.5
 	piles.fill(0)
 	leaves.clear()

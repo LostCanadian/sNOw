@@ -15,12 +15,12 @@ The game must provide:
 - A retro, cartoony look with modern atmosphere, including lighting and fog.
 - A title treatment emphasizing the stylized **NO** in **sNOw**.
 - A welcoming main menu and three difficulties, each with separate high scores.
-- Days as levels, with increasing autumn colour and challenge.
-- Between-day upgrade tree: better boots, electric blower power and battery improvements, with equipment-weight versus agility tradeoffs.
+- Weeks as levels, with increasing autumn colour and challenge.
+- Between-week upgrade tree: better boots, electric blower power and battery improvements, with equipment-weight versus agility tradeoffs.
 - A loss sequence: the character looks skyward, clouds roll in, and snow covers the scene.
 - A victory sequence: bright sunshine and blooming flowers show that winter has been prevented.
 
-The paper-cut direction and between-day upgrades are selected features. Exact rendering implementation, upgrade balance, scoring, and temporary pickups remain design choices. The defaults below make a bounded, testable first version.
+The paper-cut direction and between-week upgrades are selected features. Exact rendering implementation, upgrade balance, scoring, and temporary pickups remain design choices. The defaults below make a bounded, testable first version.
 
 ## Player experience
 
@@ -34,9 +34,9 @@ Selected creative direction: **Paper & Lanterns**, following the six-style compa
 
 Place two or three trees across the upper playfield, open air in the middle, and the character and accumulating leaves along the bottom. Keep trunks, branches, and foreground props from hiding catchable leaves. Reserve the bottom safe area for controls and the top for a compact HUD.
 
-Use a relatable modern rural setting: ordinary houses, wooden fences and optional solar panels, with distant forest and small mountains. No castle, medieval spires or stone bridge. Render the gameplay trees as bare branch structures separately from the scenery, and place all their foliage as independent paper leaves. Attached, falling and piled leaves share the same textured cut-paper asset. The trees' visible emptiness reflects actual missing leaves, especially late in a struggling run; never paint a permanently full canopy into the backdrop.
+Use a relatable modern rural setting: ordinary houses, wooden fences and optional solar panels, with distant forest and small mountains. No castle, medieval spires or stone bridge. Render the gameplay trees as complete illustrated bare-tree sprites separately from the scenery, and place all their foliage as independent paper leaves. Attached, falling and piled leaves share the same textured cut-paper asset. The trees' visible emptiness reflects actual missing leaves, especially late in a struggling run; never paint a permanently full canopy into the backdrop.
 
-Create depth with overlapping scenery planes, contact shadows, soft light shafts, a gentle canopy glow, and sparse fog. Fog stays behind important action or uses very low opacity. Colour and contrast must distinguish leaves from the backdrop, including during orange/red late days. Leaf shape, motion, and markings supplement colour cues.
+Create depth with overlapping scenery planes, contact shadows, soft light shafts, a gentle canopy glow, and sparse fog. Fog stays behind important action or uses very low opacity. Colour and contrast must distinguish leaves from the backdrop, including during orange/red late weeks. Leaf shape, motion, and markings supplement colour cues.
 
 The mood transitions from late-summer gold through orange autumn to a blue-grey winter threat. Victory restores a warm, vibrant scene. The logo's **NO** could resemble a hand-painted protest stamp or two oversized frosty letters crossed by a warm gust; keep a legible plain-text version for small screens and accessibility.
 
@@ -66,19 +66,19 @@ This gives the player two deliberate choices—where to stand and when to blow�
 
 ### Leaf lifecycle
 
-Each run starts with a finite set of leaf IDs attached to defined branch anchors. A seeded daily schedule detaches a subset of the remaining attached leaves in increasingly difficult patterns. A leaf can be attached, falling, airborne in a gust, or grounded. Shedding exposes its exact position; a miss leaves a persistent empty position. New days do not refill foliage lost earlier in the run. Cap the day's scheduled count by the number of attached leaves rather than inventing new leaves when the canopy is depleted.
+Each run starts with a finite set of leaf IDs attached to defined branch anchors. A seeded daily schedule detaches a subset of the remaining attached leaves in increasingly difficult patterns. A leaf can be attached, falling, airborne in a gust, or grounded. Shedding exposes its exact position; a miss leaves a persistent empty position. New weeks do not refill foliage lost earlier in the run. Cap the week's scheduled count by the number of attached leaves rather than inventing new leaves when the canopy is depleted.
 
 The blower applies a cone-shaped upward force with a small sideways component and mild flutter. Show short outward-moving wind streaks with shallow bends, not spiral/helical ribbons. Wind and gravity continue outside the cone. A lifted, upward-moving leaf reattaches only when its path crosses the forgiving capture radius of an empty branch position; sweep the motion segment so upgraded speed does not skip it. Reaching the top of the screen or an occupied position does not score. Any empty position may receive a leaf, not just its original position. Snap the leaf into place, show a brief attachment pulse, and make the position occupied atomically so two leaves cannot fill it. Gusts do not detach attached leaves.
 
-A returned leaf is marked rescued for that day and cannot shed again that day. A grounded leaf counts as missed once and remains in a local pile. Grounded leaves are not recoverable in version one; a later cleanup mechanic would need a separate balance pass. Decorative ambient particles never count toward scores, piles, or loss.
+A returned leaf is marked rescued for that week and cannot shed again that week. A grounded leaf counts as missed once and remains in a local pile. Grounded leaves are not recoverable in version one; a later cleanup mechanic would need a separate balance pass. Decorative ambient particles never count toward scores, piles, or loss.
 
-This bounded lifecycle prevents endless juggling from extending a day forever or farming score. Keep gameplay state independent from visual particles; pool both and cap visual effects on lower-powered devices.
+This bounded lifecycle prevents endless juggling from extending a week forever or farming score. Keep gameplay state independent from visual particles; pool both and cap visual effects on lower-powered devices.
 
 ### Blower and leaf piles
 
 Use a quiet, stylized electric blower, with a rechargeable battery as the recommended first-version power source. A fictional fuel-cell variant remains possible; there is no gasoline, combustion, or engine roar. Keep a soft electric whirr and airy gust sound with independently adjustable volume.
 
-The blower/fan gauge shows available energy with a small battery symbol and a clear “Recharging” state. Holding the blower spends charge; releasing allows automatic recharge after a brief delay. This is an arcade abstraction, not a claim that real batteries recharge by resting. Empty charge briefly disables the gust but never movement or recovery; require release before recharge in both hold and toggle modes, and show a clear release-to-recharge prompt. Refill at day boundaries. Start testing with roughly six seconds of base continuous use, a half-second recharge delay, and three seconds to refill from empty; tune these values alongside upgrades. No disposable fuel, purchasable refills, or extra heat meter in version one. This replaces the earlier motor-heat proposal with one understandable resource. Winter pressure has its own snowflake meter.
+The blower/fan gauge shows available energy with a small battery symbol and a clear “Recharging” state. Holding the blower spends charge; releasing allows automatic recharge after a brief delay. This is an arcade abstraction, not a claim that real batteries recharge by resting. Empty charge briefly disables the gust but never movement or recovery; require release before recharge in both hold and toggle modes, and show a clear release-to-recharge prompt. Refill at week boundaries. Start testing with roughly six seconds of base continuous use, a half-second recharge delay, and three seconds to refill from empty; tune these values alongside upgrades. No disposable fuel, purchasable refills, or extra heat meter in version one. This replaces the earlier motor-heat proposal with one understandable resource. Winter pressure has its own snowflake meter.
 
 Grounded leaves increase pile depth in horizontal ground segments. Movement speed depends on the depth directly beneath the character. Smooth the transitions between segments and cap slowdown so movement never becomes a complete soft lock. Begin testing at a maximum 40% slowdown.
 
@@ -86,20 +86,21 @@ Pile artwork must reflect the same depth that affects movement. A shared ground-
 
 ### Winter warning before defeat
 
-As cumulative winter pressure approaches capacity, start small folded-paper snowflakes falling. Increase their frequency and cool the distant light as danger grows, building urgency before the final winter animation. Initial tuning proposal: first sparse flakes at 60% pressure, more at 80%, and an urgent but readable warning at 95%. Drive this from missed-leaf pressure, not day number or blower charge, so the weather honestly communicates the risk of losing.
+As cumulative winter pressure approaches capacity, start small folded-paper snowflakes falling. Increase their frequency and cool the distant light as danger grows, building urgency before the final winter animation. Initial tuning proposal: first sparse flakes at 60% pressure, more at 80%, and an urgent but readable warning at 95%. Drive this from missed-leaf pressure, not week number or blower charge, so the weather honestly communicates the risk of losing.
 
 Warning flakes are decorative: no collisions, slowdown, scoring, or extra loss conditions. Keep them small and low-contrast behind gameplay leaves; save large intricate sixfold paper snowflakes and thick snow cover for the defeat cinematic. Reduced-effects mode preserves the same warning stages through the snowflake meter and static sky changes. Snow warnings must not make it harder to see or catch leaves. Panic is emotional feedback, not an instruction to raise the character's movement speed.
 
-### Day and run boundaries
+### Week and campaign boundaries
 
-- Proposal: seven days constitute one complete arcade run, targeting roughly 8–12 minutes including transitions.
-- Each day has a finite shedding schedule, initially targeting 45–75 seconds, followed by a short resolution period. End the day once the schedule is finished and every shed leaf is rescued or grounded; force lingering airborne leaves to resolve naturally with no further scheduled wind bursts.
-- A run ends immediately if grounded leaves reach the chosen difficulty's cumulative ground capacity. Freeze scoring and gameplay before the loss sequence.
-- Between days, show a short summary, then explicitly continue. The character clears the ground overnight: reset local slowdown and pile visuals, but carry the missed-leaf total and danger meter across the run. Show this as “winter pressure” that persists despite clearing the path.
-- Refill blower charge between days and open the upgrade workshop after days 1–6. Run upgrades and the remaining canopy carry forward; a new shedding schedule begins the next day without restoring missed leaves. Day seven goes directly to the ending.
-- Completing day seven below capacity wins. If the final miss reaches capacity as the final leaf resolves, loss takes precedence. Process leaf outcomes once in a stable order.
+- The main campaign has **12 weeks**, followed by a separately named **final boss encounter**, The North Wind. Do not label the finale “Week 13.”
+- Each week schedules a finite subset of remaining leaves. Completing it once awards its score bonus and one upgrade point, then opens the workshop and autosaves. Week 12 leads to the boss through that workshop; only defeating the boss triggers victory.
+- Current temperature falls from 22°C by 2°C per week, reaching 0°C in week 12 and −2°C during the finale. This is an illustrative seasonal scale, not a real weather forecast. Clothing adds warmth each week, beginning in T-shirt/shorts and ending in a coat, mittens, hat and scarf. No stat bonus or movement penalty comes from cosmetic clothing.
+- The cumulative winter-pressure threshold still governs failure. Missed foliage stays missing between weeks; paths clear and the battery refills. Retry restores the exact level-start canopy, score, equipment, schedule and random state, so repeated failures cannot duplicate rewards.
+- Three locally named campaign slots autosave completed weeks, workshop choices, next-level start checkpoints, and victory. An attempt in progress is never saved as completed. Losing offers Retry Current Level rather than forcing a new campaign.
+- Pause freezes gameplay, weather, previews and ending timelines. Switching away automatically pauses and returning never resumes without player action. Exiting warns: “Are you sure you want to exit? Current level progress will be lost.” Completed progress remains saved.
+- On victory, return to shorts and a T-shirt for the flowers/sun celebration. On defeat, show a sad, heavily bundled character beneath the snow.
 
-The overnight cleanup is a recommended balance choice, not a required part of the original concept. Playtest its clarity alongside persistent piles before locking it.
+See [campaign details](CAMPAIGN.md) for the state flow, storage semantics, and final-encounter proposal.
 
 ## Difficulty and level progression
 
@@ -107,35 +108,36 @@ Use three difficulties, provisionally **Breezy**, **Blustery**, and **Gale**. Ke
 
 | Parameter | Breezy | Blustery | Gale |
 | --- | --- | --- | --- |
-| Shed leaves/day, initial tuning | 30 → 60 | 40 → 80 | 50 → 100 |
+| Shed leaves/week, initial tuning | 30 → 60 | 40 → 80 | 50 → 100 |
 | Cumulative misses allowed before loss | 100 | 80 | 65 |
 | Wind patterns | Gentle, long warnings | Alternating gusts | Stronger crosswinds, shorter warnings |
 | Opening assistance | Tutorial prompts, wider catches | Brief prompts | Minimal prompts |
 
-These numbers are hypotheses. Capacity is a count, not a percentage; display “misses / capacity” consistently and preview that capacity on difficulty selection. Test all seven days at every difficulty before treating any setting as balanced.
+These numbers are hypotheses. Capacity is a count, not a percentage; display “misses / capacity” consistently and preview that capacity on difficulty selection. Test all twelve weeks and the final encounter at every difficulty before treating any setting as balanced.
 
-| Days | Seasonal presentation | Challenge introduced |
+| Weeks | Seasonal presentation | Challenge / clothing direction |
 | --- | --- | --- |
-| 1–2 | Mostly green, a few yellow leaves | Individual falls, then small clusters; learn catching and charge management |
-| 3–4 | Yellow/orange canopy, cooler background | Alternating crosswinds and staggered clusters |
-| 5–6 | Predominantly orange/red, longer shadows | Heavier leaf type and overlapping fall lanes |
-| 7 | Deep autumn with a visible warm horizon | A fair combination of learned patterns; no surprise new mechanic |
+| 1–3 | Green and gold; 22°C → 18°C | Learn catching and charge; T-shirt, shorts, light layers |
+| 4–6 | Yellow/orange; 16°C → 12°C | More scheduled leaves; long sleeves, trousers, sweater and vest |
+| 7–9 | Predominantly orange/red; 10°C → 6°C | Crosswinds and overlapping lanes; hoodie, jacket and gloves |
+| 10–12 | Deep autumn; 4°C → 0°C | Learned patterns combined; wool hat, scarf and winter coat |
+| Final encounter | The North Wind; −2°C | Telegraph → downward gust/snow → recovery; no extra numbered week |
 
-More leaves change colour each day, as requested. Most colour changes are seasonal presentation; if heavy leaves behave differently, give them a distinct curled silhouette and introduction cue. Never encode weight solely by red versus green.
+More leaves change colour each week, as requested. Most colour changes are seasonal presentation; if heavy leaves behave differently, give them a distinct curled silhouette and introduction cue. Never encode weight solely by red versus green.
 
-Keep the number of scheduled leaves, fall speed, clustering, wind, and blower reach in data-driven day profiles. Change a small number of parameters at a time. Telegraph gusts through canopy movement and a short directional cue before they affect gameplay.
+Keep the number of scheduled leaves, fall speed, clustering, wind, and blower reach in data-driven week profiles. Change a small number of parameters at a time. Telegraph gusts through canopy movement and a short directional cue before they affect gameplay.
 
 ## Upgrade tree and character progression
 
-The player chooses upgrades between days. Boots improve mobility, stronger blowers move leaves more effectively, and battery upgrades change endurance. Heavier equipment creates an agility-versus-strength tradeoff: a powerful gust helps with clusters, but a bulky blower takes longer to carry across the screen.
+The player chooses upgrades between weeks. Boots improve mobility, stronger blowers move leaves more effectively, and battery upgrades change endurance. Heavier equipment creates an agility-versus-strength tradeoff: a powerful gust helps with clusters, but a bulky blower takes longer to carry across the screen.
 
-Recommended scope: upgrades last for the current seven-day run and reset when starting a new run. Everyone begins a difficulty with the same equipment. Permanent cross-run stat upgrades are not assumed by this proposal; that would change persistence and high-score comparisons. Save the completed run's build with its score record so the player can revisit successful strategies.
+Recommended scope: upgrades last for the current saved campaign and reset when starting a new run. Everyone begins a difficulty with the same equipment. Permanent cross-run stat upgrades are not assumed by this proposal; that would change persistence and high-score comparisons. Save the completed run's build with its score record so the player can revisit successful strategies.
 
 ### Branches and initial nodes
 
 Three branches begin from the same starter kit. Tier 2 requires Tier 1 in its branch. All effects and numbers remain tuning hypotheses.
 
-| Branch | Tier 1 — costs 1 point | Tier 2 — costs 2 additional points | Tradeoff / role |
+| Branch | Tier 1 — costs 1 point | Tier 2 — costs 3 additional points | Tradeoff / role |
 | --- | --- | --- | --- |
 | Boots / agility | Trail Boots: increase unloaded running speed, initially +10% | Sure Footing: reduce the maximum pile penalty, initially from 40% to 30% | Better repositioning and movement through missed leaves; less investment in gust strength |
 | Blower / strength | High-Torque Fan: more upward force, with modest added weight and energy draw | Heavy-Duty Blower: further force and a wider effective cone, with greater weight and energy draw | Holds heavier clusters aloft, but is slower to carry and drains charge faster |
@@ -147,33 +149,33 @@ Keep leaf capture reliable at maximum power: stronger upward force must not repe
 
 ### Earning and spending
 
-- Award one upgrade point after each of days 1–6, regardless of score or rescue rate. No points after the final day, since the run is over.
-- Six points are available per complete run. Fully upgrading a branch costs three, so the player can complete two branches or spread investment across all three; they cannot buy everything.
-- Points are separate from arcade score. Never force the player to reduce a high score to buy equipment, and do not reward repeated juggling or replaying a day with extra points.
-- Unspent points carry forward within the run. Allow free reallocation only between days, refunding dependents when removing a prerequisite. Confirm a complete valid build before starting the next day; no changes during active play.
-- Completing or retrying a run clears its points and build. Difficulty changes start a fresh run. Future save/resume must preserve the exact day, build, and awarded-point ledger to prevent duplicate rewards.
+- Award one upgrade point after each of weeks 1–12, regardless of score or rescue rate. No points after the final week, since the run is over.
+- Twelve points are available before the finale. Fully upgrading a branch costs four (one plus three), so all three branches can be completed by the boss. The order creates build choices through the campaign; costs and the all-upgrades finale balance remain tuning hypotheses.
+- Points are separate from arcade score. Never force the player to reduce a high score to buy equipment, and do not reward repeated juggling or replaying a week with extra points.
+- Unspent points carry forward within the run. Allow free reallocation only between weeks, refunding dependents when removing a prerequisite. Confirm a complete valid build before starting the next week; no changes during active play.
+- Starting a new campaign clears its points and build. Retrying a level restores its checkpoint, including the awarded-point ledger, rather than clearing completed progress or retaining attempt rewards. Workshop edits autosave.
 
-### Between-day workshop UX
+### Between-week workshop UX
 
-Flow: day summary → **paper workshop upgrade tree** → next-day forecast → Start Day. Show three vertical branches connected by cut-paper paths, large boots/fan/battery icons, owned/available/locked states, points remaining, and readable prerequisites. Avoid colour-only state cues.
+Flow: week summary → **paper workshop upgrade tree** → next-week forecast → Start Week. Show three vertical branches connected by cut-paper paths, large boots/fan/battery icons, owned/available/locked states, points remaining, and readable prerequisites. Avoid colour-only state cues.
 
-Selecting a node previews “current → proposed” run speed, gust force/reach, continuous burst duration, recharge duration, and pile resistance. Explicitly label drawbacks, such as “Stronger gust; heavier to carry.” Include Confirm and Undo/Reallocate; Start Day can keep an existing build or bank points. Avoid auto-spending or a real-time decision countdown. After day seven, go directly to the ending/results, not a workshop with nothing left to play.
+Selecting a node previews “current → proposed” run speed, gust force/reach, continuous burst duration, recharge duration, and pile resistance. Explicitly label drawbacks, such as “Stronger gust; heavier to carry.” Include Confirm and Undo/Reallocate; Start Week can keep an existing build or bank points. Avoid auto-spending or a real-time decision countdown. After the boss encounter, go directly to the ending/results, not another workshop.
 
 Temporary pickups are deferred until the upgrade tree is balanced. If revisited, avoid duplicating upgrade identities or adding several competing resource meters. The earlier Cool Breeze heat pickup is retired with the heat system.
 
 ## Points and high scores
 
-- Award 100 base points for each rescued leaf, once per leaf per day. No points for merely touching a leaf, blowing, or collecting a power-up.
+- Award 100 base points for each rescued leaf, once per leaf per week. No points for merely touching a leaf, blowing, or collecting a power-up.
 - Consecutive rescues build a combo: ×1 for rescues 1–4, ×2 for 5–9, ×3 for 10–14, and ×4 from 15 onward. A miss resets the chain; inactivity alone does not. Process simultaneous rescues by stable leaf ID.
-- On day completion, add 500 points plus 50 per remaining unit of cumulative ground capacity. This intentionally rewards preserving capacity across days; display this calculation in the summary.
+- On week completion, add 500 points plus 50 per remaining unit of cumulative ground capacity. This intentionally rewards preserving capacity across weeks; display this calculation in the summary.
 - Add 5,000 for completing the whole run. Do not add a time bonus that rewards rushing menus or penalizes reduced-motion settings.
 - Snapshot score on loss or victory before the cinematic. Scores use nonnegative integers and bounded multipliers.
 
-Store the top ten scores **separately for each difficulty**, with three initials, score, highest day, win/loss, a scoring-rules version, and the completed build. Sort descending by score, then highest day; preserve earlier records for exact ties. Give the initials entry a large touch-friendly alphabet selector and keyboard support; allow A–Z, default to AAA, and provide a skip option. Display initials as plain text.
+Store the top ten scores **separately for each difficulty**, with three initials, score, highest week, win/loss, a scoring-rules version, and the completed build. Sort descending by score, then highest week; preserve earlier records for exact ties. Give the planned high-score initials entry a large touch-friendly alphabet selector and keyboard support; allow A–Z, default to AAA, and provide a skip option. Display initials as plain text.
 
-Recommend local arcade high scores rather than campaign saves or global accounts for version one. Save settings and scores locally using a versioned schema and safe writes. Browser storage can be cleared or unavailable, and native/browser installs do not share scores. If persistence fails, keep the current session playable and clearly indicate that scores will not be retained. Validate loaded data and recover safely from corruption. Scores are personal records, not tamper-proof competition.
+Use local campaign saves and separate local arcade high scores rather than accounts or global services. The three **save slots** are named campaigns; the three **difficulty score tables** remain a separate planned feature. Version and validate checkpoint data, keep backup recovery, and indicate storage failure instead of claiming success. Browser saves are local to the browser/origin and can be cleared; native and browser installations do not share them. No cloud saves or login is needed.
 
-Pause the current run when backgrounded where possible, but do not promise recovery after the OS kills the app or the browser reloads. Explain that runs restart after closing. A versioned mid-run resume checkpoint can be added later if real session lengths demand it. Do not implement cloud saves, login, or a global leaderboard in the first release.
+Save only level boundaries/workshop edits. Foreground resume preserves a paused in-memory attempt, but reload or OS process death restores the latest saved checkpoint. Retrying rolls back attempt score, misses and resources together. A future leaderboard must define how checkpoint retries and campaign rules versions are compared.
 
 ## UX and UI flows
 
@@ -181,11 +183,11 @@ Pause the current run when backgrounded where possible, but do not promise recov
 
 Show the sNOw logo, a lightly animated tree scene, **Play**, **High Scores**, **How to Play**, and **Settings**. Avoid a separate mandatory account, splash interaction, or lengthy intro. The first intentional tap/click can also enable browser audio.
 
-Play opens a difficulty selector with a short description and that difficulty's best score. Remember the last choice. Start day one with three brief contextual lessons: move, hold to blow, and avoid burying the path. Let returning players skip them. Delay real pressure until the player has used the controls.
+Play opens a difficulty selector with a short description and that difficulty's best score. Remember the last choice. Start week one with three brief contextual lessons: move, hold to blow, and avoid burying the path. Let returning players skip them. Delay real pressure until the player has used the controls.
 
 ### In-game HUD
 
-Display day out of seven, score, winter-pressure meter, and blower charge with the fan/battery gauge. Place combo indicators close to the action without covering falling leaves. Use large readable numerals and restrained animation. Keep pause always accessible; difficulty can remain in pause rather than cluttering the HUD.
+Display week out of twelve (or “Final Encounter”), temperature, score, winter-pressure meter, and blower charge with the fan/battery gauge. Place combo indicators close to the action without covering falling leaves. Use large readable numerals and restrained animation. Keep pause always accessible; difficulty can remain in pause rather than cluttering the HUD.
 
 ### Aspect ratios and fair play
 
@@ -195,11 +197,11 @@ Screen pixels and refresh rate must not affect speed, wind, energy use, scoring,
 
 If global leaderboards are added later, compare only compatible difficulty, rules version, and challenge seed or schedule. Decide separate input categories or an explicit policy for keyboard versus touch advantages. Equal geometry is necessary but does not solve input differences, modified clients, or score verification; a ranked service needs its own validation design. This does not add accounts or online services to version one.
 
-At a day boundary show rescued/missed leaves, score breakdown, cumulative danger, a one-line next-day forecast, and Open Workshop (days 1–6). Confirm the build and start the next day explicitly. The player chooses when play resumes. Pause offers Resume, Settings, Restart Run, and Main Menu. Confirm actions that discard the current run.
+At a week boundary show rescued/missed leaves, score breakdown, cumulative danger, a one-line next-week forecast, and Open Workshop (weeks 1–12). Confirm the build and start the next week explicitly. The player chooses when play resumes. Pause offers Resume, Restart Current Level and Exit to Menu. Confirm actions that discard the current run.
 
 ### Loss sequence
 
-Disable gameplay input, settle the character, and have them look up. Roll in blue-grey clouds, dim the warm light, then build snowfall and a snow-cover overlay on the ground, trees, and character. Transition into a result panel showing score, day reached, difficulty, initials entry when eligible, Retry, and Main Menu. The tone is gently comic, not punitive.
+Disable gameplay input, settle the character, and have them look up. Roll in blue-grey clouds, dim the warm light, then build snowfall and a snow-cover overlay on the ground, trees, and character. Transition into a result panel showing score, week reached, difficulty, initials entry when eligible, Retry Current Level, and Main Menu. The tone is gently comic, not punitive.
 
 ### Victory sequence
 
@@ -213,6 +215,6 @@ Use a soft electric blower whirr and airy gust loop, leaf rustles, a distinct ca
 
 ## First-version scope
 
-Required: one polished scene, one character, seven configured days, three difficulties, touch and keyboard controls, leaf physics and captures, local piles and slowdown, rechargeable blower energy, between-day upgrade tree with weight tradeoffs, readable scoring, local per-difficulty high scores, menus/settings/tutorial, and both ending sequences. Temporary pickups are deferred until the upgrade progression is balanced.
+Required: one polished scene, one character with weekly outfits, 12 configured weeks plus a final encounter, three difficulties, touch and keyboard controls, leaf physics and captures, local piles and slowdown, rechargeable blower energy, between-week upgrade tree with weight tradeoffs, readable scoring, local per-difficulty high scores, menus/settings/tutorial, three named local campaign saves, a final encounter, and both ending sequences. Temporary pickups are deferred until the upgrade progression is balanced.
 
 Deferred: global leaderboards, accounts, cloud saves, permanent cross-run stat progression, endless mode, multiplayer, multiple biomes, elaborate narrative, monetization, and full 3D assets. A satisfying complete run matters more than breadth.

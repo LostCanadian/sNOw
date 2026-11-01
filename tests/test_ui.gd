@@ -1,6 +1,7 @@
 extends SceneTree
 
 const Main = preload("res://main.tscn")
+const Campaign = preload("res://scripts/campaign.gd")
 var checks := 0
 var failures := 0
 
@@ -21,6 +22,16 @@ func run() -> void:
 	root.add_child(main)
 	main.set_physics_process(false)
 	check(main.mode == "title", "main scene opens at the menu")
+	check(main.wardrobe_regions.size() == 12 and main.ending_regions.size() == 2, "twelve weekly outfits and distinct warm/sad ending art load")
+	check(main.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS, "paper art is smoothly filtered with mipmaps")
+	var oriented := true
+	var tree_image: Image = main.TREE.get_image()
+	for slot in main.sim.slots:
+		var direction: Vector2 = (slot.position - slot.stem).normalized()
+		oriented = oriented and direction.dot(Vector2.UP.rotated(slot.angle)) > 0.999
+	for tip in main.Canopy.TWIG_TIPS:
+		oriented = oriented and tree_image.get_pixelv(Vector2i(tip)).a > 0.4
+	check(oriented, "leaf stems meet the illustrated twig silhouette and point organically outward")
 	var clouds_valid := true
 	for layer in range(3):
 		for frame in range(61):
@@ -52,18 +63,18 @@ func run() -> void:
 	main.keys["right"] = true
 	main._notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
 	check(main.mode == "paused" and main.keys.is_empty() and main.touches.is_empty(), "focus loss pauses and releases every input")
-	var before: float = main.sim.day_time
+	var before: float = main.sim.week_time
 	main._physics_process(1.0)
-	check(main.sim.day_time == before, "pause freezes the simulation")
+	check(main.sim.week_time == before, "pause freezes the simulation")
 	main.resume_game()
 	main.sim.leaves.clear()
-	main.sim.spawned = main.sim.day_leaf_count()
+	main.sim.spawned = main.sim.week_leaf_count()
 	main._physics_process(1.0 / 60.0)
-	check(main.mode == "workshop" and main.sim.points == 1, "day boundary opens workshop")
+	check(main.mode == "workshop" and main.sim.points == 1, "week boundary opens workshop")
 	main.purchase(1)
 	check(main.sim.tiers == [0, 1, 0] and main.sim.points == 0, "workshop purchase applies the equipment build")
-	main.continue_day()
-	check(main.mode == "play" and main.sim.day == 2 and main.sim.tiers[1] == 1, "workshop continues into the next day with upgrades")
+	main.continue_week()
+	check(main.mode == "play" and main.sim.week == 2 and main.sim.tiers[1] == 1, "workshop continues into the next week with upgrades")
 	main.show_title()
 	main.show_season_lab()
 	main.set_preview(1)
@@ -72,6 +83,12 @@ func run() -> void:
 	check(main.weather() == 1.0, "winter preview is available without deliberately losing")
 	main.set_preview(3)
 	check(main.preview_victory, "victory art preview is available")
+	main.pause_game()
+	var frozen_elapsed: float = main.elapsed
+	main._physics_process(1.0)
+	check(main.mode == "paused" and main.elapsed == frozen_elapsed, "pause also freezes the art preview")
+	main.resume_game()
+	check(main.mode == "preview" and main.overlay != null and main.overlay.visible, "resume restores the original preview controls")
 	main.show_title()
 	main.start_run()
 	check(main.sim.tiers == [0, 0, 0] and main.sim.points == 0 and main.sim.score == 0, "new run resets equipment, currency and score")
@@ -80,8 +97,44 @@ func run() -> void:
 		main._physics_process(1.0 / 60.0)
 		main._physics_process(4.1)
 		check(main.mode == ending and main.overlay != null, ending + " opens its result controls after the cinematic")
+		main.pause_game()
+		var frozen_ending: float = main.ending_time
+		main._physics_process(1.0)
+		check(main.ending_time == frozen_ending, "pause freezes the " + ending + " ending")
+		check(main.visual_mode() == ending, "pausing preserves the " + ending + " character and weather presentation")
+		main.resume_game()
+		check(main.mode == ending and main.overlay.visible, "resume restores " + ending + " results")
 		main.show_title()
 		main.start_run()
+	var path := "user://scene-save-test-%d.json" % Time.get_ticks_usec()
+	main.campaign = Campaign.new(path)
+	main.start_run(0, "Scene garden")
+	main.sim.spawned = main.sim.week_leaf_count()
+	main._physics_process(1.0 / 60)
+	check(main.campaign.slots[0].checkpoint.phase == "workshop", "scene completion automatically writes the named slot")
+	main.pause_game()
+	main._physics_process(1.0)
+	main.resume_game()
+	check(main.mode == "workshop", "workshop survives pause and explicit resume")
+	main.purchase(0)
+	main.continue_week()
+	var checkpoint_score: int = main.sim.score
+	main.sim.score += 999
+	main.restart_level()
+	check(main.sim.week == 2 and main.sim.score == checkpoint_score and main.sim.tiers[0] == 1, "retry restores the current week and its build without retaining attempt points")
+	main.show_title()
+	main.campaign = Campaign.new(path)
+	main.load_slot(0)
+	check(main.mode == "paused" and main.sim.week == 2, "loaded campaigns require explicit resume and retain progress")
+	main.resume_game()
+	main._notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
+	main._notification(Node.NOTIFICATION_APPLICATION_FOCUS_IN)
+	check(main.mode == "paused", "returning from another app never auto-resumes")
+	main.resume_game()
+	main._notification(Node.NOTIFICATION_WM_CLOSE_REQUEST)
+	check(main.mode == "paused" and main.overlay != null, "native close requests open a confirmation rather than terminating immediately")
+	for extension in ["", ".bak", ".tmp"]:
+		if FileAccess.file_exists(path + extension): DirAccess.remove_absolute(path + extension)
 	main.audio.stop()
 	main.playback = null
 	main.queue_free()
