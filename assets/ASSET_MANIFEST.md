@@ -38,3 +38,5 @@ The in-game License screen reads Godot’s full MIT text and bundled-library cop
 `audio/*.ogg` and `audio/midi/*.mid` are original compositions and synthesized effects authored by `tools/generate_audio.py`. Nine eight-bar MIDI scores are rendered with original sine/soft-pulse/triangle voices and procedural noise; no recordings, soundfonts, downloaded samples, external songs or audio libraries are redistributed. NumPy and ffmpeg are authoring tools only. Ogg files play offline through Godot; MIDI source files preserve the notes, tempo and instrumentation.
 
 `audio/streams/*.mp3data` are MP3 renderings of the same nine scores, for browser codec compatibility. They are explicitly included as raw package files so browser media elements can stream them without asking Godot to allocate long WebAudio sample buffers. The audio generator renders both formats from the same synthesized samples.
+
+`art/speaker.svg` is an original vector speaker icon for the main-menu audio settings entry. Mute and music/effects volume are inside the audio panel; the main menu has no effects or mute checkboxes.

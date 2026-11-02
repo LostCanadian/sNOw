@@ -11,7 +11,7 @@ Leaf control uses smooth per-leaf turbulence and an outward force proportional t
 
 ## Branching progression (rules 6)
 
-Boots, Blower and Battery each have ten nodes: a root, two paths, four specializations and three capstones. The middle capstone joins both inner paths. Select an icon to read its name, effect, prerequisites and Gold Leaf cost; only the current equipment tree is shown. Tabs animate their nodes unless Soft effects is enabled. Root and specialization nodes cost one Gold Leaf, capstones cost two, and Whirlwind costs three after Torque fan (four total). Each completed main week awards two Gold Leaves; the boss awards none. Reset kit returns the exact costs.
+Boots, Blower and Battery each have ten nodes: a root, two paths, four specializations and three capstones. The middle capstone joins both inner paths. Select an icon to read its name, effect, prerequisites and Gold Leaf cost; only the current equipment tree is shown. Tabs animate their nodes; the internal reduced-effects mode disables that motion. Root and specialization nodes cost one Gold Leaf, capstones cost two, and Whirlwind costs three after Torque fan (four total). Each completed main week awards two Gold Leaves; the boss awards none. Reset kit returns the exact costs.
 
 Save data stores explicit node IDs and verifies prerequisites, duplicates, node counts and budget. Earlier campaigns double earned currency, retain mapped equipment and Whirlwind access, and receive the remainder after the mapped node costs. Existing scores stay in their original rules archive; rules 6 has a separate table because the progression and steering have changed.
 
@@ -32,3 +32,5 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 Fourteen headless regression scripts pass 754 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter and audio routing. The five Python launcher tests also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
+
+The main menu now uses a speaker-only audio settings button. Mute is inside the audio panel alongside the two volume sliders, and the Soft effects toggle is removed from the menu.

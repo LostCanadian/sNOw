@@ -13,7 +13,7 @@
 - The Blower Whirlwind node unlocks a tornado ability: a brief airborne screen-plane tumble lifts ground leaves and stirs airborne ones, with a 36-second recharge reduced to 31/24 seconds by Battery Whirlwind cell and Storm reserve. Tap the leaf-lifting button or press E.
 - Unique short opening/closing paper panels frame all twelve weeks and the finale. Physics and recharge clocks wait for the panel to fade; tap or Space/Enter can skip it. Achievements are deferred; rescue-streak announcements are removed.
 - Small warning flakes near defeat; clouds, cut-paper snowflakes and ground snow on loss; flowers on victory. Main-menu season previews allow immediate art review.
-- Soft-effects, mute and independent persistent music/effects volume; nine original retro score loops and layered action effects. No microphone input or external audio service.
+- A speaker button opens mute and independent persistent music/effects volume; nine original retro score loops and layered action effects. No microphone input or external audio service.
 
 The title screen offers **Continue / New game** to choose one of three named Save Slots and **Explore the seasons** to review the visual states. New saves choose Breezy, Blustery or Gale; weeks are deliberately short and not the finished difficulty curve. The main menu also opens local **High Scores** and offline **License** notices. See [scores and licenses](SCORES_AND_LICENSES.md) for the storage/deduplication contract and current difficulty tuning. Nothing is purchased with score or real money.
 

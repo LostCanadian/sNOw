@@ -1,6 +1,7 @@
 extends Node2D
 ## A small paper theatre: simulation stays separate from cutout presentation and UI.
 
+const SPEAKER_ICON = preload("res://assets/art/speaker.svg")
 const AudioDirector = preload("res://scripts/audio_director.gd")
 const WinterFall = preload("res://scripts/winter_fall.gd")
 const GOLD_LEAF = preload("res://assets/art/gold_leaf.svg")
@@ -675,34 +676,13 @@ func show_title() -> void:
 	text_label(panel, "Move: A / D or arrows · Blow: hold Space\nE: Whirlwind (unlock in the workshop)", Rect2(12, 299, 284, 43), 10, INK)
 	button(panel, "High Scores", Rect2(25, 254, 123, 38), func(): show_high_scores(), true)
 	button(panel, "License", Rect2(160, 254, 123, 38), show_license, true)
-	add_options(panel, 354)
-
-
-func add_options(parent: Node, y: float) -> void:
-	var effects := CheckButton.new()
-	effects.text = "Soft effects"
-	effects.position = Vector2(18, y)
-	effects.size = Vector2(143, 30)
-	effects.button_pressed = reduced_effects
-	effects.add_theme_font_override("font", BODY_FONT)
-	effects.add_theme_font_size_override("font_size", 10)
-	effects.add_theme_color_override("font_color", INK)
-	effects.toggled.connect(func(value: bool): reduced_effects = value)
-	parent.add_child(effects)
-	var sound := CheckButton.new()
-	sound.text = "Mute"
-	sound.position = Vector2(158, y)
-	sound.size = Vector2(83, 30)
-	sound.button_pressed = muted
-	sound.add_theme_font_override("font", BODY_FONT)
-	sound.add_theme_font_size_override("font_size", 10)
-	sound.add_theme_color_override("font_color", INK)
-	sound.toggled.connect(func(value: bool):
-		muted = value
-		sounds.muted = value
-		sounds.save_preferences())
-	parent.add_child(sound)
-	button(parent, "Audio", Rect2(243, y, 53, 30), show_audio_options, true).add_theme_font_size_override("font_size", 10)
+	var audio_button := button(panel, "", Rect2(132, 354, 44, 36), show_audio_options, true)
+	audio_button.name = "AudioSettings"
+	audio_button.tooltip_text = "Audio settings"
+	audio_button.expand_icon = true
+	audio_button.add_theme_constant_override("icon_max_width", 24)
+	audio_button.icon = SPEAKER_ICON
+	audio_button.size = Vector2(44,36)
 
 
 func show_license() -> void:
@@ -1512,6 +1492,20 @@ func show_audio_options() -> void:
 			sounds.set(property,value)
 			sounds.save_preferences())
 		panel.add_child(slider)
+	var mute := CheckButton.new()
+	mute.name = "MuteAll"
+	mute.text = "Mute all"
+	mute.position = Vector2(24,214)
+	mute.size = Vector2(256,28)
+	mute.button_pressed = muted
+	mute.add_theme_font_override("font", BODY_FONT)
+	mute.add_theme_font_size_override("font_size", 12)
+	mute.add_theme_color_override("font_color", INK)
+	mute.toggled.connect(func(value: bool):
+		muted = value
+		sounds.muted = value
+		sounds.save_preferences())
+	panel.add_child(mute)
 	button(panel, "Back to menu", Rect2(24, 246, 256, 40), show_title)
 
 

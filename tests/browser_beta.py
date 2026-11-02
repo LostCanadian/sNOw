@@ -100,12 +100,13 @@ with sync_playwright() as p:
     page.wait_for_function('window.snowSnapshot.surge_active')
     assert snap()['week_missed']<count and snap()['audio_cues'].get('whirlwind',0)==1
     capture('ability');page.wait_for_timeout(1300);menu_from_play()
-    click(295,523);mode('audio_options');capture('audio-options')
-    click(120,279);click(220,357);click(180,427);mode('title')
+    click(180,526);mode('audio_options');capture('audio-options')
+    click(120,279);click(220,357)
     settings=page.evaluate("JSON.parse(localStorage.getItem('snow.audio.v1'))")
     assert 0<settings['music_volume']<.6 and settings['effects_volume']>.5
-    click(213,523);page.wait_for_function('window.snowSnapshot.audio_muted');page.wait_for_timeout(700);assert rms()<.00001
-    click(213,523);page.wait_for_function('!window.snowSnapshot.audio_muted');audible()
+    click(180,390);page.wait_for_function('window.snowSnapshot.audio_muted');page.wait_for_timeout(700);assert rms()<.00001
+    click(180,390);page.wait_for_function('!window.snowSnapshot.audio_muted');audible()
+    click(180,427);mode('title')
     page.reload(wait_until='networkidle');page.wait_for_function("window.snowSnapshot?.mode==='title'",timeout=90000)
     click(180,323);mode('slots');click(180,242);mode('continue')
     assert snap()['week']==10 and snap()['tiers']==[4,3,2] and snap()['time']==0
