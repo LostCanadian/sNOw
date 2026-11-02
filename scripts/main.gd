@@ -5,7 +5,9 @@ const SPEAKER_ICON = preload("res://assets/art/speaker.svg")
 const AudioDirector = preload("res://scripts/audio_director.gd")
 const LeafBatch = preload("res://scripts/leaf_batch.gd")
 const WinterFall = preload("res://scripts/winter_fall.gd")
-const GOLD_LEAF = preload("res://assets/art/gold_leaf.svg")
+const WORKSHOP_PAPER = preload("res://assets/art/workshop_paper.png")
+const WORKSHOP_TOKENS = preload("res://assets/art/workshop_tokens.png")
+const WorkshopRegions = preload("res://scripts/workshop_regions.gd")
 const PLAY_ICON = preload("res://assets/art/play.svg")
 const PAUSE_ICON = preload("res://assets/art/pause.svg")
 const TWINKLE = preload("res://assets/art/twinkle.svg")
@@ -91,10 +93,14 @@ var front_shadows: MultiMesh
 var winter_front: MultiMesh
 var winter_front_shadows: MultiMesh
 var winter_renderer
+var winter_upload_revision:=-1
 var canopy_stamp := ""
 var canopy_gap_markers: Array[Vector2] = []
 var canopy_rank := PackedInt32Array()
 var wardrobe_regions: Array[Rect2] = []
+var workshop_game
+var workshop_origin := "results"
+var restart_draft: Dictionary = {}
 var selected_upgrade := Vector2i(0, 0)
 var upgrade_regions := [Rect2(35, 35, 710, 655), Rect2(755, 20, 810, 640), Rect2(1640, 35, 485, 640)]
 var ending_regions: Array[Rect2] = []
@@ -356,6 +362,8 @@ func _notification(what: int) -> void:
 
 func start_run(slot_index := -1, slot_name := "", difficulty := -1) -> void:
 	clear_paused_overlay()
+	workshop_game=null
+	restart_draft.clear()
 	sim = Loop.new(641023, selected_difficulty if difficulty < 0 else difficulty)
 	selected_difficulty = sim.difficulty
 	actor.reset()
@@ -370,6 +378,7 @@ func start_run(slot_index := -1, slot_name := "", difficulty := -1) -> void:
 	preview_weather = -1
 	preview_victory = false
 	sparks.clear()
+	reset_weather()
 	clear_overlay()
 	clear_input()
 	begin_intro()
@@ -402,6 +411,7 @@ func pause_game() -> void:
 
 
 func resume_game() -> void:
+	restart_draft.clear()
 	if mode != "paused": return
 	clear_overlay()
 	clear_input()
@@ -412,7 +422,24 @@ func resume_game() -> void:
 
 
 func confirm_restart() -> void:
-	confirm_discard(restart_level)
+	restart_draft.clear()
+	show_restart_review()
+
+
+func show_restart_review() -> void:
+	mode="paused"
+	var panel:=new_panel(Rect2(28,175,304,290))
+	text_label(panel,"Restart this level?",Rect2(12,16,280,36),21,INK,true)
+	text_label(panel,"Current level progress will be lost.\nUpgrades apply when this level restarts.",Rect2(12,59,280,42),10,INK)
+	button(panel,"Restart level",Rect2(24,115,256,40),func():
+		if not restart_draft.is_empty():
+			level_checkpoint=restart_draft.duplicate(true)
+			persist_level_checkpoint()
+		restart_draft.clear()
+		restart_level())
+	button(panel,"Upgrades",Rect2(24,168,256,38),func():open_workshop("restart"),true)
+	button(panel,"Cancel",Rect2(24,221,256,38),resume_game,true)
+
 
 
 func confirm_menu() -> void:
@@ -465,6 +492,7 @@ func restart_level() -> void:
 	begin_intro()
 	ending_time = 0
 	sparks.clear()
+	reset_weather()
 
 
 func show_slots() -> void:
@@ -558,6 +586,7 @@ func load_slot(index: int) -> void:
 	preview_weather = -1
 	preview_victory = false
 	sparks.clear()
+	reset_weather()
 	if sim.status == "workshop":
 		show_result()
 	elif sim.status == "won":
@@ -565,12 +594,17 @@ func load_slot(index: int) -> void:
 		ending_time = 6.0
 		show_result()
 	else:
-		mode = "continue"
-		var panel := new_panel(Rect2(28, 214, 304, 212))
-		text_label(panel, "Week %d" % sim.week, Rect2(16, 18, 272, 36), 24, INK, true)
-		text_label(panel, "Continue from the start of this level.", Rect2(12, 61, 280, 28), 11, INK)
-		button(panel, "Continue", Rect2(24, 105, 256, 38), begin_intro)
-		button(panel, "Save Slots", Rect2(24, 155, 256, 38), show_slots, true)
+		show_continue()
+
+
+func show_continue() -> void:
+	mode="continue"
+	var panel:=new_panel(Rect2(28,190,304,268))
+	text_label(panel,"Week %d"%sim.week,Rect2(16,18,272,36),24,INK,true)
+	text_label(panel,"Continue from the start of this level.",Rect2(12,61,280,28),11,INK)
+	button(panel,"Continue",Rect2(24,105,256,38),begin_intro)
+	button(panel,"Upgrades",Rect2(24,155,256,38),func():open_workshop("continue"),true)
+	button(panel,"Save Slots",Rect2(24,205,256,38),show_slots,true)
 
 
 func clear_overlay() -> void:
@@ -657,10 +691,13 @@ func button(parent: Node, content: String, rect: Rect2, callback: Callable, seco
 
 func show_title() -> void:
 	clear_paused_overlay()
+	workshop_game=null
+	restart_draft.clear()
 	sim = Loop.new()
 	actor.reset()
 	update_actor_mesh(true)
 	active_slot = -1
+	reset_weather()
 	level_checkpoint = {}
 	result_key = ""
 	mode = "title"
@@ -729,7 +766,7 @@ func show_license() -> void:
 	button(panel, "Back to menu", Rect2(80, 449, 164, 36), show_title, true)
 
 
-func show_high_scores(difficulty := -1, from_result := false, rules := HighScores.RULES) -> void:
+func show_high_scores(difficulty := -1, from_result := false) -> void:
 	clear_input()
 	mode = "scores"
 	scores_return_to_result = from_result
@@ -737,10 +774,10 @@ func show_high_scores(difficulty := -1, from_result := false, rules := HighScore
 	var panel := new_panel(Rect2(18, 70, 324, 514))
 	text_label(panel, "High Scores", Rect2(8, 15, 308, 36), 25, INK, true)
 	for i in range(3):
-		var tab := button(panel, Loop.DIFFICULTIES[i].name, Rect2(12 + i * 102, 65, 96, 38), func(): show_high_scores(i, from_result, rules), i != selected)
+		var tab := button(panel, Loop.DIFFICULTIES[i].name, Rect2(12 + i * 102, 65, 96, 38), func(): show_high_scores(i, from_result), i != selected)
 		tab.add_theme_font_size_override("font_size", 11)
-	text_label(panel, "PREVIOUS RULES %d · ARCHIVED SCORES" % rules if rules != HighScores.RULES else "LOCAL TOP TEN · INITIALS / SCORE / PROGRESS", Rect2(8, 111, 308, 21), 9, INK)
-	var table: Array = high_scores.entries(selected, rules)
+	text_label(panel, "LOCAL TOP TEN · INITIALS / SCORE / PROGRESS", Rect2(8, 111, 308, 21), 9, INK)
+	var table: Array = high_scores.entries(selected)
 	if table.is_empty():
 		text_label(panel, "No scores yet.\n\nFinish a week, then enter your initials\non the results screen.", Rect2(10, 175, 304, 125), 13, INK)
 	for i in range(table.size()):
@@ -753,12 +790,8 @@ func show_high_scores(difficulty := -1, from_result := false, rules := HighScore
 		var outcome: String = record.get("outcome", "won" if record.won else "lost")
 		var progress: String = "CLEARED" if outcome == "workshop" else ("WIN" if outcome == "won" else "LOSS")
 		text_label(panel, progress + " · " + stage + "\nBoots %d · Fan %d · Cell %d" % [record.tiers[0], record.tiers[1], record.tiers[2]], Rect2(164, y, 152, 26), 8, INK)
-	var versions: Array[int] = high_scores.available_rules(selected)
-	var archived := versions.size() > 1 or rules != HighScores.RULES
-	var next_version: int = versions[(versions.find(rules) + 1) % versions.size()]
-	if archived: button(panel, "Current scores" if next_version == HighScores.RULES else "Previous scores (%d)" % next_version, Rect2(80, 414, 164, 29), func(): show_high_scores(selected, from_result, next_version), true)
 	if not high_scores.error.is_empty():
-		var notice := text_label(panel, high_scores.error, Rect2(12, 445 if archived else 416, 300, 19 if archived else 40), 8 if archived else 10, INK)
+		var notice := text_label(panel, high_scores.error, Rect2(12,416,300,40),10, INK)
 		notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button(panel, "Back" if from_result else "Back to menu", Rect2(80, 465, 164, 36), return_from_scores, true)
 
@@ -840,30 +873,99 @@ func set_preview(index: int) -> void:
 		update_winter_batch()
 
 
+func paper_icon(texture: Texture2D, region: Rect2) -> Texture2D:
+	var icon:=AtlasTexture.new();icon.atlas=texture;icon.region=region
+	return icon
+
+
 func upgrade_icon(branch: int, node: int) -> Texture2D:
-	return load("res://assets/art/upgrades/%s.svg" % Upgrades.ICONS[branch][node])
+	return paper_icon(WORKSHOP_PAPER,WorkshopRegions.UPGRADES[branch*10+node])
+
+
+func open_workshop(origin: String) -> void:
+	workshop_origin=origin
+	if origin in ["restart","retry"]:
+		workshop_game=Campaign.restore(restart_draft if origin=="restart" and not restart_draft.is_empty() else level_checkpoint)
+	else:workshop_game=sim
+	if workshop_game==null:return
+	mode="workshop"
+	show_workshop(true)
+
+
+func persist_level_checkpoint() -> void:
+	if active_slot>=0 and campaign.slots[active_slot]!=null:
+		campaign.store(active_slot,campaign.slots[active_slot].name,level_checkpoint)
+		save_notice=campaign.error
+
+
+func save_workshop() -> void:
+	if workshop_origin=="restart":restart_draft=Campaign.snapshot(workshop_game)
+	elif workshop_origin=="retry":
+		level_checkpoint=Campaign.snapshot(workshop_game)
+		persist_level_checkpoint()
+	else:save_boundary()
+
+
+func close_workshop() -> void:
+	workshop_game=null
+	match workshop_origin:
+		"continue":show_continue()
+		"restart":show_restart_review()
+		_:show_result()
+
+
+func confirm_reset_upgrades() -> void:
+	mode="reset_upgrades"
+	var panel:=new_panel(Rect2(28,201,304,238))
+	text_label(panel,"Reset all upgrades?",Rect2(12,18,280,36),21,INK,true)
+	text_label(panel,"Return every Gold Leaf and choose new paths.",Rect2(16,68,272,40),11,INK)
+	button(panel,"Reset all upgrades",Rect2(24,122,256,38),func():
+		workshop_game.refund_build()
+		sounds.play_cue("reset",0.5)
+		save_workshop()
+		mode="workshop"
+		show_workshop(true))
+	button(panel,"Cancel",Rect2(24,174,256,38),func():
+		mode="workshop"
+		show_workshop(),true)
+
+
+func quiet_hover(parent: Node) -> void:
+	for action in parent.find_children("*","Button",true,false):
+		if action.text.is_empty():action.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER
+		action.tooltip_text=""
+		action.add_theme_stylebox_override("hover",action.get_theme_stylebox("normal"))
 
 
 func show_workshop(animate := false) -> void:
-	if sim.status != "workshop": return
+	if workshop_game==null or mode not in ["workshop","reset_upgrades"]:
+		workshop_game=sim
+		workshop_origin="results"
+	if not workshop_game.can_upgrade():return
 	mode = "workshop"
 	clear_input()
-	var panel := new_panel(Rect2(12, 76, 336, 500))
-	text_label(panel, "The workshop", Rect2(8, 10, 242, 31), 23, INK, true)
-	gold_leaf_badge(panel, sim.points, Rect2(272, 6, 48, 43))
+	var panel := new_panel(Rect2(12,76,336,490))
+	text_label(panel, "The workshop", Rect2(8,10,208,31), 23, INK, true)
+	gold_leaf_badge(panel, workshop_game.points, Rect2(226,10,47,29))
+	var reset:=button(panel,"",Rect2(286,7,36,36),confirm_reset_upgrades,true)
+	reset.name="ResetUpgrades"
+	reset.expand_icon=true
+	reset.icon=paper_icon(WORKSHOP_TOKENS,WorkshopRegions.TOKENS[1])
+	reset.add_theme_constant_override("icon_max_width",27)
 	text_label(panel, "Two Gold Leaves each week. Choose your path.", Rect2(8, 44, 320, 22), 11, INK)
 	for branch in range(3):
-		var tab := button(panel, Upgrades.TITLES[branch].capitalize(), Rect2(10 + branch * 108, 75, 100, 43), func():
+		var tab := button(panel, "", Rect2(10 + branch * 108,66,100,55), func():
 			selected_upgrade = Vector2i(branch, 0)
 			show_workshop(true), branch != selected_upgrade.x)
-		tab.icon = upgrade_icon(branch, 0)
-		tab.expand_icon = true
-		tab.add_theme_constant_override("icon_max_width", 25)
+		tab.name="Equipment%d"%branch
+		tab.expand_icon=true
+		tab.icon=paper_icon(UPGRADE_ICONS,upgrade_regions[branch])
+		tab.add_theme_constant_override("icon_max_width", 61)
 		tab.add_theme_font_size_override("font_size", 10)
 	var branch := selected_upgrade.x
 	var node := selected_upgrade.y
 	var tree := Control.new()
-	tree.position = Vector2(0, 143)
+	tree.position = Vector2(0,152)
 	tree.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(tree)
 	for child in range(Upgrades.MAX_RANK):
@@ -873,24 +975,23 @@ func show_workshop(animate := false) -> void:
 			var b: Vector2 = Upgrades.POSITIONS[child]
 			connector.points = PackedVector2Array([a, Vector2(a.x, (a.y+b.y)*0.5), Vector2(b.x, (a.y+b.y)*0.5), b])
 			connector.width = 2.5
-			connector.default_color = GOLD if sim.owned.has(branch * 10 + parent) else Color("b6aa8a")
+			connector.default_color = GOLD if workshop_game.owned.has(branch * 10 + parent) else Color("b6aa8a")
 			tree.add_child(connector)
 	for index in range(Upgrades.MAX_RANK):
-		var owned: bool = sim.owned.has(branch * 10 + index)
-		var available := Upgrades.available(sim.owned, branch, index)
+		var owned: bool = workshop_game.owned.has(branch * 10 + index)
+		var available := Upgrades.available(workshop_game.owned, branch, index)
 		var chosen := node == index
 		var rect := Rect2(Upgrades.POSITIONS[index] - Vector2(21, 21), Vector2(42, 42))
 		var choice := button(tree, "", rect, func():
 			selected_upgrade = Vector2i(branch, index)
 			show_workshop(), true)
 		choice.name = "Upgrade%d" % index
-		choice.icon = upgrade_icon(branch, index)
-		choice.expand_icon = true
-		choice.add_theme_constant_override("icon_max_width", 29)
-		choice.tooltip_text = Upgrades.NAMES[branch][index] + "\n" + Upgrades.description(branch, index)
+		choice.expand_icon=true
+		choice.icon=upgrade_icon(branch,index)
+		choice.add_theme_constant_override("icon_max_width", 35)
 		var colour := INK if owned else (Color("947139") if available else Color("a7a697"))
 		for state in ["normal", "hover", "pressed", "focus"]:
-			var style := panel_style(colour.lightened(0.12) if state == "hover" else colour, 13)
+			var style := panel_style(colour, 13)
 			style.shadow_size = 0
 			style.set_border_width_all(3 if chosen else 1)
 			style.border_color = RUST if chosen else GOLD
@@ -913,11 +1014,11 @@ func show_workshop(animate := false) -> void:
 			var tween := choice.create_tween().set_parallel(true)
 			tween.tween_property(choice, "scale", Vector2.ONE, 0.24).set_delay(index * 0.025).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 			tween.tween_property(choice, "modulate:a", 1.0, 0.18).set_delay(index * 0.025)
-	var owned: bool = sim.owned.has(branch * 10 + node)
-	var available := Upgrades.available(sim.owned, branch, node)
-	text_label(panel, Upgrades.NAMES[branch][node], Rect2(12, 340, 312, 27), 17, INK, true)
+	var owned: bool = workshop_game.owned.has(branch * 10 + node)
+	var available := Upgrades.available(workshop_game.owned, branch, node)
+	text_label(panel, Upgrades.NAMES[branch][node], Rect2(12,350,312,27), 17, INK, true)
 	var detail := RichTextLabel.new()
-	detail.position = Vector2(18, 371)
+	detail.position = Vector2(18,381)
 	detail.size = Vector2(300, 49)
 	detail.add_theme_font_override("normal_font", BODY_FONT)
 	detail.add_theme_font_size_override("normal_font_size", 11)
@@ -928,23 +1029,18 @@ func show_workshop(animate := false) -> void:
 		for parent in Upgrades.PARENTS[node]: required.append(Upgrades.NAMES[branch][parent])
 		detail.text += "\nRequires " + ", ".join(required) + "."
 	panel.add_child(detail)
-	var buy := button(panel, "Owned" if owned else "Upgrade", Rect2(12, 431, 148, 38), func(): purchase(branch, node))
-	buy.disabled = owned or not available or sim.points < Upgrades.cost(branch, node)
-	buy.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	if not owned: gold_leaf_badge(panel, Upgrades.cost(branch, node), Rect2(115, 433, 39, 34))
-	button(panel, "Back to results", Rect2(176, 431, 148, 38), show_result, true)
-	button(panel, "Reset kit", Rect2(12, 478, 72, 20), func():
-		sim.refund_build()
-		sounds.play_cue("reset",0.5)
-		save_boundary()
-		show_workshop(true), true).add_theme_font_size_override("font_size", 9)
-	text_label(panel, "Saved" if save_notice.is_empty() else save_notice, Rect2(94, 478, 228, 18), 8, INK)
+	var buy := button(panel, "Owned" if owned else "Upgrade", Rect2(12,441,148,38), func(): purchase(branch, node))
+	buy.disabled = owned or not available or workshop_game.points < Upgrades.cost(branch, node)
+	currency_caption(buy)
+	if not owned: gold_leaf_badge(panel, Upgrades.cost(branch, node), Rect2(116,447,37,26))
+	button(panel,"Done",Rect2(176,441,148,38),close_workshop,true)
+	quiet_hover(panel)
 
 
 func purchase(branch: int, node := -1) -> void:
-	if sim.buy(branch, node):
+	if workshop_game.buy(branch,node):
 		sounds.play_cue("upgrade",0.8)
-		save_boundary()
+		save_workshop()
 		show_workshop()
 
 
@@ -958,19 +1054,25 @@ func continue_week() -> void:
 		begin_intro()
 
 
+func currency_caption(action: Button) -> void:
+	for state in ["normal","hover","pressed","focus","disabled"]:
+		var style:StyleBox=action.get_theme_stylebox(state).duplicate()
+		style.content_margin_left=12;style.content_margin_right=48
+		action.add_theme_stylebox_override(state,style)
+	action.alignment=HORIZONTAL_ALIGNMENT_LEFT
+
+
 func gold_leaf_badge(parent: Node, amount: int, rect: Rect2) -> void:
-	var icon := TextureRect.new()
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.texture = GOLD_LEAF
-	icon.position = rect.position
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.size = rect.size
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.tooltip_text = "%d Gold Leaves · spend in the workshop" % amount
+	var icon:=TextureRect.new()
+	icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+	icon.texture=paper_icon(WORKSHOP_TOKENS,WorkshopRegions.TOKENS[0])
+	icon.position=rect.position
+	icon.size=Vector2(minf(23,rect.size.y),rect.size.y)
+	icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	parent.add_child(icon)
-	var number := text_label(parent, str(amount), rect, 13, INK)
-	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var number:=text_label(parent,str(amount),Rect2(rect.position+Vector2(24,0),rect.size-Vector2(24,0)),12,INK)
+	number.mouse_filter=Control.MOUSE_FILTER_IGNORE
 
 
 func show_result() -> void:
@@ -1022,12 +1124,16 @@ func show_result() -> void:
 	result_badge = text_label(panel, "Counting the leaves…", Rect2(10, 263, 292, 23), 14, RUST, true)
 	result_score_action = button(panel, "Enter initials", Rect2(16, 294, 136, 38), show_initials, true)
 	if sim.status == "workshop":
-		result_actions.append(button(panel, "Upgrades", Rect2(160, 294, 136, 38), show_workshop, true))
-		result_actions[-1].alignment = HORIZONTAL_ALIGNMENT_LEFT
+		result_actions.append(button(panel, "Upgrades", Rect2(160,294,136,38),func():open_workshop("results"), true))
+		currency_caption(result_actions[-1])
 		result_actions[-1].tooltip_text = "Spend Gold Leaves in the workshop"
-		gold_leaf_badge(panel, sim.points, Rect2(248, 296, 42, 34))
+		gold_leaf_badge(panel, sim.points, Rect2(247,300,42,26))
 		result_actions.append(button(panel, "North Wind →" if sim.week == Loop.MAIN_WEEKS else "Week %d →" % (sim.week + 1), Rect2(160, 344, 136, 38), continue_week))
 	elif sim.status == "lost":
+		if not level_checkpoint.is_empty():
+			result_actions.append(button(panel,"Upgrades",Rect2(160,294,136,38),func():open_workshop("retry"),true))
+			currency_caption(result_actions[-1])
+			gold_leaf_badge(panel,int(level_checkpoint.get("points",0)),Rect2(247,300,42,26))
 		result_actions.append(button(panel, "Retry this level", Rect2(160, 344, 136, 38), restart_level))
 	else:
 		text_label(panel, StageStory.chapter(Loop.BOSS_STAGE)[2].replace("\n", " "), Rect2(160, 292, 136, 42), 11, INK, true)
@@ -1076,7 +1182,7 @@ func visual_mode() -> String:
 	var current := paused_mode if mode == "paused" else mode
 	if current == "intro": return "play"
 	if current in ["outro", "results"]: return "workshop"
-	if current == "initials" or (current == "scores" and scores_return_to_result): return sim.status
+	if current in ["initials","workshop","reset_upgrades"] or (current == "scores" and scores_return_to_result): return sim.status
 	return current
 
 
@@ -1102,7 +1208,7 @@ func _draw() -> void:
 		draw_multimesh(winter_batch, PAPER_LEAF)
 	if cold > 0.55:
 		draw_clouds(cold, ending if winter else 0.4)
-		draw_snow(cold, winter and winter_fall.phase in ["snow", "done"])
+	draw_snow(cold, winter and winter_fall.phase in ["snow", "done"])
 	if victory:
 		draw_flowers(ending)
 	if sim.blowing and mode == "play": draw_gust()
@@ -1188,7 +1294,8 @@ func make_canopy_batch() -> MultiMesh:
 func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 	if winter: return
 	var stamp := "%s:%d:%d:%s:%s:%.3f" % [sim.run_id, sim.canopy_revision, sim.week, winter, victory, preview_weather if preview_mode else -1.0]
-	if stamp != canopy_stamp:
+	var changed:=stamp!=canopy_stamp
+	if changed:
 		canopy_stamp = stamp
 		canopy_gap_markers.clear()
 		var marked := {}
@@ -1208,11 +1315,13 @@ func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 					marked[cell] = true
 					canopy_gap_markers.append(slot.position)
 		leaf_renderer.cache()
-	leaf_renderer.restore()
-	if mode not in ["title","preview"]:
-		for leaf in sim.ground_leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0),true)
-		for leaf in sim.leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0))
-	leaf_renderer.upload()
+	var dynamic:bool=mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty())
+	if changed or dynamic:
+		leaf_renderer.restore()
+		if dynamic:
+			for leaf in sim.ground_leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0),true)
+			for leaf in sim.leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0))
+		leaf_renderer.upload()
 	# Authored branch connections stay visible beneath each denser twig spray.
 	canopy_batch.visible_instance_count = -1
 	canopy_shadows.visible_instance_count = -1
@@ -1245,6 +1354,11 @@ func cloud_polygon(layer: int, progress: float) -> PackedVector2Array:
 	return pts
 
 
+func reset_weather() -> void:
+	snow_clock=0
+	for flake in snow:flake.active=false;flake.y=-18.0
+
+
 func advance_snow(dt: float) -> void:
 	var cold:=weather()
 	var target:=0 if cold<=0.55 else (12 if cold<0.8 else (28 if cold<0.95 else 45))
@@ -1267,9 +1381,6 @@ func advance_snow(dt: float) -> void:
 
 
 func draw_snow(cold: float, winter: bool) -> void:
-	var count := 12 if cold < 0.8 else (28 if cold < 0.95 else 45)
-	if winter: count = 65
-	if reduced_effects: count = 4 if winter else 0
 	for i in range(snow.size()):
 		var f: Dictionary = snow[i]
 		if not f.active:continue
@@ -1297,7 +1408,10 @@ func draw_snowflake(p: Vector2, size_px: float, angle: float, colour: Color) -> 
 func draw_snow_cover(amount: float) -> void:
 	var pts := PackedVector2Array([Vector2(0, 640), Vector2(0, 508)])
 	for i in range(37):
-		pts.append(Vector2(i * 10, 508 - amount * (36.0 + sin(i * 0.6) * 4.0)))
+		var x:=i*10.0
+		var surface:=minf(winter_fall.surface.surface(x,0),winter_fall.surface.surface(x,1))-Loop.LEAF_RADIUS*1.4
+		var top:=minf(472.0-sin(i*0.6)*4.0,surface)
+		pts.append(Vector2(x,lerpf(508,top,amount)))
 	pts.append(Vector2(360, 640))
 	draw_colored_polygon(pts, Color(0.88, 0.93, 0.96, amount))
 	# Snow rests on the painted branches, not on every leaf in a dense spray.
@@ -1317,19 +1431,6 @@ func draw_flowers(amount: float) -> void:
 			draw_circle(center + Vector2(0.6, 0.8), 3.0 * amount, Color(0.1, 0.2, 0.1, 0.15))
 			draw_circle(center, 2.8 * amount, colour)
 		draw_circle(p + Vector2(0, -h), 1.8 * amount, RUST)
-
-
-func draw_piles() -> void:
-	for leaf in sim.ground_leaves:
-		draw_leaf(leaf.position, leaf.angle, leaf.colour, Loop.LEAF_RADIUS, leaf.get("roll", 1.0))
-
-
-func draw_leaf(p: Vector2, angle: float, colour: Color, size_px: float, roll := 1.0) -> void:
-	var dimensions := Vector2(size_px * 2, size_px * 2 * leaf_region.size.y / leaf_region.size.x)
-	draw_set_transform(p, angle, Vector2(roll, 1))
-	draw_texture_rect_region(PAPER_LEAF, Rect2(-dimensions * 0.5 + Vector2(1.2, 1.5), dimensions), leaf_region, Color(0.17, 0.17, 0.10, 0.22))
-	draw_texture_rect_region(PAPER_LEAF, Rect2(-dimensions * 0.5, dimensions), leaf_region, colour)
-	draw_set_transform(Vector2.ZERO)
 
 
 func update_actor_mesh(force := false) -> void:
@@ -1595,10 +1696,13 @@ func draw_surge() -> void:
 func begin_winter_fall() -> void:
 	winter_fall.begin(sim)
 	winter_renderer.clear()
+	winter_upload_revision=-1
 	update_winter_batch()
 
 
 func update_winter_batch() -> void:
+	if winter_upload_revision==winter_fall.revision and winter_fall.active.is_empty():return
+	winter_upload_revision=winter_fall.revision
 	var blend: float=winter_fall.blend()
 	for leaf in winter_fall.records:
 		if not leaf.render_dirty and leaf.state!=2:continue

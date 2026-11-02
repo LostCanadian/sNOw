@@ -20,13 +20,13 @@ The seasonal colour mix also determines shedding intensity. Week one releases **
 
 ## Detachment and targets
 
-Detachment removes an occupied tree identity and creates its airborne state at the **same position, angle, colour and six-unit radius**. There is no downward spawn offset or size change. Flutter/tumble blends in over the first 0.8 seconds. Canopy draw order uses an independent hash, preventing red/yellow leaves from always drawing over all the green ones.
+Detachment removes an occupied tree identity and creates its airborne state at the **same position, angle, colour and 7.8-unit radius**. There is no downward spawn offset or size change. Flutter/tumble blends in over the first 0.8 seconds. Canopy draw order uses an independent hash, preventing red/yellow leaves from always drawing over all the green ones.
 
 Vacant branches show small, warm twinkling dots at real capture positions, with a restrained halo and a maximum of 64 simultaneous markers. Soft effects makes them steady. These are aiming cues, not arbitrary points in the sky; reattachment still requires an actual empty branch position.
 
 ## Foot scuffs
 
-Walking starts a short, individually phased swirl: lateral drift, rotation and a shallow rise. A scuff must finish before another can start, and its height is calculated from the pile surface rather than added to its previous velocity. Leaf centres never rise more than fourteen logical units above the ground through footsteps. Piles remain shallow, layered and slow movement according to their actual local density. Footsteps do not create free airborne rescues or alter leaf identity.
+Walking starts a short, individually phased swirl: lateral drift, rotation and a shallow rise. A scuff must finish before another can start, and its height is calculated from the pile surface rather than added to its previous velocity. Scuffs rise four units above the current pile surface. Overlapping leaves build growing piles in independent front/rear depth lanes and slow movement according to actual local density. Footsteps do not create free airborne rescues or alter leaf identity.
 
 ## Surge: airborne tumble
 
@@ -48,7 +48,7 @@ Ending foliage uses instanced paper-leaf batches; transforms upload once per ren
 
 Rules **5** reduce every gameplay score award by ten: rescue 10 × combo multiplier, weekly bonus 50 + 5 × unused miss allowance, finale bonus 500. Rules 6 then replace upgrade points with two Gold Leaves per completed week and explicit branch nodes.
 
-Earlier campaign totals and known week-start score baselines divide by ten on migration. A newly saved rules-5 checkpoint is never converted again. Existing canopy, weeks, upgrades and identity remain. Earlier playing checkpoints regenerate a repeatable colour-weighted schedule from their saved RNG state; completed summaries keep their historical counts. Score tables for rules 1–4 remain separately accessible under Previous Scores with their original historical numbers.
+Earlier campaign totals and known week-start score baselines divide by ten on migration. A newly saved current checkpoint is never converted again. Existing canopy, weeks, upgrades and identity remain. Earlier playing checkpoints regenerate a repeatable colour-weighted schedule from their saved RNG state; completed summaries keep their historical counts. Historical high scores normalize onto the current score scale and join one top ten per difficulty, retaining each campaign’s best result.
 
 ## Verification
 

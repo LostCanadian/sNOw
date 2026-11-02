@@ -11,9 +11,9 @@ Leaf control uses smooth per-leaf turbulence and an outward force proportional t
 
 ## Branching progression (rules 6)
 
-Boots, Blower and Battery each have ten nodes: a root, two paths, four specializations and three capstones. The middle capstone joins both inner paths. Select an icon to read its name, effect, prerequisites and Gold Leaf cost; only the current equipment tree is shown. Tabs animate their nodes; the internal reduced-effects mode disables that motion. Root and specialization nodes cost one Gold Leaf, capstones cost two, and Whirlwind costs three after Torque fan (four total). Each completed main week awards two Gold Leaves; the boss awards none. Reset kit returns the exact costs.
+Boots, Blower and Battery each have ten nodes: a root, two paths, four specializations and three capstones. The middle capstone joins both inner paths. Select an icon to read its name, effect, prerequisites and Gold Leaf cost; only the current equipment tree is shown. Tabs animate their nodes; the internal reduced-effects mode disables that motion. Root and specialization nodes cost one Gold Leaf, capstones cost two, and Whirlwind costs three after Torque fan (four total). Each completed main week awards two Gold Leaves; the boss awards none. The reset icon opens a Reset all upgrades / Cancel confirmation and returns exact costs.
 
-Save data stores explicit node IDs and verifies prerequisites, duplicates, node counts and budget. Earlier campaigns double earned currency, retain mapped equipment and Whirlwind access, and receive the remainder after the mapped node costs. Existing scores stay in their original rules archive; rules 6 has a separate table because the progression and steering have changed.
+Save data stores explicit node IDs and verifies prerequisites, duplicates, node counts and budget. Earlier campaigns double earned currency, retain mapped equipment and Whirlwind access, and receive the remainder after the mapped node costs. All historical scores share one top ten per difficulty, with one best result per campaign. Earlier score scales normalize during import; no archive or rules selector appears in the game.
 
 ## Animation and audio
 
@@ -44,3 +44,11 @@ Leaf identities retain their depth ordering across detachment and flight in one 
 A 600-frame headless CPU study measured about 0.96 seconds combined simulation/upload work versus 1.43 seconds previously; this is a renderer-update benchmark, not a mobile frame-rate claim. Physical device profiling remains necessary.
 
 The walking atlas has been replaced with textured paper trouser, calf and shoe pieces without exposed connector tabs. The two-bone solver now bends toward the toes (including mirrored travel), using the same bend at rest so starting a stride does not flip the joint. Bone length, planted-foot and directional-knee checks cover complete strides.
+
+## Paper workshop and checkpoint upgrades
+
+All thirty nodes now use original textured paper object illustrations, with a matching Gold Leaf token and reset icon. Equipment tabs are image-only. The currency count sits beside a small leaf; Done returns to the originating screen. Hover popups/highlights and the Saved footer have been removed.
+
+Upgrades are available from results (including a loss), saved Continue, and the live restart review. Continue and Retry purchases update the level checkpoint immediately. During a live restart review, choices stay in a draft: Cancel resumes the unchanged attempt, while Restart commits and saves the selected kit. Mid-attempt purchases remain disallowed.
+
+High-score storage version 2 merges historical tables, normalizes pre-score-reduction values, keeps the best row per campaign, and saves one top ten per difficulty without rules metadata. Old browser/native keys and backups still load.

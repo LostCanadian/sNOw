@@ -79,7 +79,7 @@ func run() -> void:
 	press(main, "Upgrades")
 	check(main.mode == "workshop", "upgrades are an explicit optional destination")
 	main.purchase(0)
-	press(main, "Back to results")
+	press(main, "Done")
 	check(main.mode == "results" and main.sim.points == 1 and main.sim.tiers == [1,0,0], "closing upgrades returns to results and refreshes the point preview")
 	check(main.sim.score == final_score and main.result_tallied, "revisiting results cannot repeat rewards or tally points twice")
 	main.show_title()

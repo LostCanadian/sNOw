@@ -46,16 +46,16 @@ func _initialize() -> void:
 	check(scores.tables[0].size() == 1 and scores.tables[2].size() == 1, "each difficulty has its own qualifying threshold")
 	var reopened = Scores.new(path)
 	check(reopened.tables == scores.tables, "all score fields survive a native reopen")
-	var data := {"version": 1, "tables": scores.tables.duplicate(true)}
+	var data := {"version": 2, "tables": scores.tables.duplicate(true)}
 	data.tables[0][0].initials = "<b>"
 	check(not Scores.valid_document(data), "malformed stored initials are rejected")
-	data = {"version": 1, "tables": scores.tables.duplicate(true)}
+	data = {"version": 2, "tables": scores.tables.duplicate(true)}
 	data.tables[1].reverse()
 	check(not Scores.valid_document(data), "unsorted stored tables are rejected")
-	data = {"version": 1, "tables": scores.tables.duplicate(true)}
+	data = {"version": 2, "tables": scores.tables.duplicate(true)}
 	data.tables[0][0].score = NAN
 	check(not Scores.valid_document(data), "nonfinite stored scores are rejected")
-	data = {"version": 1, "tables": scores.tables.duplicate(true)}
+	data = {"version": 2, "tables": scores.tables.duplicate(true)}
 	data.tables[2][0].id = data.tables[0][0].id
 	check(not Scores.valid_document(data), "duplicate campaign identities cannot load")
 	var file := FileAccess.open(path, FileAccess.WRITE)

@@ -55,7 +55,7 @@ func run() -> void:
 		bounded = bounded and icon.size.x <= 48 and icon.size.y <= 43
 	check(bounded, "equipment textures stay inside their header slots")
 	for tab in main.overlay.find_children("*", "Button", true, false):
-		if tab.text == "Blower":
+		if tab.name == "Equipment1":
 			tab.pressed.emit()
 			break
 	check(main.selected_upgrade == Vector2i(1,0), "Blower tab selects its own branching tree")

@@ -108,14 +108,19 @@ func _initialize() -> void:
 	loaded.score = 2000
 	loaded.status = "won"
 	scores.submit(loaded, "NEW")
-	var previous: Dictionary = scores.entries(1)[0].duplicate(true)
-	previous.rules = 1
-	previous.initials = "OLD"
-	previous.tiers = [2,2,2]
-	scores.tables[1].append(previous)
-	check(scores.flush(), "current and previous-rules results can coexist without overwriting either")
-	scores = Scores.new(path)
-	check(scores.entries(1).size() == 1 and scores.entries(1,1).size() == 1, "previous scores remain readable in a separate rules archive")
+	var previous:Dictionary=scores.entries(1)[0].duplicate(true)
+	previous.rules=1;previous.initials="OLD";previous.tiers=[2,2,2];previous.score=30000
+	var recent:Dictionary=scores.entries(1)[0].duplicate(true);recent.rules=6
+	var other:Dictionary=previous.duplicate(true);other.id="another-legacy-campaign";other.score=15000;other.initials="XYZ"
+	var old_scores:={"version":1,"tables":[[],[recent,previous,other],[]]}
+	check(Scores.valid_document(old_scores),"a real historical multi-version document remains readable")
+	var scores_file:=FileAccess.open(path,FileAccess.WRITE)
+	scores_file.store_string(JSON.stringify(old_scores));scores_file.close()
+	scores=Scores.new(path)
+	check(scores.entries(1).size()==2 and scores.entries(1)[0].score==3000 and scores.entries(1)[0].initials=="OLD" and scores.entries(1)[1].score==1500,"all historical scores merge into one table, with the best result per campaign on the current score scale")
+	check(scores.flush() and Campaign.read_document(FileAccess.get_file_as_string(path)).version==2 and scores.entries(1).all(func(row):return not row.has("rules")),"unified scores save without rules labels or archives")
+	loaded.score=4000
+	check(scores.submit(loaded,"NEW") and scores.entries(1).size()==2 and scores.entries(1)[0].score==4000,"later campaign improvements update the same unified row")
 	for extension in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(path + extension): DirAccess.remove_absolute(path + extension)
 	var migration_name := "migration-probe-%d.json" % Time.get_ticks_usec()

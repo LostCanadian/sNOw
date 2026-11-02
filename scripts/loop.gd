@@ -474,8 +474,12 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 	events.append({"position": leaf.position, "saved": saved})
 
 
+func can_upgrade() -> bool:
+	return status=="workshop" or (status=="playing" and week_time==0)
+
+
 func buy(branch: int, node := -1) -> bool:
-	if status != "workshop" or branch < 0 or branch > 2: return false
+	if not can_upgrade() or branch < 0 or branch > 2: return false
 	if node < 0:
 		for candidate in range(Upgrades.MAX_RANK):
 			if Upgrades.available(owned, branch, candidate):
@@ -491,7 +495,7 @@ func buy(branch: int, node := -1) -> bool:
 
 
 func refund_build() -> void:
-	if status != "workshop": return
+	if not can_upgrade():return
 	owned.clear()
 	tiers = [0,0,0]
 	points = earned_points
