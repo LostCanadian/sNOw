@@ -19,6 +19,15 @@ The working title is **sNOw**, with **NO** emphasized. The selected paper-cut vi
 - [High scores and licenses](docs/SCORES_AND_LICENSES.md): local per-difficulty tables, initials entry, storage, and offline third-party notices.
 - [Decisions and open questions](docs/DECISIONS.md): recommendations, unresolved choices, and how to test them.
 
+## Export Android or iOS from the command line
+
+```sh
+python3 tools/export_mobile.py android
+python3 tools/export_mobile.py ios --team-id ABCDE12345
+```
+
+Android produces a test APK; iOS produces an Xcode project on a Mac. No Godot UI is needed. Add `--check` to check prerequisites without downloading or exporting. Android requires a JDK and Android SDK; iOS requires macOS/Xcode. The script installs matching Godot/templates automatically. Signed APKs, Play AABs, IPA packaging and existing-Godot options are covered in the [mobile export guide](docs/MOBILE_EXPORT.md). On Windows use `py -3` in place of `python3`.
+
 ## Play the technical art prototype
 
 From the repository folder, use **Python 3.9 or newer** to download Godot and its matching export templates, export the game headlessly, and start a local server. No Godot UI, package installation or admin access is needed.

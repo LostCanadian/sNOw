@@ -113,9 +113,10 @@ def template_directory(system, env):
     return data / 'export_templates' / (VERSION + '.stable')
 
 
-def install():
-    CACHE.mkdir(parents=True, exist_ok=True)
-    (CACHE / '.gdignore').touch()
+def install(template_names=WEB_TEMPLATES, *, download=True):
+    """Reuse the pinned installer for Web or native platform templates."""
+    if any(Path(name).name != name or "\\" in name for name in template_names):
+        raise RuntimeError("Template names must be plain filenames.")
     system = platform.system()
     asset = engine_asset(system, platform.machine())
     engine_dir = CACHE / RELEASE / asset.removesuffix('.zip')
@@ -132,8 +133,12 @@ def install():
         for name, folder in [('XDG_DATA_HOME', 'data'), ('XDG_CONFIG_HOME', 'config'), ('XDG_CACHE_HOME', 'cache')]:
             env[name] = str(CACHE / folder)
     templates = template_directory(system, env)
-    need_templates = not all((templates / name).is_file() for name in WEB_TEMPLATES)
+    need_templates = not all((templates / name).is_file() for name in template_names)
     if not executable.is_file() or need_templates:
+        if not download:
+            raise RuntimeError('Matching Godot/templates are not cached. Run without --check or --no-download to install them.')
+        CACHE.mkdir(parents=True, exist_ok=True)
+        (CACHE / '.gdignore').touch()
         downloads = CACHE / 'downloads' / RELEASE
         manifest = fetch(BASE_URL + '/SHA512-SUMS.txt', downloads / 'SHA512-SUMS.txt')
         hashes = {}
@@ -148,13 +153,13 @@ def install():
             archive = fetch(BASE_URL + '/' + name, downloads / name, hashes[name])
             templates.mkdir(parents=True, exist_ok=True)
             with zipfile.ZipFile(archive) as bundle:
-                for name in (*WEB_TEMPLATES, 'version.txt'):
+                for name in (*template_names, 'version.txt'):
                     target = templates / name
                     partial = target.with_name(name + '.part')
                     with bundle.open('templates/' + name) as source, partial.open('wb') as output:
                         shutil.copyfileobj(source, output)
                     partial.replace(target)
-            print('Installed matching browser export templates.', flush=True)
+            print('Installed matching export templates: ' + ', '.join(template_names), flush=True)
     result = subprocess.run([str(executable), '--headless', '--version'], env=env,
                             check=True, capture_output=True, text=True)
     if not result.stdout.strip().startswith(VERSION + '.stable.'):
