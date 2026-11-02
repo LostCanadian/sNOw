@@ -86,6 +86,13 @@ static func whole(value, low: int, high: int) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and value == floor(value) and value >= low and value <= high
 
 
+static func leaf_count(data: Dictionary) -> int:
+	var rules:int=int(data.get("rules",1))
+	if rules==1:return Loop.Canopy.LEGACY_COUNT
+	if rules<=3:return Loop.Canopy.PREVIOUS_COUNT
+	return Loop.Canopy.OLD_DENSE_COUNT if rules<7 else Loop.Canopy.SLOT_COUNT
+
+
 static func valid_checkpoint(data) -> bool:
 	if not data is Dictionary: return false
 	if not whole(data.get("rules", 1), 1, Loop.RULES): return false
@@ -93,7 +100,8 @@ static func valid_checkpoint(data) -> bool:
 	var previous_density: bool = data.get("rules", 1) <= 3
 	if not whole(data.get("difficulty", 1), 0, 2): return false
 	if data.has("run_id") and (not data.run_id is String or data.run_id.length() < 16 or data.run_id.length() > 80): return false
-	var count: int = Loop.Canopy.LEGACY_COUNT if legacy else (Loop.Canopy.PREVIOUS_COUNT if previous_density else Loop.Canopy.SLOT_COUNT)
+	var count: int = leaf_count(data)
+	var recovery: int = 96 if previous_density else (960 if data.get("rules",1)<7 else Loop.RECOVERY_FLOOR)
 	for field in ["week", "phase", "score", "rescued", "missed", "points", "earned_points", "tiers", "leaf_ids", "order", "rng_state", "rng_seed"]:
 		if not data.has(field): return false
 	if not whole(data.week, 1, Loop.BOSS_STAGE) or not data.phase is String or data.phase not in ["playing", "workshop", "won"]: return false
@@ -102,7 +110,7 @@ static func valid_checkpoint(data) -> bool:
 	if not whole(data.score, 0, 1000000000) or not whole(data.rescued, 0, 100000) or not whole(data.missed, 0, 100000): return false
 	if not whole(data.get("week_start_score", -1), -1, int(data.score)): return false
 	if legacy and data.missed >= [34, 28, 22][int(data.get("difficulty", 1))]: return false
-	if not whole(data.get("regrown", 0), 0, int(data.missed)) or not whole(data.get("week_regrown", 0), 0, 96 if previous_density else Loop.RECOVERY_FLOOR): return false
+	if not whole(data.get("regrown", 0), 0, int(data.missed)) or not whole(data.get("week_regrown", 0), 0, recovery): return false
 	if not whole(data.get("combo", 0), 0, int(data.rescued)): return false
 	if not whole(data.get("week_rescued", 0), 0, count) or not whole(data.get("week_missed", 0), 0, mini(count, int(data.missed))): return false
 	if data.phase == "playing" and (data.get("week_missed", 0) != 0 or data.get("week_rescued", 0) != 0): return false
@@ -129,7 +137,7 @@ static func valid_checkpoint(data) -> bool:
 		elif seen.has(int(id)): return false
 		else: seen[int(id)] = true
 	if missing != data.missed - data.get("regrown", 0): return false
-	if not legacy and data.phase == "playing" and count - missing < (96 if previous_density else Loop.RECOVERY_FLOOR): return false
+	if not legacy and data.phase == "playing" and count - missing < (recovery): return false
 	if not data.order is Array or data.order.size() > count: return false
 	var ordered := {}
 	for id in data.order:
@@ -171,23 +179,32 @@ static func restore(data):
 		game.tiers = Loop.Upgrades.counts(game.owned)
 		game.earned_points *= 2
 		game.points = game.earned_points - Loop.Upgrades.spent(game.owned)
-	for i in range(data.leaf_ids.size()): game.slots[i].leaf_id = int(data.leaf_ids[i])
-	game.shedding_order.assign(data.order.map(func(id): return int(id)))
-	if data.get("rules", 1) <= 3:
-		# Expand each earlier leaf unit into a ten-leaf spray, retaining its gaps.
-		for layer in range(1, Loop.Canopy.DENSITY):
-			for base in range(Loop.Canopy.PREVIOUS_COUNT):
-				var id: int = game.slots[base].leaf_id
-				game.slots[base + layer * Loop.Canopy.PREVIOUS_COUNT].leaf_id = id + layer * Loop.Canopy.PREVIOUS_COUNT if id >= 0 else -1
-		game.shedding_order.clear()
-		for id in data.order:
-			for layer in range(Loop.Canopy.DENSITY): game.shedding_order.append(int(id) + layer * Loop.Canopy.PREVIOUS_COUNT)
-		for field in ["missed", "rescued", "regrown", "week_regrown", "week_rescued", "week_missed"]:
-			game.set(field, game.get(field) * Loop.Canopy.DENSITY)
+	var old_count:=leaf_count(data)
+	if old_count==Loop.Canopy.SLOT_COUNT:
+		for i in range(old_count):game.slots[i].leaf_id=int(data.leaf_ids[i])
+		game.shedding_order.assign(data.order.map(func(id):return int(id)))
+	else:
+		# Preserve the fraction of gaps and counters across canopy densities. IDs
+		# are reassigned uniquely, so restored campaigns still conserve leaves.
+		var ratio:=float(Loop.Canopy.SLOT_COUNT)/old_count
+		for field in ["missed","rescued","regrown","week_regrown","week_rescued","week_missed"]:
+			game.set(field,roundi(float(game.get(field))*ratio))
+		var missing:int=game.missed-game.regrown
+		var gaps:=0
+		for i in range(game.slots.size()):
+			var empty:bool=data.leaf_ids[mini(old_count-1,int(i/ratio))]<0
+			game.slots[i].leaf_id=-1 if empty else i
+			if empty:gaps+=1
+		for i in range(game.slots.size()-1,-1,-1):
+			if gaps==missing:break
+			if gaps>missing and game.slots[i].leaf_id<0:
+				game.slots[i].leaf_id=i;gaps-=1
+			elif gaps<missing and game.slots[i].leaf_id>=0:
+				game.slots[i].leaf_id=-1;gaps+=1
 	game.index_canopy()
 	game.rng.seed = data.rng_seed.to_int()
 	game.rng.state = data.rng_state.to_int()
-	if data.get("rules", 1) < 5 and data.phase == "playing": game.prepare_shedding()
+	if data.get("rules", 1) < 7: game.prepare_shedding()
 	return game
 
 

@@ -24,18 +24,18 @@ func _initialize() -> void:
 
 func run() -> void:
 	var game = Loop.new()
-	check(game.attached_count() == 2880 and game.week_leaf_count() == 300 and game.capacity() == 140, "the new Blustery tree, weekly shedding and danger budget all scale tenfold")
+	check(game.attached_count() == 2160 and game.week_leaf_count() == 225 and game.capacity() == 105, "the new Blustery tree, weekly shedding and danger budget scale with the lighter canopy")
 	var identity := {}
 	for slot in game.slots: identity[slot.leaf_id] = true
-	check(identity.size() == 2880, "dense foliage consists of distinct recoverable leaves")
+	check(identity.size() == 2160, "dense foliage consists of distinct recoverable leaves")
 	for i in range(31): game.step(1.0 / 60, 0, false)
 	check(game.spawned == 4 and game.leaves.size() == 4, "the opening week releases four real leaves per event rather than the late ten")
 	for frame in range(6000):
 		game.step(1.0 / 60, 0, false)
 		if game.status == "lost": break
-	check(game.status == "lost" and game.ground_leaves.size() == 140, "a real idle loss leaves a substantial pile rather than a dozen leaves")
+	check(game.status == "lost" and game.ground_leaves.size() == 105, "a real idle loss leaves a substantial pile rather than a dozen leaves")
 	check(game.week_time < 90, "increased foliage retains a short arcade week")
-	check(game.attached_count() + game.leaves.size() + game.missed - game.regrown == 2880, "large batches preserve the leaf identity invariant at loss")
+	check(game.attached_count() + game.leaves.size() + game.missed - game.regrown == 2160, "large batches preserve the leaf identity invariant at loss")
 	# Compare spatial queries against the original exhaustive geometric definition.
 	var correct := true
 	for i in range(40):
@@ -70,9 +70,9 @@ func run() -> void:
 	old.erase("week_start_score")
 	check(Campaign.valid_checkpoint(old), "previous 288-leaf saves remain valid input")
 	var restored = Campaign.restore(old)
-	check(restored != null and restored.attached_count() == 2860 and restored.missed == 30 and restored.regrown == 10, "migration preserves the visible proportion of canopy gaps and recovery history")
-	check(restored.slots[288].leaf_id == 289 and restored.slots[293].leaf_id == -1, "migration preserves relocated leaf identities and matching empty sprays")
-	check(restored.score == 900 and restored.week == 4 and restored.points == 6 and restored.shedding_order.size() == 360, "migration rescales score, retains week/budget and schedules the new colour-weighted week")
+	check(restored != null and restored.attached_count() == 2145 and restored.missed == 23 and restored.regrown == 8, "migration preserves the visible proportion of canopy gaps and recovery history")
+	check(restored.attached_count()+restored.missed-restored.regrown==2160, "migration reconciles rounded gaps without duplicated identities")
+	check(restored.score == 900 and restored.week == 4 and restored.points == 6 and restored.shedding_order.size() == 270, "migration rescales score, retains week/budget and schedules the new colour-weighted week")
 	check(Campaign.valid_checkpoint(Campaign.snapshot(restored)), "a migrated campaign can immediately save under the new rules")
 	check(restored.rng.state == Campaign.restore(old).rng.state and restored.shedding_order == Campaign.restore(old).shedding_order, "migrated schedules and random state are repeatable from the saved boundary")
 	old.phase = "workshop"
@@ -81,7 +81,7 @@ func run() -> void:
 	old.week_rescued = 3
 	old.week_missed = 2
 	restored = Campaign.restore(old)
-	check(restored.week_rescued == 30 and restored.week_missed == 20 and restored.week_start_score == -1, "older completed summaries migrate counts while keeping unknown weekly points explicit")
+	check(restored.week_rescued == 23 and restored.week_missed == 15 and restored.week_start_score == -1, "older completed summaries migrate counts while keeping unknown weekly points explicit")
 	var main = Main.instantiate()
 	root.add_child(main)
 	main.set_physics_process(false)
@@ -105,7 +105,7 @@ func run() -> void:
 	check(main.sim.run_id != original[0].checkpoint.run_id and main.campaign.slots[0].name == "Occupied 0", "replacement gets a new campaign identity and retains the chosen slot name")
 	check(main.campaign.slots[1] == original[1] and main.campaign.slots[2] == original[2], "replacing one occupied slot leaves the other two intact")
 	check(Campaign.new(prefix + "-campaign.json").slots[0].checkpoint.difficulty == 2, "replacement difficulty survives storage reload")
-	check(main.canopy_batch.instance_count == 2880 and main.canopy_shadows.instance_count == 2880, "dense foliage uses full-count instanced paper-art batches")
+	check(main.canopy_batch.instance_count == 2160 and main.canopy_shadows.instance_count == 2160, "dense foliage uses full-count instanced paper-art batches")
 	for name in DirAccess.get_files_at("user://"):
 		if name.begins_with(prefix.get_file()): DirAccess.remove_absolute("user://" + name)
 	main.queue_free()

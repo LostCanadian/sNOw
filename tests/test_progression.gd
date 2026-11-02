@@ -52,21 +52,21 @@ func _initialize() -> void:
 	check(game.status == "workshop" and game.attached_count() == Loop.Canopy.SLOT_COUNT, "a perfect week retains the entire canopy")
 	game.next_week()
 	check(game.attached_count() == Loop.Canopy.SLOT_COUNT and game.week_leaf_count() > initial_count and game.regrown == 0, "the next week increases shedding without arbitrarily deleting rescued leaves")
-	# A plausible sparse end-of-campaign checkpoint: 2,000 losses over twelve Breezy weeks.
+	# A plausible sparse end-of-campaign checkpoint: 1,500 losses over twelve Breezy weeks.
 	game = Loop.new(55, 0)
 	game.week = 12
 	game.status = "workshop"
 	game.earned_points = 24
 	game.points = 24
-	for i in range(2000): game.slots[i].leaf_id = -1
-	game.missed = 2000
+	for i in range(1500): game.slots[i].leaf_id = -1
+	game.missed = 1500
 	game.week_missed = 160
 	game.x = 29
 	game.piles.fill(4)
 	var score: int = game.score
 	game.next_week()
-	check(game.attached_count() == Loop.RECOVERY_FLOOR and game.week_regrown == 80 and game.regrown == 80, "overnight recovery adds only the leaves needed for the safety floor")
-	check(game.week_missed == 0 and game.pressure() == 0 and game.missed == 2000, "weekly danger resets while lifetime history remains accurate")
+	check(game.attached_count() == Loop.RECOVERY_FLOOR and game.week_regrown == 60 and game.regrown == 60, "overnight recovery adds only the leaves needed for the safety floor")
+	check(game.week_missed == 0 and game.pressure() == 0 and game.missed == 1500, "weekly danger resets while lifetime history remains accurate")
 	check(game.score == score and game.earned_points == 24, "regrowth never awards points, rescues or extra upgrades")
 	check(game.charge == 1 and game.pile_at(180) == 0 and game.x == 180, "the next week starts with a clean path, full battery and repeatable position")
 	var checkpoint: Dictionary = Campaign.snapshot(game)
@@ -79,8 +79,8 @@ func _initialize() -> void:
 			break
 	check(not Campaign.valid_checkpoint(depleted), "a checkpoint cannot restart below the guaranteed playable supply")
 	var loaded = Campaign.restore(checkpoint)
-	check(loaded.attached_count() == Loop.RECOVERY_FLOOR and loaded.regrown == 80 and loaded.slots == game.slots, "saved leaf identities and regrowth survive retry exactly")
-	check(not loaded.next_week() and loaded.regrown == 80, "retry cannot repeat regrowth or skip a level")
+	check(loaded.attached_count() == Loop.RECOVERY_FLOOR and loaded.regrown == 60 and loaded.slots == game.slots, "saved leaf identities and regrowth survive retry exactly")
+	check(not loaded.next_week() and loaded.regrown == 60, "retry cannot repeat regrowth or skip a level")
 	var builds := 0
 	for a in range(7):
 		for b in range(7):

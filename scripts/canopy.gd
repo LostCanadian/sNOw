@@ -55,8 +55,12 @@ const TWIG_TIPS := [
 	Vector2(630, 330),
 ]
 const PREVIOUS_COUNT := 288
-const DENSITY := 10
-const SLOT_COUNT := PREVIOUS_COUNT * DENSITY
+const DENSITY := 7
+const OLD_DENSE_COUNT := 2880
+const CENTER_COUNT := 144
+const RADIUS := 7.8
+const Center = preload("res://scripts/canopy_center.gd")
+const SLOT_COUNT := PREVIOUS_COUNT * DENSITY + CENTER_COUNT
 const LEGACY_COUNT := 48
 const EXTRA_LEAVES := [
 	Vector3(87, 295, -1.481170),
@@ -336,6 +340,9 @@ static func slot_layout() -> Array[Dictionary]:
 			point.y = maxf(point.y, 87)
 			angle = (point - stem).angle() + PI / 2.0
 			result.append({"position": point, "stem": stem, "angle": angle, "leaf_id": result.size(), "attached_at": -10.0})
+	for i in range(CENTER_COUNT):
+		var p: Vector4=Center.POINTS[i]
+		result.append({"position":Vector2(p.x,p.y),"stem":Vector2(p.z,p.w),"angle":Center.ANGLES[i],"leaf_id":result.size(),"attached_at":-10.0})
 	return result
 
 
@@ -355,10 +362,10 @@ static func foreground_coverers(layout: Array[Dictionary]) -> Array:
 	for i in range(layout.size()):
 		var coverers := PackedInt32Array()
 		var cell := Vector2i(layout[i].position / 12.0)
-		for dx in range(-1, 2):
-			for dy in range(-1, 2):
+		for dx in range(-2, 3):
+			for dy in range(-2, 3):
 				for j in grid.get(cell + Vector2i(dx, dy), []):
-					if depth(j) > depth(i) and layout[i].position.distance_squared_to(layout[j].position) < 49.0:
+					if depth(layout[j].leaf_id) > depth(layout[i].leaf_id) and layout[i].position.distance_squared_to(layout[j].position) < pow(RADIUS*1.75,2):
 						coverers.append(j)
 		result.append(coverers)
 	return result

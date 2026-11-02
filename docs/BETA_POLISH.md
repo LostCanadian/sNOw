@@ -34,3 +34,11 @@ Fourteen headless regression scripts pass 754 checks across simulation, leaf ide
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
 The main menu now uses a speaker-only audio settings button. Mute is inside the audio panel alongside the two volume sliders, and the Soft effects toggle is removed from the menu.
+
+## Leaf piles and rendering follow-up
+
+The canopy now has 2,160 distinct leaves (25% fewer), at radius 7.8 (30% larger), including 144 extra central attachments. Weekly shedding and miss allowances scale to the lighter canopy; the recovery floor is 720. Previous save densities migrate proportionally while preserving score, campaign identity and upgrade purchases.
+
+Leaf identities retain their depth ordering across detachment and flight in one instanced pass. Foreground occluders shed first, before seasonal colour preference. Two independent fine support surfaces stack landed leaves into growing piles; alternate identities draw before/after the player. The ending simulates only airborne leaves at 30 Hz and interpolates movement for rendering. Bulk instance buffers replace thousands of server calls and individual ground/air draw commands. Warning snow emits above the top edge, including when snowfall density increases.
+
+A 600-frame headless CPU study measured about 0.96 seconds combined simulation/upload work versus 1.43 seconds previously; this is a renderer-update benchmark, not a mobile frame-rate claim. Physical device profiling remains necessary.

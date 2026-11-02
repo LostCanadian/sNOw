@@ -3,6 +3,7 @@ extends Node2D
 
 const SPEAKER_ICON = preload("res://assets/art/speaker.svg")
 const AudioDirector = preload("res://scripts/audio_director.gd")
+const LeafBatch = preload("res://scripts/leaf_batch.gd")
 const WinterFall = preload("res://scripts/winter_fall.gd")
 const GOLD_LEAF = preload("res://assets/art/gold_leaf.svg")
 const PLAY_ICON = preload("res://assets/art/play.svg")
@@ -70,6 +71,7 @@ var result_actions: Array[Button] = []
 var surge_requested := false
 var ambient_rng := RandomNumberGenerator.new()
 var snow: Array[Dictionary] = []
+var snow_clock := 0.0
 var sparks: Array[Dictionary] = []
 var reduced_effects := false
 var muted := false
@@ -83,6 +85,12 @@ var character_region: Rect2
 var leaf_region: Rect2
 var canopy_batch: MultiMesh
 var canopy_shadows: MultiMesh
+var leaf_renderer
+var front_batch: MultiMesh
+var front_shadows: MultiMesh
+var winter_front: MultiMesh
+var winter_front_shadows: MultiMesh
+var winter_renderer
 var canopy_stamp := ""
 var canopy_gap_markers: Array[Vector2] = []
 var canopy_rank := PackedInt32Array()
@@ -123,11 +131,17 @@ func _ready() -> void:
 	canopy_shadows = make_canopy_batch()
 	winter_batch = make_canopy_batch()
 	winter_shadows = make_canopy_batch()
+	front_batch=make_canopy_batch()
+	front_shadows=make_canopy_batch()
+	winter_front=make_canopy_batch()
+	winter_front_shadows=make_canopy_batch()
+	leaf_renderer=LeafBatch.new([canopy_batch,canopy_shadows,front_batch,front_shadows])
+	winter_renderer=LeafBatch.new([winter_batch,winter_shadows,winter_front,winter_front_shadows])
 	wardrobe_regions = atlas_regions(WARDROBE, 4, 3)
 	ending_regions = atlas_regions(ENDINGS, 2, 1)
 	update_actor_mesh()
 	for i in range(65):
-		snow.append({"x": ambient_rng.randf_range(0, 360), "y": ambient_rng.randf_range(-640, 640), "size": ambient_rng.randf_range(1.0, 3.6), "phase": ambient_rng.randf_range(0, TAU)})
+		snow.append({"x": ambient_rng.randf_range(0, 360), "y": -20.0, "active": false, "size": ambient_rng.randf_range(1.0, 3.6), "phase": ambient_rng.randf_range(0, TAU)})
 	ui = Control.new()
 	ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -199,11 +213,7 @@ func _physics_process(dt: float) -> void:
 		if mode in ["outro", "results", "workshop"]: actor.advance(0, dt, false, reduced_effects, sim.facing, 0)
 		if mode != "play": update_actor_mesh()
 		elapsed += dt
-		for flake in snow:
-			flake.y += dt * (12.0 + flake.size * 8.0)
-			if flake.y > 650:
-				flake.y = -10.0
-				flake.x = ambient_rng.randf_range(0, 360)
+		advance_snow(dt)
 		for spark in sparks:
 			spark.time += dt
 		sparks = sparks.filter(func(spark: Dictionary) -> bool: return spark.time < 0.8)
@@ -1095,14 +1105,15 @@ func _draw() -> void:
 		draw_snow(cold, winter and winter_fall.phase in ["snow", "done"])
 	if victory:
 		draw_flowers(ending)
-	if not winter and mode not in ["title", "preview"]:
-		draw_piles()
-	for leaf in sim.leaves:
-		if not winter and mode not in ["title", "preview"]:
-			draw_leaf(leaf.position, leaf.angle, leaf.colour, Loop.LEAF_RADIUS, leaf.get("roll", 1.0))
 	if sim.blowing and mode == "play": draw_gust()
 	if sim.surge_left > 0: draw_surge()
 	draw_character(winter, victory)
+	if winter:
+		draw_multimesh(winter_front_shadows,PAPER_LEAF)
+		draw_multimesh(winter_front,PAPER_LEAF)
+	else:
+		draw_multimesh(front_shadows,PAPER_LEAF)
+		draw_multimesh(front_batch,PAPER_LEAF)
 	if winter: draw_snow_cover(winter_fall.cover())
 	for spark in sparks:
 		var alpha: float = 1.0 - spark.time / 0.8
@@ -1181,6 +1192,7 @@ func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 		canopy_stamp = stamp
 		canopy_gap_markers.clear()
 		var marked := {}
+		leaf_renderer.clear()
 		for i in range(sim.slots.size()):
 			var slot: Dictionary = sim.slots[i]
 			var keep: bool = slot.leaf_id >= 0
@@ -1189,17 +1201,18 @@ func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 			var colour_week: int = 11 if preview_mode and preview_weather > 0.5 else sim.week
 			if victory: colour_week = 1
 			var colour: Color = sim.leaf_colour(slot.leaf_id if slot.leaf_id >= 0 else i, colour_week)
-			var scale := Vector2.ONE * (Loop.LEAF_RADIUS if keep else 0.0)
-			var instance := canopy_rank[i]
-			canopy_batch.set_instance_transform_2d(instance, Transform2D(slot.angle, scale, 0, slot.position))
-			canopy_batch.set_instance_color(instance, colour)
-			canopy_shadows.set_instance_transform_2d(instance, Transform2D(slot.angle, scale, 0, slot.position + Vector2(0.9, 1.0)))
-			canopy_shadows.set_instance_color(instance, Color(0.17, 0.17, 0.10, 0.20))
+			if keep:leaf_renderer.leaf(slot.leaf_id if slot.leaf_id>=0 else i,slot.position,slot.angle,colour)
 			if not keep:
 				var cell := Vector2i(slot.position / 16.0)
 				if not marked.has(cell):
 					marked[cell] = true
 					canopy_gap_markers.append(slot.position)
+		leaf_renderer.cache()
+	leaf_renderer.restore()
+	if mode not in ["title","preview"]:
+		for leaf in sim.ground_leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0),true)
+		for leaf in sim.leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0))
+	leaf_renderer.upload()
 	# Authored branch connections stay visible beneath each denser twig spray.
 	canopy_batch.visible_instance_count = -1
 	canopy_shadows.visible_instance_count = -1
@@ -1232,12 +1245,34 @@ func cloud_polygon(layer: int, progress: float) -> PackedVector2Array:
 	return pts
 
 
+func advance_snow(dt: float) -> void:
+	var cold:=weather()
+	var target:=0 if cold<=0.55 else (12 if cold<0.8 else (28 if cold<0.95 else 45))
+	if visual_mode()=="lost" and winter_fall.phase in ["snow","done"]:target=65
+	if reduced_effects:target=mini(target,4)
+	snow_clock+=dt
+	var active:=0
+	for flake in snow:
+		if not flake.active:continue
+		flake.y+=dt*(12.0+flake.size*8.0)
+		if flake.y>655:flake.active=false
+		else:active+=1
+	# New flakes are always emitted above the top, including threshold changes.
+	if active<target and snow_clock>=0.13:
+		snow_clock=0
+		for flake in snow:
+			if flake.active:continue
+			flake.active=true;flake.y=-18.0;flake.x=ambient_rng.randf_range(0,360)
+			break
+
+
 func draw_snow(cold: float, winter: bool) -> void:
 	var count := 12 if cold < 0.8 else (28 if cold < 0.95 else 45)
 	if winter: count = 65
 	if reduced_effects: count = 4 if winter else 0
-	for i in range(count):
+	for i in range(snow.size()):
 		var f: Dictionary = snow[i]
+		if not f.active:continue
 		var p := Vector2(f.x + sin(elapsed * 0.8 + f.phase) * 12.0, f.y)
 		if winter and i % 9 == 0:
 			draw_set_transform(p, f.phase + elapsed * 0.15)
@@ -1559,23 +1594,17 @@ func draw_surge() -> void:
 
 func begin_winter_fall() -> void:
 	winter_fall.begin(sim)
-	winter_fall.records.sort_custom(func(a,b):
-		var ka: int = canopy_rank[a.order] if a.order < Canopy.SLOT_COUNT else a.order
-		var kb: int = canopy_rank[b.order] if b.order < Canopy.SLOT_COUNT else b.order
-		return ka < kb)
-	winter_batch.visible_instance_count = winter_fall.records.size()
-	winter_shadows.visible_instance_count = winter_fall.records.size()
-	for i in range(winter_fall.records.size()):
-		winter_fall.records[i].render_index = i
-		winter_batch.set_instance_color(i,winter_fall.records[i].colour)
-		winter_shadows.set_instance_color(i,Color(0.17,0.17,0.10,0.20))
+	winter_renderer.clear()
 	update_winter_batch()
 
 
 func update_winter_batch() -> void:
+	var blend: float=winter_fall.blend()
 	for leaf in winter_fall.records:
-		if not leaf.render_dirty: continue
-		var scale := Vector2(leaf.roll,1) * Loop.LEAF_RADIUS
-		winter_batch.set_instance_transform_2d(leaf.render_index,Transform2D(leaf.angle,scale,0,leaf.position))
-		winter_shadows.set_instance_transform_2d(leaf.render_index,Transform2D(leaf.angle,scale,0,leaf.position + Vector2(1,1)))
-		leaf.render_dirty = false
+		if not leaf.render_dirty and leaf.state!=2:continue
+		var position: Vector2=leaf.previous.lerp(leaf.position,blend) if leaf.state==2 else leaf.position
+		if leaf.render_dirty:
+			winter_renderer.leaf(leaf.id,position,leaf.angle,leaf.colour,leaf.roll,leaf.state==3)
+		else:winter_renderer.move_air(leaf.id,position)
+		leaf.render_dirty=false
+	winter_renderer.upload()

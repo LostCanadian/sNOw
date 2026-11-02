@@ -34,6 +34,7 @@ func _initialize() -> void:
 	check(speed > baseline.stats().speed and game.stats().pile_penalty < baseline.stats().pile_penalty, "different boots branches produce different actual movement stats")
 	var old: Dictionary = Campaign.snapshot(Loop.new())
 	old.rules = 5
+	for id in range(2160,2880):old.leaf_ids.append(id)
 	old.week = 7
 	old.earned_points = 6
 	old.points = 1

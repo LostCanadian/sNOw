@@ -71,7 +71,7 @@ with sync_playwright() as p:
     first=snap()
     score=first['score']
     count=first['ending_attached']+first['ending_air']+first['ending_ground']
-    assert count==2880 and first['snow_cover']==0
+    assert count==2160 and first['snow_cover']==0
     start_frame=time.monotonic()-started
     page.wait_for_function('window.snowSnapshot.ending_attached<500 && window.snowSnapshot.ending_air>500',timeout=30000)
     falling=snap()

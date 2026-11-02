@@ -4,9 +4,9 @@ extends RefCounted
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
-const RULES := 6
+const RULES := 7
 const SURGE_DURATION := 1.15
-const RECOVERY_FLOOR := 960
+const RECOVERY_FLOOR := 720
 const GRAVITY := 48.0
 const GROUND := 502.0
 const Canopy = preload("res://scripts/canopy.gd")
@@ -14,15 +14,16 @@ const CAPTURE_RADIUS := 15.0
 const MAX_ACTIVE := 1500
 const SHED_BATCH := 10
 const BASE_SPEED := 122.0
-const CAPACITY := 140 # Default weekly allowance. Cumulative loss remains in missed.
+const CAPACITY := 105 # Default weekly allowance. Cumulative loss remains in missed.
 const DIFFICULTIES := [
-	{"name": "Breezy", "capacity": 180, "leaves": 240, "increment": 20, "cadence": 1.15, "wind": 0.70, "fall": 0.88},
-	{"name": "Blustery", "capacity": 140, "leaves": 300, "increment": 20, "cadence": 1.0, "wind": 1.0, "fall": 1.0},
-	{"name": "Gale", "capacity": 100, "leaves": 360, "increment": 30, "cadence": 0.85, "wind": 1.30, "fall": 1.12},
+	{"name": "Breezy", "capacity": 135, "leaves": 180, "increment": 15, "cadence": 1.15, "wind": 0.70, "fall": 0.88},
+	{"name": "Blustery", "capacity": 105, "leaves": 225, "increment": 15, "cadence": 1.0, "wind": 1.0, "fall": 1.0},
+	{"name": "Gale", "capacity": 75, "leaves": 270, "increment": 23, "cadence": 0.85, "wind": 1.30, "fall": 1.12},
 ]
 const MAIN_WEEKS := 12
 const BOSS_STAGE := MAIN_WEEKS + 1
-const LEAF_RADIUS := 6.0
+const LEAF_RADIUS := 7.8
+const PileSurface=preload("res://scripts/leaf_piles.gd")
 const KNEE_HEIGHT := 14.0
 const PILE_HEIGHT := 10.0
 const COLOUR_WEIGHTS := [0.15, 1.0, 3.0, 7.0] # Green, yellow, orange, red.
@@ -62,6 +63,7 @@ var spawn_timer := 0.5
 var status := "playing"
 var leaves: Array[Dictionary] = []
 var ground_leaves: Array[Dictionary] = []
+var pile_surface=PileSurface.new()
 var surge_charge := 1.0
 var surge_left := 0.0
 var surge_held := false
@@ -178,7 +180,7 @@ func prepare_shedding() -> void:
 			remaining[index] = true
 	candidates.sort_custom(func(a, b): return a[1] < b[1])
 	shedding_order.clear()
-	var count := mini(candidates.size(), int(DIFFICULTIES[difficulty].leaves) + int(DIFFICULTIES[difficulty].increment) * (week - 1) + (120 if is_boss() else 0))
+	var count := mini(candidates.size(), int(DIFFICULTIES[difficulty].leaves) + int(DIFFICULTIES[difficulty].increment) * (week - 1) + (90 if is_boss() else 0))
 	for i in range(count):
 		# Peel visible leaves off each spray before releasing the leaves behind them.
 		for j in range(candidates.size()):
@@ -390,7 +392,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		var target := capture_slot(previous, p) if leaf.lifted and v.y < 0.0 else -1
 		if target >= 0:
 			resolve_leaf(leaf, true, target)
-		elif p.y >= GROUND - 2.0 - minf(PILE_HEIGHT, float(pile_at(p.x) / 2) * 1.0):
+		elif p.y >= pile_surface.surface(p.x, leaf.id):
 			resolve_leaf(leaf, false)
 		elif p.y < 75.0:
 			# Missing a real gap never scores. Let the leaf fall back into reach.
@@ -448,7 +450,8 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 		leaf.position = slots[slot_index].position
 	leaf.state = "rescued" if saved else "grounded"
 	if not saved:
-		leaf.position.y = GROUND - 2.0 - minf(PILE_HEIGHT, float(pile_at(leaf.position.x) / 2) * 1.0)
+		leaf.position.y = pile_surface.deposit(leaf.position.x, leaf.id)
+		leaf.rest_y = leaf.position.y
 		leaf.velocity = Vector2(leaf.velocity.x * 0.25, 0)
 		leaf.scuff_cooldown = 0.0
 		leaf.scuff_left = 0.0
@@ -516,6 +519,7 @@ func next_week() -> bool:
 	piles.fill(0)
 	leaves.clear()
 	ground_leaves.clear()
+	pile_surface.clear()
 	surge_charge = 1.0
 	surge_left = 0
 	surge_held = false
@@ -579,19 +583,18 @@ func activate_surge() -> bool:
 
 func rebuild_piles() -> void:
 	piles.fill(0)
+	pile_surface.clear()
 	for leaf in ground_leaves:
+		leaf.rest_y=pile_surface.deposit(leaf.position.x,leaf.id)
 		piles[clampi(int(leaf.position.x / 30.0), 0, 11)] += 1
 
 
 func step_ground(dt: float, displacement: float) -> void:
-	var layers := {}
+	rebuild_piles()
 	for leaf in ground_leaves:
 		var p: Vector2 = leaf.position
 		var v: Vector2 = leaf.velocity
-		var segment := clampi(int(p.x / 30), 0, 11)
-		var layer: int = layers.get(segment, 0)
-		layers[segment] = layer + 1
-		var floor_y := GROUND - 2.0 - minf(PILE_HEIGHT, float(layer / 2))
+		var floor_y: float=leaf.get("rest_y",p.y)
 		leaf.scuff_cooldown = maxf(0, float(leaf.get("scuff_cooldown", 0)) - dt)
 		var remaining := maxf(0, float(leaf.get("scuff_left", 0)) - dt)
 		if absf(displacement) > 0.001 and absf(p.x - x) < 24 and remaining <= 0 and leaf.scuff_cooldown <= 0:
@@ -605,7 +608,7 @@ func step_ground(dt: float, displacement: float) -> void:
 			var phase: float = fposmod(leaf.id * 0.618034, 1.0) * TAU
 			var envelope := sin(t * PI)
 			v.x = float(leaf.scuff_direction) * 18 * (1 - t) + sin(t * TAU * 1.25 + phase) * 22 * envelope
-			p.y = floor_y - minf(7.0, maxf(0, floor_y - (GROUND - KNEE_HEIGHT))) * envelope * (0.75 + 0.25 * sin(t * TAU + phase))
+			p.y = floor_y - 4.0 * envelope * (0.75 + 0.25 * sin(t * TAU + phase))
 			leaf.angle += (v.x * 0.05 + sin(t * TAU + phase) * 3) * dt
 			leaf.roll = 0.68 + 0.32 * absf(cos(t * TAU + phase))
 		else:
@@ -615,7 +618,6 @@ func step_ground(dt: float, displacement: float) -> void:
 			leaf.roll = 1.0
 		v.x += BlowerPose.edge_force(p.x) * dt * 0.35
 		p.x = clampf(p.x + v.x * dt, 5, 355)
-		p.y = maxf(p.y, GROUND - KNEE_HEIGHT)
 		leaf.position = p
 		leaf.velocity = Vector2(v.x, 0)
 	rebuild_piles()
