@@ -46,6 +46,15 @@ func _initialize() -> void:
 		for uv in [Vector2(0.2, 0.8), Vector2(0.5, 0.9), Vector2(0.4, 1), Actor.NOZZLE_UV]:
 			finite = finite and actor.point(uv).is_finite()
 	check(finite, "two-bone skin stays finite throughout two strides")
+	var forward_knees:=true
+	for facing in [-1,1]:
+		for frame in range(120):
+			actor.advance(facing*1.2,1.0/60,false,false,facing)
+			for joint in actor.joints:
+				var direction:Vector2=(joint.ankle-joint.hip).normalized()
+				# Screen-space mirror reverses both the facing and the knee offset.
+				forward_knees=forward_knees and (joint.knee-joint.hip).dot(direction.orthogonal())>=0
+	check(forward_knees,"both knees bend toward the toes through full strides in both directions")
 	# Compare seeded flutter coefficients, lateral reversal and gravity through real steps.
 	var game = Loop.new(77)
 	game.spawn_leaf()

@@ -96,7 +96,7 @@ func knee(hip: Vector2, ankle: Vector2, leg := 0) -> Vector2:
 	var along := delta.normalized()
 	var projection := (upper * upper - lower * lower + distance * distance) / (2 * distance)
 	var bend := sqrt(maxf(0, upper * upper - projection * projection))
-	return hip + along * projection - along.orthogonal() * bend
+	return hip + along * projection + along.orthogonal() * bend
 
 func update_joints() -> void:
 	joints.clear()
@@ -111,7 +111,7 @@ func update_joints() -> void:
 		var ankle := foot_target(leg)
 		var maximum := rest(HIPS[leg]).distance_to(rest(KNEES[leg])) + rest(KNEES[leg]).distance_to(rest(ANKLES[leg])) - 0.001
 		if hip.distance_to(ankle) > maximum: ankle = hip + (ankle - hip).normalized() * maximum
-		var bent := knee(hip, ankle, leg) if movement > 0.0001 else rest(KNEES[leg])
+		var bent := knee(hip, ankle, leg)
 		joints.append({"hip":hip, "knee":bent, "ankle":ankle})
 		bones.append(bone_transform(rest(HIPS[leg]), rest(KNEES[leg]), hip, bent))
 		bones.append(bone_transform(rest(KNEES[leg]), rest(ANKLES[leg]), bent, ankle))

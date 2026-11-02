@@ -18,7 +18,7 @@ for row in range(3):
   components,count=label(alpha[y:endy,x:endx]>180)
   counts=np.bincount(components.ravel());counts[0]=0
   part=find_objects(components)[counts.argmax()-1]
-  # Two source pixels of feathering around each silhouette; ankle pegs stay hidden by overlaps.
+  # Two source pixels of feathering around each silhouette; the new atlas has no connector pegs.
   left=max(x,x+part[1].start-2);top=max(y,y+part[0].start-2)
   right=min(endx,x+part[1].stop+2);bottom=min(endy,y+part[0].stop+2)
   rects.append((left,top,right-left,bottom-top))
