@@ -36,6 +36,19 @@ with sync_playwright() as p:
  click('Upgrades');mode('workshop');click('Done');mode('paused')
  click('Cancel');mode('play')
  assert snap()['owned']==before
+ page.keyboard.press('Escape');mode('paused');click('Exit to menu');click('Exit');mode('title')
+ click('Continue / New game');mode('slots');click('Slot 2 · New save');mode('name');click('Start week 1');mode('intro')
+ page.wait_for_timeout(800);page.keyboard.press('Space');mode('play')
+ page.keyboard.down('Space');page.wait_for_function('window.snowSnapshot.low_power',timeout=60000)
+ assert snap()['blowing']
+ page.wait_for_function('window.snowSnapshot.low_power && window.snowSnapshot.charge>.25',timeout=30000)
+ capture('held-blower-low-power')
+ page.keyboard.up('Space');page.wait_for_timeout(250);page.keyboard.down('Space')
+ page.wait_for_function('window.snowSnapshot.blowing && !window.snowSnapshot.low_power')
+ page.wait_for_function('window.snowSnapshot.low_power',timeout=30000)
+ page.wait_for_function('window.snowSnapshot.blowing && !window.snowSnapshot.low_power && window.snowSnapshot.charge>.95',timeout=60000)
+ page.keyboard.up('Space')
+ print('PASS: held depletion keeps a recharging draft; release/press and full charge both restore full power.')
  b.close()
 assert not errors,errors
 print('PASS: paper tabs, all three branches, reset cancellation, Continue and live restart review; no browser errors.')

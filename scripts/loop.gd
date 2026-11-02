@@ -22,7 +22,7 @@ const DIFFICULTIES := [
 ]
 const MAIN_WEEKS := 12
 const BOSS_STAGE := MAIN_WEEKS + 1
-const LEAF_RADIUS := 7.8
+const LEAF_RADIUS := Canopy.RADIUS
 const PileSurface=preload("res://scripts/leaf_piles.gd")
 const KNEE_HEIGHT := 14.0
 const PILE_HEIGHT := 10.0
@@ -45,6 +45,7 @@ var charge := 1.0
 var idle_charge_time := 0.0
 var energy_locked := false
 var blowing := false
+var low_power := false
 var direction := 0.0
 var facing := 1.0
 var aim := 0.0
@@ -294,6 +295,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 	events.clear()
 	if status != "playing":
 		blowing = false
+		low_power=false
 		return
 	var s := stats()
 	surge_left = maxf(0, surge_left - dt)
@@ -309,18 +311,23 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 	if surge_left > 0: target_aim = 0.0
 	aim = move_toward(aim, target_aim, dt * BlowerPose.TURN_SPEED)
 	if not wants_blow:
-		energy_locked = false
-		idle_charge_time += dt
-		if idle_charge_time > 0.5:
-			charge = minf(1.0, charge + dt / s.recharge)
+		energy_locked=false
+		idle_charge_time+=dt
+		if idle_charge_time>0.5:charge=minf(1.0,charge+dt/s.recharge)
 	else:
-		idle_charge_time = 0.0
-	blowing = wants_blow and not energy_locked and charge > 0.0 and surge_left <= 0 and absf(aim) <= BlowerPose.MOVING_TILT + 0.01
-	if blowing:
-		charge = maxf(0.0, charge - dt / s.burst)
-		if charge <= 0.0:
-			energy_locked = true
-			blowing = false
+		idle_charge_time=0
+		if charge<=0:energy_locked=true
+		if energy_locked:
+			# A quiet holding draft keeps running while the battery recovers.
+			charge=minf(1.0,charge+dt/s.recharge*0.55)
+			if charge>=1.0:energy_locked=false
+	blowing=wants_blow and surge_left<=0 and absf(aim)<=BlowerPose.MOVING_TILT+0.01
+	low_power=blowing and energy_locked
+	if blowing and not low_power:
+		charge=maxf(0,charge-dt/s.burst)
+		if charge<=0:
+			energy_locked=true
+			low_power=true
 	step_ground(dt, x - previous_x)
 	week_time += dt
 	spawn_timer -= dt
@@ -341,7 +348,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		var offset := p - origin
 		var height := offset.dot(airflow)
 		var across := offset.dot(lateral)
-		var in_gust: bool = blowing and height > -8.0 and height < s.reach and absf(across) < s.width * (0.7 + height / 340.0)
+		var in_gust: bool = blowing and height > -8.0 and height < (minf(s.reach,145.0) if low_power else s.reach) and absf(across) < s.width * (0.7 + height / 340.0)
 		var wind := sin(week_time * 0.9 + week) * (5.0 + week * 1.6) * float(DIFFICULTIES[difficulty].wind)
 		# Smooth, seeded aerodynamic variation: broad drifting arcs, never frame noise.
 		var flutter: float = leaf.age * leaf.get("flutter_rate", 2.8) + leaf.get("flutter_phase", float(leaf.id))
@@ -351,17 +358,19 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		v.y += (GRAVITY * float(DIFFICULTIES[difficulty].fall) - v.y * drag_coefficient + sin(flutter * 2) * 8.0) * dt
 		if boss_phase() == "blast": v.y += 32.0 * dt
 		if in_gust:
-			leaf.lifted = true
+			if not low_power:leaf.lifted=true
 			var spread: float = s.width * (0.7 + height / 340.0)
 			var normalized_across := clampf(across / spread, -1, 1)
 			# Fan out from the nozzle: standing to one side now steers a leaf that way.
 			# Each leaf carries independent, smooth turbulence rather than sharing lanes.
 			var turbulence: float = sin(flutter * 1.31 + leaf.id * 2.399) * 23.0 + sin(flutter * 2.17) * 9.0
-			var force: Vector2 = airflow * float(s.force) + lateral * (normalized_across * 155.0 * float(s.steering) + turbulence)
+			var lift:float=(GRAVITY*float(DIFFICULTIES[difficulty].fall)+7.0)/maxf(0.7,-airflow.y) if low_power else float(s.force)
+			var force:Vector2=airflow*lift+lateral*(normalized_across*155.0*float(s.steering)+turbulence)*(0.25 if low_power else 1.0)
 			# At the borders a return breeze wins over outward-directed blower force.
 			if force.x < 0: force.x *= smoothstep(-8, 48, p.x)
 			if force.x > 0: force.x *= (1.0 - smoothstep(312, 368, p.x))
-			v += force * dt
+			v+=force*dt
+			if low_power and v.y < -12.0:v.y=move_toward(v.y,-12.0,dt*180)
 		if surge_left > 0:
 			var center := Vector2(x, GROUND - 35) + surge_offset()
 			var radial: Vector2 = p - center
@@ -404,6 +413,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 	if status == "playing" and spawned >= week_leaf_count() and leaves.is_empty():
 		score += 50 + 5 * (capacity() - week_missed)
 		blowing = false
+		low_power=false
 		surge_left = 0
 		if is_boss():
 			score += 500
@@ -470,6 +480,7 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 		if week_missed >= capacity():
 			status = "lost"
 			blowing = false
+			low_power=false
 			surge_left = 0
 	events.append({"position": leaf.position, "saved": saved})
 
@@ -514,6 +525,7 @@ func next_week() -> bool:
 	week_regrown = restore_playable_canopy()
 	charge = 1.0
 	energy_locked = false
+	low_power=false
 	idle_charge_time = 0.0
 	spawned = 0
 	week_rescued = 0

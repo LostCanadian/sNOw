@@ -117,7 +117,7 @@ func select_track(name: String) -> void:
 	fade.tween_property(old, "volume_db", -60.0, 0.45)
 	fade.tween_property(next, "volume_db", linear_to_db(maxf(0.00001,music_volume)) - 4, 0.45)
 
-func update(mode: String, week: int, blowing: bool, charge: float, distance: float, moving: bool, surge: bool, dt: float) -> void:
+func update(mode: String, week: int, blowing: bool, charge: float, distance: float, moving: bool, surge: bool, dt: float, low_power:=false) -> void:
 	cue_time += dt
 	paused = mode == "paused"
 	if not paused: select_track(scene_track(mode, week))
@@ -131,8 +131,8 @@ func update(mode: String, week: int, blowing: bool, charge: float, distance: flo
 		JavaScriptBridge.eval("window.snowMusic?.update(%s,%s,%f,%f)" % [str(paused),str(muted),db_to_linear(players[0].volume_db),db_to_linear(players[1].volume_db)], true)
 	var motor_on := unlocked and mode == "play" and blowing and not muted and effects_volume > 0
 	if motor_on and not motor.playing: motor.play()
-	motor.pitch_scale = lerpf(0.92,1.07,charge)
-	motor.volume_db = move_toward(motor.volume_db, linear_to_db(maxf(0.00001,effects_volume)) - 11 if motor_on else -60.0, dt * 160)
+	motor.pitch_scale=0.72 if low_power else lerpf(0.92,1.07,charge)
+	motor.volume_db = move_toward(motor.volume_db, linear_to_db(maxf(0.00001,effects_volume)) - (17 if low_power else 11) if motor_on else -60.0, dt * 160)
 	if not motor_on and motor.volume_db <= -59: motor.stop()
 	if mode == "play":
 		var step := floori(distance / 14.5)

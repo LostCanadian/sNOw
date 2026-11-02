@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Fourteen headless regression scripts pass 754 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter and audio routing. The five Python launcher tests also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Fifteen headless regression scripts pass 789 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter and audio routing. All 21 Python launcher/mobile-export checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -41,7 +41,7 @@ The canopy now has 2,160 distinct leaves (25% fewer), at radius 7.8 (30% larger)
 
 Leaf identities retain their depth ordering across detachment and flight in one instanced pass. Foreground occluders shed first, before seasonal colour preference. Two independent fine support surfaces stack landed leaves into growing piles; alternate identities draw before/after the player. The ending simulates only airborne leaves at 30 Hz and interpolates movement for rendering. Bulk instance buffers replace thousands of server calls and individual ground/air draw commands. Warning snow emits above the top edge, including when snowfall density increases.
 
-A 600-frame headless CPU study measured about 0.96 seconds combined simulation/upload work versus 1.43 seconds previously; this is a renderer-update benchmark, not a mobile frame-rate claim. Physical device profiling remains necessary.
+A 600-frame headless CPU study measured about 0.82 seconds combined simulation/upload work versus 1.43 seconds previously (roughly 43% less); this is a renderer-update benchmark, not a mobile frame-rate claim. Physical device profiling remains necessary.
 
 The walking atlas has been replaced with textured paper trouser, calf and shoe pieces without exposed connector tabs. The two-bone solver now bends toward the toes (including mirrored travel), using the same bend at rest so starting a stride does not flip the joint. Bone length, planted-foot and directional-knee checks cover complete strides.
 
@@ -52,3 +52,9 @@ All thirty nodes now use original textured paper object illustrations, with a ma
 Upgrades are available from results (including a loss), saved Continue, and the live restart review. Continue and Retry purchases update the level checkpoint immediately. During a live restart review, choices stay in a draft: Cancel resumes the unchanged attempt, while Restart commits and saves the selected kit. Mid-attempt purchases remain disallowed.
 
 High-score storage version 2 merges historical tables, normalizes pre-score-reduction values, keeps the best row per campaign, and saves one top ten per difficulty without rules metadata. Old browser/native keys and backups still load.
+
+## Held blower recovery
+
+After depletion, holding Space/touch continues a low-power draft while charging at 55% of the normal recharge rate. Its short reach and near-gravity lift can arrest a falling leaf and raise it slightly, without marking it for capture. Release/press restores full power using the partial charge; reaching full charge resumes full power automatically. The weak draft has shorter/fainter streaks, a slower fan, a charging bolt, and a quieter lower-pitched motor. Pause and non-playing scenes freeze recovery.
+
+Reproduce the CPU loss-animation study with `bash tools/godot.sh --headless --script tools/bench_leaf_fall.gd`. Browser tests additionally cover every-leaf landing before snow, pause/focus behavior, paper tabs and reset cancellation, checkpoint upgrades, both low-power recovery exits, WebAudio output and persistent audio controls.

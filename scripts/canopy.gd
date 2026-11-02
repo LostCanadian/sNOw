@@ -1,6 +1,6 @@
 extends RefCounted
 ## A season tree adapted from the user-attached reference. Tips are original-image pixel coordinates.
-## Keep the original twig identities; paired sprays build a full 2,880-leaf crown.
+## Original twig anchors, seven spray layers and central fills make a 2,160-leaf crown.
 const TREE_RECT := Rect2(45, 78, 300, 424)
 const IMAGE_SIZE := Vector2(1024, 1536)
 const Sprays = preload("res://scripts/canopy_sprays.gd")

@@ -20,9 +20,9 @@ func _initialize() -> void:
 	check(game.x == 331.0, "movement remains inside the shared playfield")
 	game = Loop.new()
 	for i in range(370): game.step(1.0 / 60.0, 0.0, true)
-	check(game.energy_locked and game.charge == 0.0, "holding the blower drains and locks the battery")
+	check(game.energy_locked and game.low_power and game.blowing, "holding past depletion enters a running low-power draft")
 	for i in range(60): game.step(1.0 / 60.0, 0.0, true)
-	check(game.charge == 0.0 and not game.blowing, "empty battery cannot recharge while held")
+	check(game.charge > 0.15 and game.low_power and game.blowing, "held low-power draft recharges the battery")
 	for i in range(240): game.step(1.0 / 60.0, 0.0, false)
 	check(game.charge > 0.99 and not game.energy_locked, "release restores usable energy")
 	game = Loop.new()
@@ -72,6 +72,7 @@ func _initialize() -> void:
 	check(game.buy(0), "refund can be spent on a different branch")
 	check(game.next_week() and game.week == 2 and game.tiers[0] == 1, "next week preserves the build")
 	check(game.charge == 1.0 and game.pile_at(180) == 0, "next week refills and clears local piles")
+	game.step(1.0/60,0,false)
 	check(not game.next_week() and not game.buy(2), "cannot skip weeks or buy during active play")
 	for a in range(7):
 		for b in range(7):

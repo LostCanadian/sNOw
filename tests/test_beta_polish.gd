@@ -30,6 +30,24 @@ func run() -> void:
 	var loaded=Campaign.restore(old)
 	check(loaded!=null and loaded.missed==60 and loaded.attached_count()==2100,"dense previous saves migrate gaps proportionally")
 	check(Campaign.valid_checkpoint(Campaign.snapshot(loaded)),"migrated saves remain valid and conserve unique identities")
+	var weak=Loop.new(77)
+	weak.spawn_leaf();weak.spawn_timer=9999
+	weak.energy_locked=true;weak.charge=0
+	var floating:Dictionary=weak.leaves[0]
+	floating.position=weak.nozzle()+Vector2(0,-65);floating.velocity=Vector2(0,12)
+	var initial_y:float=floating.position.y
+	for frame in range(180):weak.step(1.0/60,0,true)
+	check(weak.low_power and weak.blowing and weak.charge>0.5,"exhausted held blower keeps a draft and recharges")
+	check(floating.position.y<initial_y+8 and floating.velocity.y<0 and not floating.lifted and weak.rescued==0,"low power arrests a falling leaf and raises it gently without granting tree capture")
+	var partial:float=weak.charge
+	weak.step(1.0/60,0,false);weak.step(1.0/60,0,true)
+	check(weak.blowing and not weak.low_power and not weak.energy_locked and weak.charge<partial,"release and press restores full power at partial charge")
+	weak.energy_locked=true;weak.charge=0.9999
+	weak.step(1.0/60,0,true)
+	check(weak.blowing and not weak.low_power and not weak.energy_locked,"full charge resumes full power without releasing the control")
+	var frozen_charge:float=weak.charge
+	weak.status="workshop";weak.step(1,0,true)
+	check(weak.charge==frozen_charge and not weak.blowing and not weak.low_power,"non-playing scenes cannot run or recharge the blower")
 	var main=Main.instantiate();root.add_child(main);main.set_physics_process(false)
 	main.leaf_renderer.clear()
 	var id:int=game.shedding_order[0]

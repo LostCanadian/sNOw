@@ -141,14 +141,17 @@ func run() -> void:
 	game.score = 100
 	game.status = "lost"
 	scores.submit(game, "NEW")
-	for version in [5,4,3,2,1]:
-		var old: Dictionary = scores.entries(1)[0].duplicate(true)
-		old.rules = version
-		old.initials = "OLD"
-		scores.tables[1].append(old)
-	check(scores.flush(), "both older scoring versions remain preserved alongside the new ability rules")
-	scores = Scores.new(path)
-	check(scores.available_rules(1) == [6,5,4,3,2,1] and scores.entries(1,2).size() == 1 and scores.entries(1,1).size() == 1, "score archives can cycle through each prior rules version separately")
+	var historical:Array=[]
+	for version in [6,5,4,3,2,1]:
+		var old:Dictionary=scores.entries(1)[0].duplicate(true)
+		old.rules=version
+		historical.append(old)
+	var document:={"version":1,"tables":[[],historical,[]]}
+	check(Scores.valid_document(document),"historical score records from all six versions remain valid import data")
+	var file:=FileAccess.open(path,FileAccess.WRITE)
+	file.store_string(JSON.stringify(document));file.close()
+	scores=Scores.new(path)
+	check(scores.entries(1).size()==1 and scores.entries(1)[0].score==100 and not scores.entries(1)[0].has("rules"),"six historical versions of one campaign merge into its single best score")
 	for extension in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(path + extension): DirAccess.remove_absolute(path + extension)
 	main.queue_free()

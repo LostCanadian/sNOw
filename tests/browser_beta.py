@@ -88,7 +88,7 @@ with sync_playwright() as p:
     click(180,323);mode('slots');click(180,322);mode('continue')
     assert snap()['time']==0
     print('PASS: saved level offers Continue.',flush=True)
-    capture('continue');click(180,338);mode('intro');page.wait_for_timeout(800);page.keyboard.press('Space');mode('play')
+    capture('continue');click(180,314);mode('intro');page.wait_for_timeout(800);page.keyboard.press('Space');mode('play')
     assert snap()['surge_unlocked'] and snap()['audio_track']=='autumn'
     page.wait_for_function('window.snowSnapshot.grounded>=20',timeout=60000)
     leaves=snap()['ground_positions'];target=max(29,min(331,sum(l[1] for l in leaves)/len(leaves)))

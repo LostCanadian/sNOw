@@ -239,7 +239,7 @@ func _physics_process(dt: float) -> void:
 				"result_time": result_time, "result_tallied": result_tallied, "result_new_high": result_new_high,
 				"week_rescued": sim.week_rescued, "week_points": sim.score - sim.week_start_score if sim.week_start_score >= 0 else -1,
 				"result_display": result_numbers.map(func(label): return label.text if is_instance_valid(label) else ""),
-				"blowing": sim.blowing, "rescued": sim.rescued, "missed": sim.missed,
+				"low_power":sim.low_power,"blowing": sim.blowing, "rescued": sim.rescued, "missed": sim.missed,
 				"audio_track": sounds.track, "audio_cues": sounds.cue_counts, "audio_unlocked": sounds.unlocked, "audio_muted": sounds.muted,
 				"points": sim.points, "tiers": sim.tiers, "owned": sim.owned, "selected_upgrade": [selected_upgrade.x, selected_upgrade.y], "touches": touches.size(),
 				"week_missed": sim.week_missed, "regrown": sim.regrown, "week_regrown": sim.week_regrown,
@@ -346,6 +346,7 @@ func clear_input() -> void:
 	pointer_positions.clear()
 	keys.clear()
 	sim.blowing = false
+	sim.low_power=false
 
 
 func _notification(what: int) -> void:
@@ -369,6 +370,7 @@ func start_run(slot_index := -1, slot_name := "", difficulty := -1) -> void:
 	actor.reset()
 	update_actor_mesh(true)
 	active_slot = slot_index
+	save_notice=""
 	result_key = ""
 	level_checkpoint = Campaign.snapshot(sim)
 	if active_slot >= 0:
@@ -952,7 +954,8 @@ func show_workshop(animate := false) -> void:
 	reset.expand_icon=true
 	reset.icon=paper_icon(WORKSHOP_TOKENS,WorkshopRegions.TOKENS[1])
 	reset.add_theme_constant_override("icon_max_width",27)
-	text_label(panel, "Two Gold Leaves each week. Choose your path.", Rect2(8, 44, 320, 22), 11, INK)
+	var workshop_hint:=text_label(panel,"Two Gold Leaves each week. Choose your path." if save_notice.is_empty() else save_notice,Rect2(8,44,320,22),11 if save_notice.is_empty() else 8,INK if save_notice.is_empty() else RUST)
+	workshop_hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	for branch in range(3):
 		var tab := button(panel, "", Rect2(10 + branch * 108,66,100,55), func():
 			selected_upgrade = Vector2i(branch, 0)
@@ -1231,7 +1234,7 @@ func _draw() -> void:
 	if mode == "play": draw_controls()
 	if mode == "play" and sim.week == 1 and sim.week_time < 8.0:
 		var hint := "Blow leaves into empty spots on the branches"
-		if sim.week_time > 4.0: hint = "Leaves click back on. Release to recharge."
+		if sim.week_time > 4.0: hint = "Hold for a gentle draft; release to recharge faster."
 		paper_box(Rect2(24, 525, 312, 25), Color(0.13, 0.23, 0.20, 0.88), 6)
 		write_center(hint, 180, 541, 10, CREAM)
 	if mode == "play" and sim.week_regrown > 0 and sim.week_time < 6.0:
@@ -1473,7 +1476,7 @@ func draw_gust() -> void:
 	for trail in range(16 if not reduced_effects else 5):
 		var cycle := fmod(elapsed * 1.4 + trail * 0.61803398875, 1.0)
 		var lane := sin(trail * 9.3)
-		var height := cycle * 290.0
+		var height := cycle * (135.0 if sim.low_power else 290.0)
 		var length_px := 16.0 + fmod(trail * 13.0, 24.0)
 		var points := PackedVector2Array()
 		for j in range(6):
@@ -1481,7 +1484,7 @@ func draw_gust() -> void:
 			var spread: float = strength.width * (0.12 + h / 420.0)
 			# Short streaks travel away from the nozzle. Only a shallow bend, no helix.
 			points.append(origin + sim.air_axis() * h + sim.air_axis().orthogonal() * (lane * spread + sin(h * 0.012 + trail) * 2.0))
-		var alpha := sin(cycle * PI) * 0.55
+		var alpha := sin(cycle * PI) * (0.25 if sim.low_power else 0.55)
 		draw_polyline(points, Color(1.0, 0.99, 0.89, alpha * 0.3), 2.0, true)
 		draw_polyline(points, Color(1.0, 0.99, 0.89, alpha), 0.85, true)
 
@@ -1520,7 +1523,7 @@ func draw_hud() -> void:
 		paint.set_border_width_all(0)
 		draw_style_box(paint, fill)
 	draw_texture_rect(BATTERY_FRAME, rect, false, CREAM)
-	if not sim.blowing and sim.charge < 0.999 and sim.idle_charge_time > 0.5:
+	if sim.low_power or (not sim.blowing and sim.charge<0.999 and sim.idle_charge_time>0.5):
 		draw_polyline(PackedVector2Array([Vector2(273, 26), Vector2(266, 35), Vector2(272, 35), Vector2(267, 42)]), CREAM, 1.5, true)
 
 
@@ -1539,7 +1542,7 @@ func draw_controls() -> void:
 		draw_arc(center, radius, 0, TAU, 60, Color(0.96, 0.86, 0.65, 0.8), 1.1, true)
 		var colour := INK if down else CREAM
 		if action == "blow":
-			draw_fan(center, 15, elapsed * 6.0 if sim.blowing or sim.surge_left > 0 else 0.0, colour)
+			draw_fan(center, 15, elapsed * (2.5 if sim.low_power else 6.0) if sim.blowing or sim.surge_left > 0 else 0.0, colour)
 		elif action == "surge":
 			var ready: bool = sim.surge_charge >= 1.0
 			draw_texture_rect(SURGE_ICON, Rect2(center - Vector2(13,13),Vector2(26,26)), false, colour if ready else Color(colour, 0.45))
@@ -1607,7 +1610,7 @@ func fill_audio(dt: float) -> void:
 	var audio_mode := mode
 	if mode == "scores" and scores_return_to_result: audio_mode = sim.status if sim.status in ["lost","won"] else "results"
 	if mode == "initials": audio_mode = sim.status if sim.status in ["lost","won"] else "results"
-	sounds.update(audio_mode, sim.week, sim.blowing, sim.charge, actor.gait_distance, actor.movement > 0.05, sim.surge_left > 0, dt)
+	sounds.update(audio_mode, sim.week, sim.blowing, sim.charge, actor.gait_distance, actor.movement > 0.05, sim.surge_left > 0, dt, sim.low_power)
 
 
 func show_audio_options() -> void:

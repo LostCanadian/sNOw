@@ -84,8 +84,11 @@ static func unified_tables(document: Dictionary) -> Array:
 			if document.version==1 and record.rules<5:record.score=maxi(1,int(record.score/10))
 			record.erase("rules")
 			if not best.has(record.id) or better(record,best[record.id]):best[record.id]=record
-		result[difficulty]=best.values()
-		result[difficulty].sort_custom(better)
+		# Keep the original insertion order of exact ties during migration/reopen.
+		for record in best.values():
+			var index:=0
+			while index<result[difficulty].size() and not better(record,result[difficulty][index]):index+=1
+			result[difficulty].insert(index,record)
 		if result[difficulty].size()>LIMIT:result[difficulty].resize(LIMIT)
 	return result
 

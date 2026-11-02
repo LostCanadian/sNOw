@@ -65,7 +65,7 @@ with sync_playwright() as p:
     page.reload(wait_until='networkidle')
     page.wait_for_function("window.snowSnapshot?.mode==='title'",timeout=90000)
     click(180,323);mode('slots');click(180,242);mode('continue')
-    click(180,338);mode('intro');mode('play')
+    click(180,314);mode('intro');mode('play')
     page.wait_for_function("window.snowSnapshot.mode==='lost'",timeout=90000)
     loss_start=time.monotonic()-started
     first=snap()

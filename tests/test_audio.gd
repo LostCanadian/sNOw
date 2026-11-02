@@ -25,6 +25,8 @@ func run() -> void:
 	check(audio.motor.playing and audio.cue_counts.get("whirlwind",0) == 1 and audio.cue_counts.get("shuffle",0) == 1, "blower, real steps and ability activation produce independent layers")
 	for i in range(10): audio.update("play",1,true,1,16,false,true,1.0/60)
 	check(audio.cue_counts.whirlwind == 1, "a held ability does not retrigger its effect every frame")
+	audio.update("play",1,true,0.4,16,false,false,1,true)
+	check(audio.motor.playing and audio.motor.pitch_scale<0.8,"low-power recovery keeps a quieter lower-pitched blower layer")
 	audio.update("paused",1,true,1,16,false,true,1)
 	check(not audio.motor.playing and audio.players[audio.current].stream_paused and audio.voices.all(func(voice): return not voice.playing), "pause stops effects and suspends music")
 	audio.muted = true
