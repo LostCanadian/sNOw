@@ -23,6 +23,7 @@ const DIFFICULTIES := [
 const MAIN_WEEKS := 12
 const BOSS_STAGE := MAIN_WEEKS + 1
 const LEAF_RADIUS := Canopy.RADIUS
+const ATTACH_DURATION := 0.34
 const PileSurface=preload("res://scripts/leaf_piles.gd")
 const KNEE_HEIGHT := 14.0
 const PILE_HEIGHT := 10.0
@@ -72,6 +73,7 @@ var slots: Array[Dictionary] = []
 var capture_grid := {}
 var attached_lookup := PackedInt32Array()
 var canopy_revision := 0
+var attachment_motions := {}
 var shedding_order: Array[int] = []
 var piles: Array[int] = []
 var points := 0
@@ -297,6 +299,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		blowing = false
 		low_power=false
 		return
+	advance_attachments(dt)
 	var s := stats()
 	surge_left = maxf(0, surge_left - dt)
 	surge_charge = minf(1.0, surge_charge + dt / float(s.surge_cooldown))
@@ -430,20 +433,53 @@ func spawn_leaf() -> bool:
 	var slot_index := find_attached_leaf(id)
 	if slot_index < 0: return false
 	var slot: Dictionary = slots[slot_index]
+	var pose := attachment_pose(slot_index)
+	attachment_motions.erase(slot_index)
 	slot.leaf_id = -1
 	canopy_revision += 1
 	attached_lookup[id] = -1
 	leaves.append({
-		"id": id, "position": slot.position, "home_slot": slot_index,
+		"id": id, "position": pose.position, "home_slot": slot_index,
 		"velocity": Vector2(rng.randf_range(-6, 6), 3.0),
 		"state": "air", "lifted": false, "age": 0.0,
-		"angle": slot.angle, "rest_angle": slot.angle, "colour": leaf_colour(id), "category": leaf_category(id),
+		"angle": pose.angle, "rest_angle": pose.angle, "colour": leaf_colour(id), "category": leaf_category(id),
 		"flutter_phase": rng.randf_range(0, TAU), "flutter_rate": rng.randf_range(2.1, 3.8),
 		"flutter_strength": rng.randf_range(23, 37), "drag": rng.randf_range(0.48, 0.85),
-		"spin": rng.randf_range(-0.35, 0.35), "roll": 1.0, "detach_roll": 1.0,
+		"spin": rng.randf_range(-0.35, 0.35), "roll": pose.roll, "detach_roll": pose.roll,
 	})
 	spawned += 1
 	return true
+
+
+func advance_attachments(dt: float) -> void:
+	var finished := false
+	for index in attachment_motions.keys():
+		var motion: Dictionary = attachment_motions[index]
+		motion.age += dt
+		if motion.age >= ATTACH_DURATION or slots[index].leaf_id != motion.id:
+			attachment_motions.erase(index)
+			finished = true
+	# Refresh the cached canopy once the final moving instance becomes stationary.
+	if finished: canopy_revision += 1
+
+
+func attachment_pose(index: int) -> Dictionary:
+	var slot: Dictionary = slots[index]
+	var pose := {"position": slot.position, "angle": slot.angle, "roll": 1.0}
+	if not attachment_motions.has(index): return pose
+	var motion: Dictionary = attachment_motions[index]
+	if slot.leaf_id != motion.id: return pose
+	var t := clampf(float(motion.age) / ATTACH_DURATION, 0, 1)
+	var eased := smoothstep(0, 1, t)
+	# Retain the incoming direction, then arrive with zero speed. A bounded
+	# tangent prevents fast captures from looping past the branch.
+	var start: Vector2 = motion.from
+	var tangent: Vector2 = motion.velocity * (ATTACH_DURATION / 3.0)
+	tangent = tangent.limit_length(start.distance_to(slot.position) * 0.85 + 2.0)
+	pose.position = start.bezier_interpolate(start + tangent, slot.position, slot.position, t)
+	pose.angle = lerp_angle(motion.angle, slot.angle, eased)
+	pose.roll = lerpf(motion.roll, 1.0, eased)
+	return pose
 
 
 func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
@@ -453,6 +489,10 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 		if slot_index < 0 or slot_index >= slots.size() or slots[slot_index].leaf_id >= 0: return
 		if leaf.id < 0 or leaf.id >= slots.size(): return
 		if find_attached_leaf(leaf.id) >= 0: return
+		# Reserve the branch and award the rescue once, while the same rendered
+		# identity eases from its actual capture pose onto the attachment.
+		attachment_motions[slot_index] = {"id": leaf.id, "from": leaf.position,
+			"velocity": leaf.velocity, "angle": leaf.angle, "roll": leaf.get("roll", 1.0), "age": 0.0}
 		slots[slot_index].leaf_id = leaf.id
 		canopy_revision += 1
 		attached_lookup[leaf.id] = slot_index
@@ -535,6 +575,7 @@ func next_week() -> bool:
 	piles.fill(0)
 	leaves.clear()
 	ground_leaves.clear()
+	attachment_motions.clear()
 	pile_surface.clear()
 	surge_charge = 1.0
 	surge_left = 0

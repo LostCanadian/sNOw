@@ -35,11 +35,12 @@ func run() -> void:
 	for twig in main.Canopy.Sprays.POINTS:
 		oriented = oriented and tree_image.get_pixel(int(twig.x), int(twig.y)).a > 0.7
 	check(oriented, "leaf stems meet the illustrated twig silhouette and point organically outward")
-	var clouds_valid := true
-	for layer in range(3):
-		for frame in range(61):
-			clouds_valid = clouds_valid and not Geometry2D.triangulate_polygon(main.cloud_polygon(layer, frame / 60.0)).is_empty()
-	check(clouds_valid, "cloud cutouts remain valid through their entire entrance")
+	var clouds_valid: bool = main.WINTER_CLOUDS.get_image().get_mipmap_count()>0
+	for frame in range(61):
+		main.elapsed=frame*10.0
+		var rect:Rect2=main.cloud_rect(frame/60.0)
+		clouds_valid=clouds_valid and rect.position.x<0 and rect.end.x>360 and rect.position.y<0
+	check(clouds_valid,"paper cloud textures use mipmaps and cover the sky across their entrance and drift")
 	main.start_run()
 	main.finish_story()
 	check(main.mode == "play" and main.overlay == null, "start enters playable scene")

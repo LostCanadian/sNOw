@@ -23,7 +23,9 @@ func begin(game) -> void:
 	pending_index=0;accumulator=0;revision+=1
 	for index in range(game.slots.size()):
 		var slot: Dictionary=game.slots[index]
-		if slot.leaf_id>=0:add_leaf(slot.leaf_id,slot.position,Vector2.ZERO,slot.angle,game.leaf_colour(slot.leaf_id),1,index)
+		if slot.leaf_id>=0:
+			var pose: Dictionary=game.attachment_pose(index)
+			add_leaf(slot.leaf_id,pose.position,Vector2.ZERO,pose.angle,game.leaf_colour(slot.leaf_id),1,index,pose.roll)
 	for leaf in game.ground_leaves:
 		add_leaf(leaf.id,leaf.position,Vector2.ZERO,leaf.angle,leaf.colour,3,leaf.id,leaf.get("roll",1.0))
 		surface.seed(leaf)

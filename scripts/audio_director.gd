@@ -145,10 +145,11 @@ func update(mode: String, week: int, blowing: bool, charge: float, distance: flo
 	previous_surge = surge
 
 func leaf_cue(saved: bool) -> void:
+	if not saved: return
 	# Ten-leaf batches should sound like one small rustle, not ten stacked samples.
 	if cue_time-last_leaf_cue < 0.12: return
 	last_leaf_cue = cue_time
-	play_cue("leaf_saved" if saved else "leaf_fallen",0.35 if saved else 0.18)
+	play_cue("leaf_saved",0.35)
 
 func setup_web_music() -> void:
 	if not OS.has_feature("web"): return

@@ -107,5 +107,19 @@ func _initialize() -> void:
 	file = FileAccess.open("res://test-results/ending-fixture.json",FileAccess.WRITE)
 	file.store_string(JSON.stringify(endings))
 	file.close()
+	# One normal falling identity isolates the branch-settle animation for browser review.
+	var returning=Loop.new()
+	var nearest:=0
+	for index in range(returning.slots.size()):
+		if returning.slots[index].position.distance_squared_to(Vector2(192,320))<returning.slots[nearest].position.distance_squared_to(Vector2(192,320)):nearest=index
+	returning.shedding_order.assign([returning.slots[nearest].leaf_id])
+	var attachment_study:={"version":1,"slots":[{"name":"Attachment study","checkpoint":Campaign.snapshot(returning)},null,null]}
+	if not Campaign.valid_document(attachment_study):
+		push_error("Invalid attachment study")
+		quit(1)
+		return
+	file=FileAccess.open("res://test-results/attachment-fixture.json",FileAccess.WRITE)
+	file.store_string(JSON.stringify({"saves":attachment_study,"target":[returning.slots[nearest].position.x,returning.slots[nearest].position.y]}))
+	file.close()
 	print("Created validated late-week, boss and workshop UI fixtures.")
 	quit()

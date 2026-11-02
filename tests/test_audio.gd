@@ -27,6 +27,13 @@ func run() -> void:
 	check(audio.cue_counts.whirlwind == 1, "a held ability does not retrigger its effect every frame")
 	audio.update("play",1,true,0.4,16,false,false,1,true)
 	check(audio.motor.playing and audio.motor.pitch_scale<0.8,"low-power recovery keeps a quieter lower-pitched blower layer")
+	# An impact is completely silent and cannot consume the rescue-cue throttle.
+	var cue_before:Dictionary=audio.cue_counts.duplicate()
+	var time_before:float=audio.last_leaf_cue
+	for i in range(20):audio.leaf_cue(false)
+	check(audio.cue_counts==cue_before and audio.last_leaf_cue==time_before,"a batch of ground impacts plays no sound and does not throttle a following rescue")
+	audio.leaf_cue(true)
+	check(audio.cue_counts.get("leaf_saved",0)==1 and not audio.cue_counts.has("leaf_fallen"),"reattachment keeps its soft cue while grounded leaves stay silent")
 	audio.update("paused",1,true,1,16,false,true,1)
 	check(not audio.motor.playing and audio.players[audio.current].stream_paused and audio.voices.all(func(voice): return not voice.playing), "pause stops effects and suspends music")
 	audio.muted = true

@@ -22,6 +22,7 @@ const Canopy = preload("res://scripts/canopy.gd")
 const HighScores = preload("res://scripts/high_scores.gd")
 const ThirdParty = preload("res://scripts/third_party.gd")
 const Campaign = preload("res://scripts/campaign.gd")
+const WINTER_CLOUDS = preload("res://assets/art/winter_clouds.png")
 const BACKDROP = preload("res://assets/art/autumn_stage.png")
 const PAPER_LEAF = preload("res://assets/art/paper_leaf.png")
 const CARETAKER = preload("res://assets/art/caretaker.png")
@@ -167,6 +168,7 @@ func _ready() -> void:
 func _physics_process(dt: float) -> void:
 	last_frame_ms = dt * 1000.0
 	var was_story := mode in ["intro", "outro"]
+	var stepped := false
 	if was_story:
 		story_time += dt
 		if story_time >= StageStory.DURATION: finish_story()
@@ -186,6 +188,7 @@ func _physics_process(dt: float) -> void:
 		var previous_x: float = sim.x
 		if surge_requested: sim.surge_held = false
 		sim.step(dt, clampf(axis, -1, 1), blow, surge or surge_requested)
+		stepped = true
 		surge_requested = false
 		actor.advance(sim.x - previous_x if sim.surge_left <= 0 else 0.0, dt, sim.blowing or sim.surge_left > 0, reduced_effects, sim.facing, sim.aim)
 		update_actor_mesh()
@@ -216,6 +219,7 @@ func _physics_process(dt: float) -> void:
 		if result_time >= TALLY_DURATION and not result_tallied: finish_tally()
 		update_result_tally()
 	if mode != "paused":
+		if not stepped and sim.status != "lost": sim.advance_attachments(dt)
 		if mode in ["outro", "results", "workshop"]: actor.advance(0, dt, false, reduced_effects, sim.facing, 0)
 		if mode != "play": update_actor_mesh()
 		elapsed += dt
@@ -245,6 +249,7 @@ func _physics_process(dt: float) -> void:
 				"week_missed": sim.week_missed, "regrown": sim.regrown, "week_regrown": sim.week_regrown,
 				"airborne": sim.leaves.map(func(leaf): return [leaf.position.x, leaf.position.y, leaf.id]),
 				"air_details": sim.leaves.map(func(leaf): return [leaf.id,leaf.home_slot,leaf.position.x,leaf.position.y,leaf.angle,leaf.colour.to_html(false),leaf.age]),
+				"attachments": attachment_telemetry(),
 				"time": sim.week_time, "weather": weather(), "victory": preview_victory,
 				"attached": sim.attached_count(), "slots": sim.slots.size(), "air": sim.leaves.size(),
 				"result_visible": mode in ["lost", "won"] and overlay != null,
@@ -260,6 +265,17 @@ func _physics_process(dt: float) -> void:
 				"logical_size": [get_viewport_rect().size.x, get_viewport_rect().size.y],
 			}
 			JavaScriptBridge.eval("window.snowSnapshot = " + JSON.stringify(snapshot), true)
+
+
+func attachment_telemetry() -> Array:
+	var records: Array = []
+	for index in sim.attachment_motions:
+		var motion: Dictionary = sim.attachment_motions[index]
+		var pose: Dictionary = sim.attachment_pose(index)
+		var target: Vector2 = sim.slots[index].position
+		records.append([motion.id,motion.age,motion.from.x,motion.from.y,
+			pose.position.x,pose.position.y,target.x,target.y,pose.angle,pose.roll])
+	return records
 
 
 func _input(event: InputEvent) -> void:
@@ -1129,7 +1145,6 @@ func show_result() -> void:
 	if sim.status == "workshop":
 		result_actions.append(button(panel, "Upgrades", Rect2(160,294,136,38),func():open_workshop("results"), true))
 		currency_caption(result_actions[-1])
-		result_actions[-1].tooltip_text = "Spend Gold Leaves in the workshop"
 		gold_leaf_badge(panel, sim.points, Rect2(247,300,42,26))
 		result_actions.append(button(panel, "North Wind →" if sim.week == Loop.MAIN_WEEKS else "Week %d →" % (sim.week + 1), Rect2(160, 344, 136, 38), continue_week))
 	elif sim.status == "lost":
@@ -1294,9 +1309,8 @@ func make_canopy_batch() -> MultiMesh:
 	return batch
 
 
-func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
-	if winter: return
-	var stamp := "%s:%d:%d:%s:%s:%.3f" % [sim.run_id, sim.canopy_revision, sim.week, winter, victory, preview_weather if preview_mode else -1.0]
+func update_canopy_batches(victory := false) -> void:
+	var stamp := "%s:%d:%d:%s:%.3f" % [sim.run_id, sim.canopy_revision, sim.week, victory, preview_weather if preview_mode else -1.0]
 	var changed:=stamp!=canopy_stamp
 	if changed:
 		canopy_stamp = stamp
@@ -1318,13 +1332,22 @@ func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 					marked[cell] = true
 					canopy_gap_markers.append(slot.position)
 		leaf_renderer.cache()
-	var dynamic:bool=mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty())
+	var dynamic:bool=mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty() or not sim.attachment_motions.is_empty())
 	if changed or dynamic:
 		leaf_renderer.restore()
 		if dynamic:
 			for leaf in sim.ground_leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0),true)
 			for leaf in sim.leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0))
+			for index in sim.attachment_motions:
+				var pose: Dictionary = sim.attachment_pose(index)
+				var id: int = sim.slots[index].leaf_id
+				leaf_renderer.leaf(id,pose.position,pose.angle,sim.leaf_colour(id),pose.roll)
 		leaf_renderer.upload()
+
+
+func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
+	if winter: return
+	update_canopy_batches(victory)
 	# Authored branch connections stay visible beneath each denser twig spray.
 	canopy_batch.visible_instance_count = -1
 	canopy_shadows.visible_instance_count = -1
@@ -1341,20 +1364,16 @@ func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 			draw_texture_rect(TWINKLE, Rect2(point - Vector2.ONE * 2.6, Vector2.ONE * 5.2), false, Color(1.0,0.93,0.70,glow))
 
 
+func cloud_rect(progress: float) -> Rect2:
+	var width := 420.0
+	var height := width * WINTER_CLOUDS.get_height() / WINTER_CLOUDS.get_width()
+	var drift := 0.0 if reduced_effects else sin(elapsed * 0.12) * 5.0
+	return Rect2(-30.0 + drift, -80.0 + clampf(progress, 0, 1) * 65.0, width, height)
+
+
 func draw_clouds(cold: float, progress: float) -> void:
-	for layer in range(3):
-		var shade := Color("697e91").darkened(layer * 0.10)
-		shade.a = clampf((cold - 0.5) * 1.8, 0, 0.92)
-		draw_colored_polygon(cloud_polygon(layer, progress), shade)
-
-
-func cloud_polygon(layer: int, progress: float) -> PackedVector2Array:
-	var y := -80.0 + progress * 65.0 + layer * 18.0
-	# Keep the top edge above every animated scallop, including the opening frame.
-	var pts := PackedVector2Array([Vector2(-20, -150), Vector2(380, -150)])
-	for i in range(20, -1, -1):
-		pts.append(Vector2(i * 20.0 - 20.0, y + 65.0 + sin(i * 1.7 + layer) * 12.0))
-	return pts
+	var opacity := clampf((cold - 0.5) * 1.8, 0, 0.92)
+	draw_texture_rect(WINTER_CLOUDS, cloud_rect(progress), false, Color(1, 1, 1, opacity))
 
 
 func reset_weather() -> void:
