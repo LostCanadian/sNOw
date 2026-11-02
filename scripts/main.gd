@@ -1,6 +1,10 @@
 extends Node2D
 ## A small paper theatre: simulation stays separate from cutout presentation and UI.
 
+const WinterFall = preload("res://scripts/winter_fall.gd")
+const PLAY_ICON = preload("res://assets/art/play.svg")
+const PAUSE_ICON = preload("res://assets/art/pause.svg")
+const TWINKLE = preload("res://assets/art/twinkle.svg")
 const StageStory = preload("res://scripts/stage_story.gd")
 const FAN_ICON = preload("res://assets/art/fan.svg")
 const SURGE_ICON = preload("res://assets/art/surge.svg")
@@ -31,9 +35,9 @@ const LEFT := Rect2(16, 566, 60, 60)
 const RIGHT := Rect2(86, 566, 60, 60)
 const BLOW := Rect2(258, 558, 86, 70)
 const SURGE := Rect2(166, 562, 68, 66)
-const PAUSE := Rect2(310, 14, 36, 42)
+const PAUSE := Rect2(310, 14, 36, 40)
 const SCORE_BADGE := Rect2(12, 14, 146, 40)
-const FROST_BADGE := Rect2(184, 12, 48, 44)
+const FROST_BADGE := Rect2(184, 14, 48, 40)
 const BATTERY_BADGE := Rect2(242, 14, 56, 40)
 const TALLY_DURATION := 2.1
 
@@ -46,6 +50,9 @@ var keys: Dictionary = {}
 var pointer_positions: Dictionary = {}
 var elapsed := 0.0
 var ending_time := 0.0
+var winter_fall = WinterFall.new()
+var winter_batch: MultiMesh
+var winter_shadows: MultiMesh
 var story_time := 0.0
 var result_time := 0.0
 var result_key := ""
@@ -107,11 +114,13 @@ func _ready() -> void:
 	character_region = Rect2(CARETAKER.get_image().get_used_rect())
 	leaf_region = Rect2(PAPER_LEAF.get_image().get_used_rect())
 	var canopy_order: Array = range(Canopy.SLOT_COUNT)
-	canopy_order.sort_custom(func(a, b): return fmod(a * 0.61803398875, 1.0) > fmod(b * 0.61803398875, 1.0))
+	canopy_order.sort_custom(func(a, b): return fmod(a * 0.754877666, 1.0) > fmod(b * 0.754877666, 1.0))
 	canopy_rank.resize(Canopy.SLOT_COUNT)
 	for i in range(canopy_order.size()): canopy_rank[canopy_order[i]] = i
 	canopy_batch = make_canopy_batch()
 	canopy_shadows = make_canopy_batch()
+	winter_batch = make_canopy_batch()
+	winter_shadows = make_canopy_batch()
 	wardrobe_regions = atlas_regions(WARDROBE, 4, 3)
 	ending_regions = atlas_regions(ENDINGS, 2, 1)
 	update_actor_mesh()
@@ -161,7 +170,7 @@ func _physics_process(dt: float) -> void:
 		if surge_requested: sim.surge_held = false
 		sim.step(dt, clampf(axis, -1, 1), blow, surge or surge_requested)
 		surge_requested = false
-		actor.advance(sim.x - previous_x, dt, sim.blowing or sim.surge_left > 0, reduced_effects, sim.facing, sim.aim)
+		actor.advance(sim.x - previous_x if sim.surge_left <= 0 else 0.0, dt, sim.blowing or sim.surge_left > 0, reduced_effects, sim.facing, sim.aim)
 		update_actor_mesh()
 		for event in sim.events:
 			if sparks.size() < 50:
@@ -176,9 +185,12 @@ func _physics_process(dt: float) -> void:
 			ending_time = 0.0
 			clear_input()
 			if mode == "won": save_boundary()
+			else: begin_winter_fall()
 	if mode in ["lost", "won"]:
 		ending_time += dt
-		if ending_time >= 4.0 and overlay == null:
+		if mode == "lost":
+			winter_fall.step(dt)
+		if (winter_fall.finished() if mode == "lost" else ending_time >= 4.0) and overlay == null:
 			show_result()
 	if mode in ["results", "lost", "won"] and is_instance_valid(overlay):
 		result_time = minf(TALLY_DURATION, result_time + dt)
@@ -204,6 +216,7 @@ func _physics_process(dt: float) -> void:
 		telemetry_tick += 1
 		if telemetry_tick % 6 == 0:
 			var snapshot := {
+				"ending_phase": winter_fall.phase, "ending_attached": winter_fall.attached, "ending_air": winter_fall.airborne, "ending_ground": winter_fall.grounded, "snow_cover": winter_fall.cover(),
 				"mode": mode, "score": sim.score, "week": sim.week, "x": sim.x, "charge": sim.charge,
 				"ground_positions": sim.ground_leaves.map(func(leaf): return [leaf.id, leaf.position.x, leaf.position.y, leaf.velocity.x]),
 				"story_time": story_time, "grounded": sim.ground_leaves.size(), "surge_charge": sim.surge_charge, "surge_active": sim.surge_left > 0, "surge_unlocked": sim.surge_unlocked(),
@@ -214,6 +227,7 @@ func _physics_process(dt: float) -> void:
 				"points": sim.points, "tiers": sim.tiers, "selected_upgrade": [selected_upgrade.x, selected_upgrade.y], "touches": touches.size(),
 				"week_missed": sim.week_missed, "regrown": sim.regrown, "week_regrown": sim.week_regrown,
 				"airborne": sim.leaves.map(func(leaf): return [leaf.position.x, leaf.position.y, leaf.id]),
+				"air_details": sim.leaves.map(func(leaf): return [leaf.id,leaf.home_slot,leaf.position.x,leaf.position.y,leaf.angle,leaf.colour.to_html(false),leaf.age]),
 				"time": sim.week_time, "weather": weather(), "victory": preview_victory,
 				"attached": sim.attached_count(), "slots": sim.slots.size(), "air": sim.leaves.size(),
 				"result_visible": mode in ["lost", "won"] and overlay != null,
@@ -222,6 +236,7 @@ func _physics_process(dt: float) -> void:
 				"score_rows": [high_scores.entries(0).size(), high_scores.entries(1).size(), high_scores.entries(2).size()],
 				"license_section": license_section, "license_characters": license_characters,
 				"facing": sim.facing, "aim": sim.aim, "nozzle": [sim.nozzle().x, sim.nozzle().y],
+				"surge_spin": sim.surge_spin(), "surge_offset": [sim.surge_offset().x, sim.surge_offset().y],
 				"gait_phase": actor.phase(), "travel": actor.travel, "motor": actor.motor,
 				"save_error": save_notice, "storage_error": campaign.error,
 				"gaps": sim.slots.filter(func(slot: Dictionary): return slot.leaf_id < 0).map(func(slot: Dictionary): return [slot.position.x, slot.position.y]),
@@ -812,6 +827,10 @@ func set_preview(index: int) -> void:
 	preview_weather = [0.0, 0.83, 1.0, 0.0][index]
 	preview_victory = index == 3
 	ending_time = 6.0 if index in [2, 3] else 0.0
+	if index == 2:
+		begin_winter_fall()
+		winter_fall.finish_preview()
+		update_winter_batch()
 
 
 func show_workshop() -> void:
@@ -1034,21 +1053,24 @@ func _draw() -> void:
 	if sim.is_boss() and scene_mode == "play": draw_boss()
 	draw_trees()
 	draw_canopy(winter, ending, victory)
+	if winter:
+		update_winter_batch()
+		draw_multimesh(winter_shadows, PAPER_LEAF)
+		draw_multimesh(winter_batch, PAPER_LEAF)
 	if cold > 0.55:
 		draw_clouds(cold, ending if winter else 0.4)
-		draw_snow(cold, winter)
-	if winter:
-		draw_snow_cover(ending)
+		draw_snow(cold, winter and winter_fall.phase in ["snow", "done"])
 	if victory:
 		draw_flowers(ending)
-	if mode not in ["title", "preview"]:
+	if not winter and mode not in ["title", "preview"]:
 		draw_piles()
 	for leaf in sim.leaves:
-		if mode not in ["title", "preview"]:
-			draw_leaf(leaf.position, leaf.angle, leaf.colour, 5.0, leaf.get("roll", 1.0))
+		if not winter and mode not in ["title", "preview"]:
+			draw_leaf(leaf.position, leaf.angle, leaf.colour, Loop.LEAF_RADIUS, leaf.get("roll", 1.0))
 	if sim.blowing and mode == "play": draw_gust()
 	if sim.surge_left > 0: draw_surge()
 	draw_character(winter, victory)
+	if winter: draw_snow_cover(winter_fall.cover())
 	for spark in sparks:
 		var alpha: float = 1.0 - spark.time / 0.8
 		if spark.saved:
@@ -1120,6 +1142,7 @@ func make_canopy_batch() -> MultiMesh:
 
 
 func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
+	if winter: return
 	var stamp := "%s:%d:%d:%s:%s:%.3f" % [sim.run_id, sim.canopy_revision, sim.week, winter, victory, preview_weather if preview_mode else -1.0]
 	if stamp != canopy_stamp:
 		canopy_stamp = stamp
@@ -1133,8 +1156,7 @@ func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 			var colour_week: int = 11 if preview_mode and preview_weather > 0.5 else sim.week
 			if victory: colour_week = 1
 			var colour: Color = sim.leaf_colour(slot.leaf_id if slot.leaf_id >= 0 else i, colour_week)
-			if winter: colour = colour.lerp(Color("aabac3"), 0.4)
-			var scale := Vector2.ONE * (6.0 if keep else 0.0)
+			var scale := Vector2.ONE * (Loop.LEAF_RADIUS if keep else 0.0)
 			var instance := canopy_rank[i]
 			canopy_batch.set_instance_transform_2d(instance, Transform2D(slot.angle, scale, 0, slot.position))
 			canopy_batch.set_instance_color(instance, colour)
@@ -1146,18 +1168,19 @@ func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 					marked[cell] = true
 					canopy_gap_markers.append(slot.position)
 	# Authored branch connections stay visible beneath each denser twig spray.
-	# Preordered instances let winter erase foliage without rebuilding 2,880 transforms each frame.
-	var visible := roundi((1.0 - ending) * Canopy.SLOT_COUNT) if winter else -1
-	canopy_batch.visible_instance_count = visible
-	canopy_shadows.visible_instance_count = visible
+	canopy_batch.visible_instance_count = -1
+	canopy_shadows.visible_instance_count = -1
 	for i in range(Canopy.PREVIOUS_COUNT):
 		var slot: Dictionary = sim.slots[i]
 		draw_line(slot.stem, slot.position + Vector2(0, 5).rotated(slot.angle), Color("886341"), 0.7, true)
 	draw_multimesh(canopy_shadows, PAPER_LEAF)
 	draw_multimesh(canopy_batch, PAPER_LEAF)
 	if mode == "play":
-		for point in canopy_gap_markers:
-			draw_arc(point, 2.0, 0, TAU, 12, Color(0.65, 0.38, 0.14, 0.42), 0.7, true)
+		for i in range(mini(64, canopy_gap_markers.size())):
+			var point: Vector2 = canopy_gap_markers[i]
+			var glow := 0.6 if reduced_effects else 0.52 + sin(elapsed * 2 + point.x * 0.21 + point.y * 0.17) * 0.22
+			draw_circle(point, 3.3, Color(1.0,0.87,0.5,glow * 0.13))
+			draw_texture_rect(TWINKLE, Rect2(point - Vector2.ONE * 2.6, Vector2.ONE * 5.2), false, Color(1.0,0.93,0.70,glow))
 
 
 func draw_clouds(cold: float, progress: float) -> void:
@@ -1206,9 +1229,9 @@ func draw_snowflake(p: Vector2, size_px: float, angle: float, colour: Color) -> 
 func draw_snow_cover(amount: float) -> void:
 	var pts := PackedVector2Array([Vector2(0, 640), Vector2(0, 508)])
 	for i in range(37):
-		pts.append(Vector2(i * 10, 508 - amount * (13.0 + sin(i * 0.6) * 6.0)))
+		pts.append(Vector2(i * 10, 508 - amount * (36.0 + sin(i * 0.6) * 4.0)))
 	pts.append(Vector2(360, 640))
-	draw_colored_polygon(pts, Color(0.88, 0.93, 0.96, amount * 0.9))
+	draw_colored_polygon(pts, Color(0.88, 0.93, 0.96, amount))
 	# Snow rests on the painted branches, not on every leaf in a dense spray.
 	for i in range(Canopy.PREVIOUS_COUNT):
 		var p: Vector2 = sim.slots[i].stem
@@ -1230,7 +1253,7 @@ func draw_flowers(amount: float) -> void:
 
 func draw_piles() -> void:
 	for leaf in sim.ground_leaves:
-		draw_leaf(leaf.position, leaf.angle, leaf.colour, 5.0, leaf.get("roll", 1.0))
+		draw_leaf(leaf.position, leaf.angle, leaf.colour, Loop.LEAF_RADIUS, leaf.get("roll", 1.0))
 
 
 func draw_leaf(p: Vector2, angle: float, colour: Color, size_px: float, roll := 1.0) -> void:
@@ -1249,7 +1272,7 @@ func update_actor_mesh(force := false) -> void:
 	if not force and region == actor_region:
 		if actor.movement == 0 and not actor.motor and not actor_mesh_active: return
 		if (actor.movement > 0 or actor.motor) and Engine.get_physics_frames() % 2 != 0: return
-	actor.rebuild(WARDROBE, region)
+	actor.rebuild(WARDROBE, region, 0.80 if stage >= 7 else (0.76 if stage >= 3 else 0.72))
 	actor_region = region
 	actor_mesh_active = actor.movement > 0 or actor.motor
 
@@ -1260,11 +1283,9 @@ func draw_character(winter: bool, victory: bool) -> void:
 	draw_circle(Vector2.ZERO, 22, Color(0.12, 0.16, 0.1, 0.24))
 	draw_set_transform(Vector2.ZERO)
 	if not winter and not victory:
-		var turn := 1.0
-		if sim.surge_left > 0:
-			turn = cos((1.0 - sim.surge_left / Loop.SURGE_DURATION) * TAU)
-			if absf(turn) < 0.08: turn = 0.08 if turn >= 0 else -0.08
-		draw_set_transform(Vector2(px, Loop.GROUND), 0, Vector2(actor.direction * turn, 1))
+		var mirror := Transform2D(0, Vector2(actor.direction,1), 0, Vector2.ZERO)
+		var transform: Transform2D = Transform2D(0, Vector2(px,Loop.GROUND)) * sim.surge_transform() * mirror
+		draw_set_transform_matrix(transform)
 		draw_mesh(actor.mesh, WARDROBE)
 		draw_set_transform(Vector2.ZERO)
 		return
@@ -1298,7 +1319,7 @@ func draw_gust() -> void:
 func frost_radius() -> float:
 	var pressure: float = sim.pressure()
 	var pulse := 0.0 if reduced_effects else sin(elapsed * (1.7 + pressure * 2.8)) * (0.025 + pressure * 0.075)
-	return lerpf(7.5, 17.0, pressure) * (1.0 + pulse)
+	return lerpf(7.0, 14.5, pressure) * (1.0 + pulse)
 
 
 func battery_colour() -> Color:
@@ -1310,7 +1331,7 @@ func battery_colour() -> Color:
 func draw_hud() -> void:
 	paper_box(SCORE_BADGE, Color(0.10, 0.20, 0.17, 0.94), 9)
 	write("%05d" % sim.score, Vector2(24, 41), 19, CREAM, true)
-	paper_box(FROST_BADGE, Color(0.10, 0.20, 0.17, 0.90), 12)
+	paper_box(FROST_BADGE, Color(0.10, 0.20, 0.17, 0.90), 9)
 	var frost_center := FROST_BADGE.get_center()
 	var pressure: float = sim.pressure()
 	var radius := frost_radius()
@@ -1351,21 +1372,17 @@ func draw_controls() -> void:
 			draw_fan(center, 15, elapsed * 6.0 if sim.blowing or sim.surge_left > 0 else 0.0, colour)
 		elif action == "surge":
 			var ready: bool = sim.surge_charge >= 1.0
-			draw_texture_rect(SURGE_ICON, Rect2(center - Vector2(12, 18), Vector2(24, 24)), false, colour if ready else Color(colour, 0.45))
+			draw_texture_rect(SURGE_ICON, Rect2(center - Vector2(13,13),Vector2(26,26)), false, colour if ready else Color(colour, 0.45))
 			draw_arc(center, radius + 3, -PI / 2, -PI / 2 + TAU * sim.surge_charge, 96, GOLD, 2.0, true)
-			write_center("SURGE" if ready else "%ds" % ceili((1 - sim.surge_charge) * sim.stats().surge_cooldown), center.x, center.y + 16, 8, colour)
 		else:
 			var sign_x := -1 if action == "left" else 1
 			draw_polyline(PackedVector2Array([center + Vector2(-sign_x * 4, -8), center + Vector2(sign_x * 4, 0), center + Vector2(-sign_x * 4, 8)]), colour, 2.5, true)
 
 
 func draw_pause_button() -> void:
-	paper_box(PAUSE, INK, 8)
-	if mode == "paused":
-		draw_colored_polygon(PackedVector2Array([Vector2(323, 27), Vector2(334, 35), Vector2(323, 43)]), CREAM)
-	else:
-		draw_line(Vector2(324, 28), Vector2(324, 42), CREAM, 2)
-		draw_line(Vector2(332, 28), Vector2(332, 42), CREAM, 2)
+	paper_box(PAUSE, INK, 9)
+	var icon: Texture2D = PLAY_ICON if mode == "paused" else PAUSE_ICON
+	draw_texture_rect(icon, Rect2(PAUSE.get_center() - Vector2(10,10),Vector2(20,20)),false,CREAM)
 
 
 func draw_boss() -> void:
@@ -1458,16 +1475,39 @@ func draw_story_card(kind: String) -> void:
 
 
 func draw_surge() -> void:
-	var phase: float = 1.0 - sim.surge_left / Loop.SURGE_DURATION
-	var alpha := sin(phase * PI)
-	var turn := cos(phase * TAU)
-	var tip: Vector2 = actor.nozzle()
-	tip.x *= turn
-	var start := Vector2(sim.x, Loop.GROUND) + tip
-	# Downward blast meets the ground and fans upward into a fountain of real leaves.
-	for side in [-1, 1]:
-		for lane in range(3):
-			var spread: float = side * (32 + lane * 25) * sin(phase * PI * 0.7)
-			var path := PackedVector2Array([start, Vector2(sim.x + side * 15, Loop.GROUND - 4), Vector2(sim.x + spread * 0.6, Loop.GROUND - 22), Vector2(sim.x + spread, Loop.GROUND - 50 - phase * 80)])
-			draw_polyline(path, Color(CREAM, alpha * 0.65), 1.5, true)
-	draw_arc(Vector2(sim.x, Loop.GROUND - 3), 15 + phase * float(sim.stats().surge_radius), PI, TAU, 96, Color(GOLD, alpha * 0.6), 2, true)
+	var progress: float = sim.surge_progress()
+	var start: Vector2 = sim.nozzle()
+	var axis: Vector2 = sim.air_axis()
+	var lateral := axis.orthogonal()
+	for trail in range(10 if not reduced_effects else 4):
+		var cycle := fposmod(progress * 4.0 + trail * 0.618034,1.0)
+		var h := cycle * 125
+		var lane := sin(trail * 8.2) * (7 + h * 0.12)
+		var path := PackedVector2Array()
+		for j in range(4):
+			path.append(start + axis * (h + j * 6) + lateral * (lane + sin(cycle * PI + j * 0.3) * 2))
+		draw_polyline(path,Color(CREAM,sin(cycle * PI) * 0.6 * sin(progress * PI)),1.4,true)
+
+
+func begin_winter_fall() -> void:
+	winter_fall.begin(sim)
+	winter_fall.records.sort_custom(func(a,b):
+		var ka: int = canopy_rank[a.order] if a.order < Canopy.SLOT_COUNT else a.order
+		var kb: int = canopy_rank[b.order] if b.order < Canopy.SLOT_COUNT else b.order
+		return ka < kb)
+	winter_batch.visible_instance_count = winter_fall.records.size()
+	winter_shadows.visible_instance_count = winter_fall.records.size()
+	for i in range(winter_fall.records.size()):
+		winter_fall.records[i].render_index = i
+		winter_batch.set_instance_color(i,winter_fall.records[i].colour)
+		winter_shadows.set_instance_color(i,Color(0.17,0.17,0.10,0.20))
+	update_winter_batch()
+
+
+func update_winter_batch() -> void:
+	for leaf in winter_fall.records:
+		if not leaf.render_dirty: continue
+		var scale := Vector2(leaf.roll,1) * Loop.LEAF_RADIUS
+		winter_batch.set_instance_transform_2d(leaf.render_index,Transform2D(leaf.angle,scale,0,leaf.position))
+		winter_shadows.set_instance_transform_2d(leaf.render_index,Transform2D(leaf.angle,scale,0,leaf.position + Vector2(1,1)))
+		leaf.render_dirty = false

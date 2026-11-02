@@ -50,7 +50,7 @@ with sync_playwright() as p:
     if abs(before['x']-target)>4:
         key='d' if before['x']<target else 'a'
         page.keyboard.down(key)
-        page.wait_for_function('x=>Math.abs(window.snowSnapshot.x-x)<5',arg=target)
+        page.wait_for_function('([x,key])=>key==="d" ? window.snowSnapshot.x>=x-3 : window.snowSnapshot.x<=x+3',arg=[target,key])
         page.keyboard.up(key)
     page.wait_for_timeout(150)
     ground_frame=time.monotonic()-started-0.05
@@ -63,6 +63,7 @@ with sync_playwright() as p:
     lifted=snap()
     assert lifted['week_missed']<charge_before and lifted['grounded']<grounded['grounded']
     assert lifted['attached']+lifted['air']+lifted['missed']-lifted['regrown']==2880
+    page.wait_for_function('window.snowSnapshot.surge_active && window.snowSnapshot.surge_offset[1] < -25 && Math.abs(window.snowSnapshot.surge_spin)>1')
     page.keyboard.down('Space')
     page.wait_for_timeout(4000)
     page.keyboard.up('Space')

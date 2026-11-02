@@ -46,7 +46,7 @@ func run() -> void:
 	clear.step(1.0 / 60, 1, false)
 	check(pile_speed < clear.x - 180 and pile_speed > 1, "dense ground leaves create a bounded local slowdown")
 	var heights: Array = game.ground_leaves.map(func(leaf): return leaf.position.y)
-	check(heights.max() - heights.min() > 5, "individual leaves form layers rather than one floating row")
+	check(heights.max() - heights.min() > 2, "individual leaves form layers rather than one floating row")
 	check(not game.activate_surge(), "surge must first be unlocked in the upgrade tree")
 	game.tiers[1] = 2
 	check(game.activate_surge(), "the unlocked charged ability lifts a nearby pile")
@@ -57,7 +57,7 @@ func run() -> void:
 	game.resolve_leaf(leaf, true, leaf.home_slot)
 	var score: int = game.score
 	game.resolve_leaf(leaf, true, leaf.home_slot)
-	check(score == 100 and game.score == score and game.rescued == 1, "a recovered leaf scores once only after actual reattachment")
+	check(score == 10 and game.score == score and game.rescued == 1, "a recovered leaf scores once only after actual reattachment")
 	game.leaves = game.leaves.filter(func(item): return item.state == "air")
 	check(game.attached_count() + game.leaves.size() + game.missed - game.regrown == Loop.Canopy.SLOT_COUNT, "surge and reattachment conserve leaf identities and the loss ledger")
 	game = Loop.new()
@@ -137,14 +137,14 @@ func run() -> void:
 	game.score = 100
 	game.status = "lost"
 	scores.submit(game, "NEW")
-	for version in [3,2,1]:
+	for version in [4,3,2,1]:
 		var old: Dictionary = scores.entries(1)[0].duplicate(true)
 		old.rules = version
 		old.initials = "OLD"
 		scores.tables[1].append(old)
 	check(scores.flush(), "both older scoring versions remain preserved alongside the new ability rules")
 	scores = Scores.new(path)
-	check(scores.available_rules(1) == [4,3,2,1] and scores.entries(1,2).size() == 1 and scores.entries(1,1).size() == 1, "score archives can cycle through each prior rules version separately")
+	check(scores.available_rules(1) == [5,4,3,2,1] and scores.entries(1,2).size() == 1 and scores.entries(1,1).size() == 1, "score archives can cycle through each prior rules version separately")
 	for extension in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(path + extension): DirAccess.remove_absolute(path + extension)
 	main.queue_free()

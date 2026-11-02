@@ -169,10 +169,10 @@ Temporary pickups are deferred until the upgrade tree is balanced. If revisited,
 
 ## Points and high scores
 
-- Award 100 base points for each rescued leaf, once per leaf per week. No points for merely touching a leaf, blowing, or collecting a power-up.
-- Consecutive rescues build a combo: ×1 for rescues 1–4, ×2 for 5–9, ×3 for 10–14, and ×4 from 15 onward. A miss resets the chain; inactivity alone does not. Process simultaneous rescues by stable leaf ID.
-- On week completion, add 500 points plus 50 per remaining unit of weekly miss allowance. This intentionally rewards limiting misses in that week; display this calculation in the summary.
-- Add 5,000 for completing the whole run. Do not add a time bonus that rewards rushing menus or penalizes reduced-motion settings.
+- Award 10 base points for each rescued leaf, once per leaf per week. No points for merely touching a leaf, blowing, or collecting a power-up.
+- Consecutive rescues build a combo: ×1 for rescues 1–4, ×2 for 5–9, ×3 for 10–14, and ×4 from 15 onward. A miss resets the chain; inactivity alone does not. Processing follows the seeded active-leaf order.
+- On week completion, add 50 points plus 5 per remaining unit of weekly miss allowance. This intentionally rewards limiting misses in that week; display this calculation in the summary.
+- Add 500 for completing the whole run. Do not add a time bonus that rewards rushing menus or penalizes reduced-motion settings.
 - Snapshot score on loss or victory before the cinematic. Scores use nonnegative integers and bounded multipliers.
 
 Store the top ten scores **separately for each difficulty**, with three initials, score, highest week, win/loss, a scoring-rules version, and the completed build. Sort descending by score, then highest week; preserve earlier records for exact ties. Give the planned high-score initials entry a large touch-friendly alphabet selector and keyboard support; allow A–Z, default to AAA, and provide a skip option. Display initials as plain text.
@@ -205,7 +205,7 @@ At a week boundary show rescued/missed leaves, score breakdown, weekly danger, a
 
 ### Loss sequence
 
-Disable gameplay input, settle the character, and have them look up. Roll in blue-grey clouds, dim the warm light, then build snowfall and a snow-cover overlay on the ground, trees, and character. Transition into a result panel showing score, week reached, difficulty, initials entry when eligible, Retry Current Level, and Main Menu. The tone is gently comic, not punitive.
+Disable gameplay input, settle the character, and have them look up. Roll in blue-grey clouds, dim the warm light, release all remaining canopy leaves into a physical fall, then build a snow-cover overlay only after every leaf lands on the ground, trees, and character. Transition into a result panel showing score, week reached, difficulty, initials entry when eligible, Retry Current Level, and Main Menu. The tone is gently comic, not punitive.
 
 ### Victory sequence
 
@@ -232,3 +232,5 @@ The implementation title is sNOw only. Suggested alternatives are in [naming not
 The current build keeps each landed leaf intact as a ground object, with layered piles and foot scuffs. Blower rank 2 unlocks Leaflift Surge; Battery ranks 3 and 5 shorten its slow special cooldown. See [abilities/story](ABILITIES_AND_STORY.md) for exact behavior, chapter text and save/score compatibility. Achievement systems are [deferred past the initial release](ACHIEVEMENTS.md), and gameplay no longer announces rescue streaks.
 
 Future atmosphere and wildlife follow [AMBIENT_WORLD.md](AMBIENT_WORLD.md): seasonal rabbit coat, owl at night, optional wolf/bat on a selected full-moon night, separate sky/sun/moon positions and restrained blower reactions. This is a deferred scenery pass.
+
+The latest playable motion/season direction is in [MOTION_AND_SEASONS.md](MOTION_AND_SEASONS.md). Rigid cutout legs replace blended leg skinning. Red/orange/yellow/green shedding is weighted, and week one starts green/yellow with a four-leaf event. Surge is an airborne screen-plane tumble that affects ground and air; ground scuffs cannot stack above knee height. Coffee and other one-use point purchases remain [future work](CONSUMABLES.md).

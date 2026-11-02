@@ -4,6 +4,11 @@ const Loop = preload("res://scripts/loop.gd")
 const Campaign = preload("res://scripts/campaign.gd")
 func _initialize() -> void:
 	var game = Loop.new()
+	var initial_canopy := {}
+	for slot in game.slots: initial_canopy[str(slot.leaf_id)] = [slot.position.x,slot.position.y,slot.angle,game.leaf_colour(slot.leaf_id).to_html(false)]
+	var geometry := FileAccess.open("res://test-results/canopy-fixture.json",FileAccess.WRITE)
+	geometry.store_string(JSON.stringify(initial_canopy))
+	geometry.close()
 	game.spawned = game.week_leaf_count()
 	game.step(1.0 / 60, 0, false)
 	var workshop := Campaign.snapshot(game)
@@ -82,6 +87,21 @@ func _initialize() -> void:
 		return
 	file = FileAccess.open("res://test-results/results-fixture.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(summaries))
+	file.close()
+	var finale = Loop.new(641023, 2)
+	for stage in range(11):
+		finale.spawned = finale.week_leaf_count()
+		finale.step(1.0 / 60,0,false)
+		finale.next_week()
+	finale.tiers = [4,4,3]
+	finale.points = 0
+	var endings := {"version":1,"slots":[{"name":"Full canopy ending","checkpoint":Campaign.snapshot(finale)},null,null]}
+	if not Campaign.valid_document(endings):
+		push_error("Invalid ending fixture")
+		quit(1)
+		return
+	file = FileAccess.open("res://test-results/ending-fixture.json",FileAccess.WRITE)
+	file.store_string(JSON.stringify(endings))
 	file.close()
 	print("Created validated late-week, boss and workshop UI fixtures.")
 	quit()

@@ -52,10 +52,12 @@ This log separates the requested game from proposed implementation choices. “R
 
 When a choice is validated, record the result, relevant build/device or playtest evidence, and any consequences here. Change the design and plan together so they remain consistent.
 
-Motion prototype: CPU-skinned cutout mesh with two hip/knee/ankle chains, stance tied to signed ground distance, a weighted electric-blower vibration control, and advancing wind streaks. Seeded per-leaf aerodynamics supply gravity, flutter, drift and tumble. Artist-separated limbs and authored turning/ending performances remain later art work.
+Motion prototype: rigid thigh/shin/shoe cutouts with fixed-length hip/knee/ankle chains, stance tied to actual ground distance, a weighted electric-blower vibration control, and advancing wind streaks. Seeded per-leaf aerodynamics supply gravity, flutter, drift and tumble. Artist-separated limbs and authored turning/ending performances remain later art work.
 
 License notices are available offline from the main menu: Godot MIT and engine-library copyright/terms come from the running engine APIs; DejaVu font terms are explicitly bundled with exports. This adds third-party notices without selecting a license for the game itself.
 
 The working title is sNOw only. Upgrade economy is now 18 one-point nodes (three branches × six ranks), with 12 earned points and 28 final full-budget allocations. Old four-point rank-two purchases migrate to rank four; rules-one scores remain in the Previous Scores archive.
 
 HUD/results: score stays top left; numeric week/temperature move to a saved weekly summary. Snowflake size/pulse conveys frost and battery fill conveys charge. Upgrade visits return to results. Qualifying completed weeks now accept initials, and subsequent improvements retain them automatically; score footers are removed.
+
+Latest motion direction: rigid thigh/shin/shoe patches preserve limb lengths. Colours control weighted shedding and the opening event has four leaves; later events reach ten. Surge is a short airborne screen-plane tumble with rotating airflow affecting ground and air. Defeat physically drops every remaining canopy leaf before ground snow, with gameplay scores frozen. Rules 5 divide score awards and migrated campaign scores by ten; old high-score tables stay archived. Coffee/other one-use point purchases remain [future proposals](CONSUMABLES.md).

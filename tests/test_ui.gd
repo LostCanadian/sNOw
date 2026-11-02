@@ -107,6 +107,9 @@ func run() -> void:
 		main.sim.status = ending
 		main._physics_process(1.0 / 60.0)
 		main._physics_process(4.1)
+		for frame in range(900):
+			if main.overlay != null: break
+			main._physics_process(1.0 / 60)
 		check(main.mode == ending and main.overlay != null, ending + " opens its result controls after the cinematic")
 		main.pause_game()
 		var frozen_ending: float = main.ending_time

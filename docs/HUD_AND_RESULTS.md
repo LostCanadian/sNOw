@@ -2,11 +2,11 @@
 
 ## Gameplay
 
-The score has its own bar at the top left. Independent badges sit along the top: the winter snowflake, battery and pause button. Their maximum height is 44 logical pixels and their bottom edge is 56, leaving more sky visible than the previous 65-pixel dashboard. Gameplay shows no week fraction, temperature, frost count or battery percentage. Clothes, canopy colour and weather carry the seasonal progression.
+The score has its own bar at the top left. Independent badges sit along the top: the winter snowflake, battery and pause button. They share a 40-logical-pixel height, top edge 14 and bottom edge 54, leaving more sky visible than the previous 65-pixel dashboard. Gameplay shows no week fraction, temperature, frost count or battery percentage. Clothes, canopy colour and weather carry the seasonal progression.
 
 The original sixfold cut-paper frost icon grows with current weekly danger. Its slow pulse, blue tint, halo and encroaching warm-edged ring become more pronounced near failure. Recovery can reduce it again. Soft effects disables the pulse while preserving size and contrast cues. Warning snowfall still uses the same real weekly danger as the loss condition.
 
-The battery silhouette encloses a shrinking fill: green above half, yellow down to one fifth, red below that. Remaining fill provides a cue independent of colour. A small lightning mark appears during normal recharge. Both new icons are original 256px SVG assets with mipmaps. The fan action remains separate from this status icon.
+The battery silhouette encloses a shrinking fill: green above half, yellow down to one fifth, red below that. Remaining fill provides a cue independent of colour. A small lightning mark appears during normal recharge. The status icons and rounded play/pause symbols are original SVG assets with smooth mipmapped filtering. The fan action remains separate from this status icon.
 
 ## After a week
 

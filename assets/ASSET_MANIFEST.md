@@ -28,3 +28,5 @@ The in-game License screen reads Godot’s full MIT text and bundled-library cop
 `art/hud_frost.svg` and `art/battery_frame.svg` are original vector status assets authored in this repository. The sixfold punched-paper flake has a 256px source; the rounded battery frame is 256 × 144. Both use mipmaps and runtime tint/fill, without new dependencies.
 
 `scripts/canopy_sprays.gd` contains 2,592 baked branch attachment coordinates derived from the existing Season Tree alpha mask, extending the original 288 positions to 2,880 leaves. `tools/build_canopy_sprays.py` regenerates that geometry with Pillow, NumPy and SciPy (authoring dependencies only). It reads the image and writes coordinates; it does not modify the tree artwork. All added stems meet painted bark, and leaf pairs follow their twig directions.
+
+`art/play.svg`, `art/pause.svg` and `art/twinkle.svg` are original vector interface assets authored here, with mipmaps. The walking rig now samples rigid thigh/shin/shoe cutouts from the existing wardrobe atlas using UV regions; the artwork itself is unchanged. No new runtime library was introduced.

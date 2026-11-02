@@ -29,7 +29,7 @@ func run() -> void:
 	for slot in game.slots: identity[slot.leaf_id] = true
 	check(identity.size() == 2880, "dense foliage consists of distinct recoverable leaves")
 	for i in range(31): game.step(1.0 / 60, 0, false)
-	check(game.spawned == 10 and game.leaves.size() == 10, "a shedding event releases a ten-leaf batch without lengthening the week tenfold")
+	check(game.spawned == 4 and game.leaves.size() == 4, "the opening week releases four real leaves per event rather than the late ten")
 	for frame in range(6000):
 		game.step(1.0 / 60, 0, false)
 		if game.status == "lost": break
@@ -72,9 +72,9 @@ func run() -> void:
 	var restored = Campaign.restore(old)
 	check(restored != null and restored.attached_count() == 2860 and restored.missed == 30 and restored.regrown == 10, "migration preserves the visible proportion of canopy gaps and recovery history")
 	check(restored.slots[288].leaf_id == 289 and restored.slots[293].leaf_id == -1, "migration preserves relocated leaf identities and matching empty sprays")
-	check(restored.score == 9000 and restored.week == 4 and restored.points == 3 and restored.shedding_order.size() == 40, "migration retains score, week, budget and the scheduled batches")
+	check(restored.score == 900 and restored.week == 4 and restored.points == 3 and restored.shedding_order.size() == 360, "migration rescales score, retains week/budget and schedules the new colour-weighted week")
 	check(Campaign.valid_checkpoint(Campaign.snapshot(restored)), "a migrated campaign can immediately save under the new rules")
-	check(restored.rng.state == old.rng_state.to_int(), "migration preserves the saved simulation random state")
+	check(restored.rng.state == Campaign.restore(old).rng.state and restored.shedding_order == Campaign.restore(old).shedding_order, "migrated schedules and random state are repeatable from the saved boundary")
 	old.phase = "workshop"
 	old.earned_points = 4
 	old.points = 4

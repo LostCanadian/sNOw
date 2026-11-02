@@ -145,8 +145,9 @@ static func restore(data):
 	game.run_id = data.get("run_id", "legacy-" + JSON.stringify(data).sha256_text().substr(0, 32))
 	game.week = int(data.week)
 	game.status = data.phase
-	game.score = int(data.score)
+	game.score = int(data.score / 10) if data.get("rules", 1) < 5 else int(data.score)
 	game.week_start_score = int(data.get("week_start_score", data.score if data.phase == "playing" else -1))
+	if data.get("rules", 1) < 5 and game.week_start_score >= 0: game.week_start_score = int(game.week_start_score / 10)
 	game.combo = int(data.get("combo", 0))
 	game.week_rescued = int(data.get("week_rescued", 0))
 	game.week_missed = int(data.get("week_missed", 0))
@@ -174,6 +175,7 @@ static func restore(data):
 	game.index_canopy()
 	game.rng.seed = data.rng_seed.to_int()
 	game.rng.state = data.rng_state.to_int()
+	if data.get("rules", 1) < 5 and data.phase == "playing": game.prepare_shedding()
 	return game
 
 

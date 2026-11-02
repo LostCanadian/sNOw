@@ -34,16 +34,16 @@ func _initialize() -> void:
 	leaf.position = home + Vector2(0, 90)
 	game.x = home.x - Loop.NOZZLE_OFFSET.x
 	for i in range(180): game.step(1.0 / 60.0, 0.0, true)
-	check(game.rescued >= 1 and game.score >= 100 and leaf.state == "rescued" and game.slots.any(func(slot): return slot.leaf_id == leaf.id), "a real gust reattaches a leaf to an actual empty branch position")
+	check(game.rescued >= 1 and game.score >= 10 and leaf.state == "rescued" and game.slots.any(func(slot): return slot.leaf_id == leaf.id), "a real gust reattaches a leaf to an actual empty branch position")
 	var before: int = game.score
 	game.resolve_leaf(leaf, true)
 	check(game.score == before, "a rescued leaf cannot score twice")
 	game = Loop.new()
 	game.spawn_leaf()
 	leaf = game.leaves[0]
-	leaf.position = Vector2(180, Loop.GROUND)
+	leaf.position = Vector2(185, Loop.GROUND)
 	game.step(1.0 / 60.0, 0, false)
-	check(game.missed == 1 and game.pile_at(180) == 1, "misses populate the correct local pile")
+	check(game.missed == 1 and game.pile_at(185) == 1, "misses populate the correct local pile")
 	game.resolve_leaf(leaf, false)
 	check(game.missed == 1, "ground outcomes are exactly once")
 	game = Loop.new()
@@ -89,7 +89,7 @@ func _initialize() -> void:
 	game.week = Loop.BOSS_STAGE
 	game.spawned = game.week_leaf_count()
 	game.step(1.0 / 60.0, 0, false)
-	check(game.status == "won" and game.score == 5500 + 50 * game.capacity() and game.points == 0, "final-week success awards the win bonus and no unusable upgrade point")
+	check(game.status == "won" and game.score == 550 + 5 * game.capacity() and game.points == 0, "final-week success awards the win bonus and no unusable upgrade point")
 	game = Loop.new()
 	game.shedding_order.clear()
 	for slot in game.slots: game.shedding_order.append(slot.leaf_id)

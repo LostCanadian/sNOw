@@ -12,7 +12,7 @@ Campaign saves and high scores are separate. A level retry rolls gameplay back t
 
 Browser scores use localStorage `snow.highscores.v1` with `.backup` recovery; native scores use `user://highscores.json` and `.bak`. Version/field/order validation rejects malformed records. Writes preserve a good backup and damaged primary data. A storage failure displays a notice and keeps scores only for the current session. Browser data belongs to that hostname/port/origin; clearing site data removes it. Campaign slot storage remains `snow.campaigns.v1` / `user://campaigns.json`.
 
-New-save difficulty is selected above the name field and stays fixed for that campaign. Existing checkpoints without these fields migrate to **Blustery** with a stable identity, retaining their difficulty and progress while migrating the new rules. The current profiles, weekly miss limits, 2,880-leaf persistent canopy, 960-leaf recovery floor and eighteen-node workshop are documented in [Campaign rules](CAMPAIGN.md). Rules version 4 separates dense-canopy/batched-shedding scores from previous balance rules. Previous scores remain stored under the same key and can be viewed using the **Previous scores** button; they are not overwritten or ranked against current results. Each rules version retains ten entries per difficulty.
+New-save difficulty is selected above the name field and stays fixed for that campaign. Existing checkpoints without these fields migrate to **Blustery** with a stable identity, retaining their difficulty and progress while migrating the new rules. The current profiles, weekly miss limits, 2,880-leaf persistent canopy, 960-leaf recovery floor and eighteen-node workshop are documented in [Campaign rules](CAMPAIGN.md). Rules version 5 separates colour-weighted shedding and tenfold smaller score awards from earlier rules. Previous scores remain stored under the same key and can be viewed using the **Previous scores** button; they are not overwritten or ranked against current results. Each rules version retains ten entries per difficulty.
 
 ## License screen
 
@@ -29,7 +29,7 @@ The export preset explicitly includes the font license text, which is otherwise 
 
 `tests/test_scores.gd` covers sorting, table limits, ties, replacement/deduplication, malformed records, native reopen/backup/failure paths, all difficulty thresholds and legacy checkpoint migration. `tests/test_menus.gd` covers actual menu screens, full notice content, pause restoration and initials-form submission. `tests/browser_menus.py` checks exported notices offline and new-save difficulty selection; the main browser suite submits the actual lost-run score through the initials UI and reloads it from storage.
 
-Scoring versions 1, 2 and 3 remain separately accessible through Previous Scores. Current recovery removes a miss while its leaf is back in play; it earns nothing until actual reattachment. No streak or achievement announcement appears during play.
+Scoring versions 1–4 remain separately accessible through Previous Scores. Current recovery removes a miss while its leaf is back in play; it earns nothing until actual reattachment. No streak or achievement announcement appears during play.
 
 ## Running locally in a browser
 
@@ -38,3 +38,5 @@ Complete a week, wait for its tally, then choose **Enter initials** when the sco
 If the old flow is still showing, rerun `python3 tools/play_web.py --open` from the updated checkout; avoid `--serve-only` until it has rebuilt. Use the same origin each time: `localhost:8000`, `127.0.0.1:8000`, a different port and another browser profile all have separate storage. Clearing site data/private sessions can remove local scores. Loading a save selects its difficulty for subsequent score-menu visits in that session. Choose the difficulty tab matching the save; older rules remain under Previous Scores. Storage-denied/write errors display on the page and preserve session play.
 
 See [HUD/results](HUD_AND_RESULTS.md) for the complete weekly flow and [browser results test](../tests/browser_results.py) for entry/reload coverage.
+
+Current awards are 10 × combo per rescued leaf, 50 + 5 × unused miss allowance per week, and a 500-point finale bonus. Migrated campaign totals/baselines divide by ten exactly once; archived high-score records keep their original numbers. See [motion/season migration](MOTION_AND_SEASONS.md).

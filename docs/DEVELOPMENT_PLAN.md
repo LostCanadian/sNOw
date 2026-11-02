@@ -127,3 +127,5 @@ Current interaction increment: mirrored facing, shared upright/directional blowe
 Ground/ability/story increment: one persistent sprite per landed leaf, walking disturbance, bounded pile drag, a slow-recharging ground-lifting surge and two recovery upgrades, vector-source fan controls without HOLD, and unique fade-in/closing interludes for all weeks. Achievements are a documented post-release goal, not part of the initial HUD.
 
 HUD/results increment: compact numeric-free status badges alongside the score, saved animated weekly summaries, explicit optional workshop/return flow, and weekly initials entry with later automatic score improvements. See [HUD_AND_RESULTS.md](HUD_AND_RESULTS.md).
+
+Motion/season increment: rigid textured limb cutouts, green/yellow opening foliage and weighted seasonal shedding, continuous branch detachment, subtle target twinkles, bounded ground swirls, a screen-plane airborne Surge affecting ground/air leaves, every-leaf winter fall before snow and tenfold smaller score awards. See [motion and seasons](MOTION_AND_SEASONS.md). Future [one-use consumables](CONSUMABLES.md), including coffee for temporary speed, are documented only.

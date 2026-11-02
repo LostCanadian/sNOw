@@ -8,7 +8,7 @@ Ground leaves are separate from the active air pool. Ordinary footsteps disturb 
 
 ## Leaflift Surge
 
-Blower rank 2 unlocks **Leaflift Surge**. Press **E** or tap its leaf-lifting button. A short spinning cutout animation turns the blower downward; the blast transfers nearby original ground leaves into an upward fountain. It works from a separate reserve, even when the ordinary blower battery is empty. Its cooldown advances only during active gameplay, never during pauses, story panels or menus.
+Blower rank 2 unlocks **Leaflift Surge**. Press **E** or tap its leaf-lifting button. A short airborne tumble rotates the whole cutout in the screen plane; the nozzle and airflow follow that rotation, lifting nearby original ground leaves and stirring airborne ones. It works from a separate reserve, even when the ordinary blower battery is empty. Its cooldown advances only during active gameplay, never during pauses, story panels or menus.
 
 | Upgrade | Effect |
 | --- | --- |
@@ -17,11 +17,11 @@ Blower rank 2 unlocks **Leaflift Surge**. Press **E** or tap its leaf-lifting bu
 | Battery rank 3 — Quick Recovery | Surge cooldown becomes 31 seconds |
 | Battery rank 5 — Surge Cell | Surge cooldown becomes 26 seconds |
 
-The normal battery recharge remains separate and quick. Holding E does not automatically spend another surge when it becomes ready; the action needs a new press. Quick press/release input is buffered so it works even between physics frames. If no ground leaves are in range, the charge is not wasted. The player moves at 65% speed during the 0.85-second spin. New weeks/retries start with ready reserves and the saved clean path.
+The normal battery recharge remains separate and quick. Holding E does not automatically spend another surge when it becomes ready; the action needs a new press. Quick press/release input is buffered so it works even between physics frames. If neither ground nor airborne leaves are in range, the charge is not wasted. The player moves at 65% speed during the 1.15-second airborne tumble. New weeks/retries start with ready reserves and the saved clean path.
 
 **Recovery is real:** lifting a ground leaf removes it from the ground pile and its current-week frost penalty while it is back in play. It earns no points merely for being lifted. It must reach a real empty branch position to earn its one rescue. If it lands again, its miss returns. Existing duplicate-score/identity guards remain in place. The accounting invariant is `attached + airborne + unrecovered misses − regrown = 2880`; grounded leaves are already represented in unrecovered misses, so they are not counted twice.
 
-Older scoring versions 1, 2 and 3 remain separately viewable under Previous Scores. Current rules version 4 covers the denser canopy and batched shedding alongside ground recovery and the special ability; no earlier table is overwritten or compared against the new scores. Existing campaign checkpoints migrate without losing their leaves, completed weeks or point budget.
+Older scoring versions 1–4 remain separately viewable under Previous Scores. Current rules version 5 covers colour-weighted shedding and smaller score awards alongside ground recovery and the special ability; no earlier table is overwritten or compared against the new scores. Existing campaign checkpoints migrate without losing their leaves, completed weeks or point budget.
 
 ## Quiet gameplay UI
 
@@ -60,3 +60,5 @@ The motion clip and selected stills come from that recorded browser session. Fra
 | Final encounter | The North Wind | It followed the falling leaves.<br>Now it is here. | The first flower opens.<br>Nobody asks why. |
 
 The panels now fade away without a continuation caption. Tap or Space/Enter can still skip after the short minimum; this does not start the blower.
+
+Latest movement, airborne Surge, knee-height scuffs and the leaf-first winter ending are specified in [MOTION_AND_SEASONS.md](MOTION_AND_SEASONS.md). The action button has only its icon/recharge ring, without a name or numeric cooldown.

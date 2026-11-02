@@ -48,7 +48,7 @@ The menu calls them **Save Slots**, with three editable names. New defaults are 
 
 Native files are `user://campaigns.json`; browser checkpoints use `snow.campaigns.v1` plus backup. Container version stays compatible. Checkpoint rules version 2 introduced the canopy/weekly danger/upgrade economy; version 3 adds grounded-leaf recovery and slow abilities. Previous 48-slot checkpoints keep their original positions, identities, campaign ID, completed weeks, score and earned point budget, with 240 additional canopy positions. An old two-rank purchase costing four points maps to rank four in its branch. Browser storage keys are unchanged. Native saves can still be read from the former application-data directory after the title change.
 
-High scores are separate from campaign slots. Earlier rules' tables (versions 1, 2 and 3) remain accessible under **Previous scores**; current rules do not overwrite or rank against them. A campaign contributes one best recorded result per rules version.
+High scores are separate from campaign slots. Earlier rules' tables (versions 1–4) remain accessible under **Previous scores**; current rules do not overwrite or rank against them. A campaign contributes one best recorded result per rules version.
 
 ## Pause and later polish
 
@@ -62,6 +62,8 @@ Completed weeks lead to [animated results](HUD_AND_RESULTS.md) with exact week/t
 
 The [future ambient-world plan](AMBIENT_WORLD.md) covers a rabbit changing coat, night owl reactions, full-moon wolf/bat variants, varied daylight/night skies and a darker cloudy daytime finale. These remain deferred art and animation work.
 
-Rules version 4 expands the canopy to 2,880 leaves and sheds batches of ten at the previous event cadence. Earlier 288-leaf saves expand each occupied or empty unit into a ten-leaf spray, preserving gaps and moved identities. Leaf-history counts and shedding schedules scale by ten; score, campaign identity, week, equipment, budget and RNG state remain intact. Legacy 48-leaf saves first retain their original anchors and earlier upgrade mapping, then receive the denser sprays. Older score tables remain separate.
+Rules version 4 expands the canopy to 2,880 leaves and sheds batches of ten at the previous event cadence. Earlier 288-leaf saves expand each occupied or empty unit into a ten-leaf spray, preserving gaps and moved identities. Leaf-history counts and shedding schedules scale by ten; score, campaign identity, week, equipment, budget remain intact under the density migration. Rules 5 subsequently rescale score and regenerate playing schedules as described below. Legacy 48-leaf saves first retain their original anchors and earlier upgrade mapping, then receive the denser sprays. Older score tables remain separate.
 
 To change difficulty in an occupied slot: Save Slots → Edit → Start fresh… → choose a difficulty/name → Review fresh start → confirm. Cancellation preserves the original campaign. Confirmation resets that slot to week 1 with a new campaign identity and chosen difficulty; other saves and score tables remain intact. Difficulty stays fixed during an existing campaign.
+
+Rules 5 change the seasonal colour mix, weighted selection and cadence; week-one events contain four leaves and late events ten. [Motion/season rules](MOTION_AND_SEASONS.md) cover exact colour weights, rigid limb animation, the airborne Surge, knee-height scuffs, leaf-first winter and score conversion. Earlier campaign scores divide by ten, while archived score tables keep their historical numbers. One-use upgrade items such as coffee remain [future work](CONSUMABLES.md).

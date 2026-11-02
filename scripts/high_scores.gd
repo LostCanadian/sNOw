@@ -1,7 +1,7 @@
 extends RefCounted
 ## Top ten per difficulty, one best result per campaign. No accounts or network API.
 const Campaign = preload("res://scripts/campaign.gd")
-const RULES := 4
+const RULES := 5
 const StoragePaths = preload("res://scripts/storage_paths.gd")
 const WEB_KEY := "snow.highscores.v1"
 const LIMIT := 10
