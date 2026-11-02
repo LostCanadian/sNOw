@@ -15,7 +15,7 @@ This log separates the requested game from proposed implementation choices. “R
 | Rendering | Layered cut-paper 2D, textured materials, soft shadows and backlighting | User-selected creative direction; runtime/mobile-performance spike pending |
 | Setting | Modern rural homes and optional solar roof, forest and small hills; no castle or stone bridge | User direction adopted in the revised backdrop |
 | Hero tree | One central Season Tree governing the valley’s seasons; use the user-attached ancient asymmetric tree as the authoritative textured reference | Working mythos/layout direction; prototype implemented for review |
-| Canopy | One whole textured tree plus separate paper leaves; 288 twig-attached positions (first 48 IDs retained); gaps persist across weeks | Implemented; stable slot identities preserve existing checkpoints |
+| Canopy | One whole textured tree plus separate paper leaves; 2,880 twig-attached positions (earlier identities retained); gaps persist across weeks | Implemented; stable slot identities preserve existing checkpoints |
 | Reattachment | Lifted leaves fill nearby empty branch slots; occupied positions and arbitrary sky heights do not score | Implemented with swept capture and exactly-once occupancy |
 | Blower visual | Short directional wind streaks and restrained leaf flutter | User-requested replacement for the earlier spiral effect |
 | Warning weather | Small paper snowflakes begin before loss, increasing with winter pressure | User requirement; thresholds/readability to test |
@@ -29,13 +29,13 @@ This log separates the requested game from proposed implementation choices. “R
 | Blower power source | Electric battery blower; fuel-cell theme remains an alternative; no gasoline | User direction; rechargeable arcade energy replaces the earlier heat proposal |
 | Level structure | 12 main weeks, then a separately named North Wind final encounter | User requirement; prototype implemented, human balance/session timing pending |
 | Leaf lifecycle | Finite scheduled leaves, rescued once/week, grounded leaves stay grounded | Recommended; prevents score farming and endless weeks |
-| Overnight piles | Clear local piles and weekly danger; retain canopy occupancy, with a 96-leaf recovery floor | Recommended; test clarity versus persistent piles |
+| Overnight piles | Clear local piles and weekly danger; retain canopy occupancy, with a 960-leaf recovery floor | Recommended; test clarity versus persistent piles |
 | Score formula | Rescue points, capped combo, week capacity bonus, win bonus | Recommended; balance and exploit checks pending |
 | High scores | Three local per-difficulty initials tables, separate from named campaign slots | Implemented with per-campaign best-result replacement; no accounts/global services |
 | Campaign saves | Three named local slots; autosave level completion and workshop edits; retry current level from its checkpoint | User requirement; implemented with versioning, validation and recovery backup |
 | Pause | Every screen/timeline; focus/visibility loss auto-pauses; explicit Resume required | User requirement; native and browser lifecycle handling |
 | Temperature / clothing | 12 weekly clothing stages; 22°C → 0°C, −2°C finale; warm victory and bundled sad defeat | User requirement; prototype art and temperature curve implemented |
-| Ambient polish | Slow clouds, squirrels, night/storm/lightning setting | Explicit later-stage scope; not yet implemented |
+| Ambient polish | Clouds, squirrels, seasonal rabbit, night owl, moon-dependent wolf/bat, varied skies and restrained blower reactions | Deferred; details in [ambient world](AMBIENT_WORLD.md) |
 | Temporary power-ups | Deferred until the upgrade tree is balanced; retire heat-based Cool Breeze | Scope recommendation |
 | Between-week upgrades | Boots/agility, blower/strength, battery/endurance branches; stronger equipment adds weight | User-requested feature; nodes and balance proposed |
 | Upgrade lifetime | Carry across weeks in the saved campaign; reset only on a new campaign | Recommended default for comparable arcade starting conditions; cross-run progression remains a separate choice |
@@ -57,3 +57,5 @@ Motion prototype: CPU-skinned cutout mesh with two hip/knee/ankle chains, stance
 License notices are available offline from the main menu: Godot MIT and engine-library copyright/terms come from the running engine APIs; DejaVu font terms are explicitly bundled with exports. This adds third-party notices without selecting a license for the game itself.
 
 The working title is sNOw only. Upgrade economy is now 18 one-point nodes (three branches × six ranks), with 12 earned points and 28 final full-budget allocations. Old four-point rank-two purchases migrate to rank four; rules-one scores remain in the Previous Scores archive.
+
+HUD/results: score stays top left; numeric week/temperature move to a saved weekly summary. Snowflake size/pulse conveys frost and battery fill conveys charge. Upgrade visits return to results. Qualifying completed weeks now accept initials, and subsequent improvements retain them automatically; score footers are removed.

@@ -55,7 +55,7 @@ with sync_playwright() as p:
     mode('title')
     print('PASS: all difficulty tabs and complete license sections work offline; pause retains the selected notice.',flush=True)
     # New-garden difficulty controls: real UI selection persisted in the campaign.
-    for difficulty, slot_y, x, capacity in [(0,242,62,18),(2,322,246,10)]:
+    for difficulty, slot_y, x, capacity in [(0,242,62,180),(2,322,246,100),(1,402,154,140)]:
         click(180,323)
         mode('slots')
         click(180,slot_y)
@@ -66,14 +66,33 @@ with sync_playwright() as p:
         mode('play')
         assert snap()['difficulty']==difficulty and snap()['capacity']==capacity
         saved=page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1'))")
-        assert saved['slots'][0 if difficulty==0 else 1]['checkpoint']['difficulty']==difficulty
+        assert saved['slots'][{0:0,2:1,1:2}[difficulty]]['checkpoint']['difficulty']==difficulty
         page.keyboard.press('Escape')
         mode('paused')
         click(180,387)
         page.wait_for_timeout(300)
         click(180,383)
         mode('title')
-    print('PASS: Breezy/Gale selections start and save distinct difficulty profiles.',flush=True)
+    print('PASS: all three difficulty selections start and save distinct profiles in occupied slots.',flush=True)
+    before=page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1'))")
+    click(180,323);mode('slots')
+    click(287,242);mode('name')
+    click(247,453);mode('name')
+    click(246,235)
+    page.locator('canvas').screenshot(path='docs/images/prototype-fresh-start.png')
+    click(180,342)
+    page.wait_for_timeout(250)
+    assert page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1'))")==before
+    click(180,345) # Cancel, preserving all occupied slots.
+    page.wait_for_timeout(250)
+    assert page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1'))")==before
+    click(247,453);click(246,235);click(180,342);click(180,396)
+    mode('play')
+    after=page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1'))")
+    assert snap()['difficulty']==2 and snap()['week']==1 and snap()['score']==0
+    assert after['slots'][0]['checkpoint']['run_id']!=before['slots'][0]['checkpoint']['run_id']
+    assert after['slots'][1:]==before['slots'][1:]
+    print('PASS: Edit → Start fresh allows a different difficulty, cancellation preserves saves, and confirmation replaces only the selected slot.',flush=True)
     browser.close()
 assert not errors, errors
 print('No browser errors.',flush=True)

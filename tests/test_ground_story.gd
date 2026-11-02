@@ -59,7 +59,7 @@ func run() -> void:
 	game.resolve_leaf(leaf, true, leaf.home_slot)
 	check(score == 100 and game.score == score and game.rescued == 1, "a recovered leaf scores once only after actual reattachment")
 	game.leaves = game.leaves.filter(func(item): return item.state == "air")
-	check(game.attached_count() + game.leaves.size() + game.missed - game.regrown == 288, "surge and reattachment conserve leaf identities and the loss ledger")
+	check(game.attached_count() + game.leaves.size() + game.missed - game.regrown == Loop.Canopy.SLOT_COUNT, "surge and reattachment conserve leaf identities and the loss ledger")
 	game = Loop.new()
 	game.tiers[1] = 2
 	land(game, 3)
@@ -110,7 +110,7 @@ func run() -> void:
 	main._physics_process(1)
 	check(main.sim.week_time == saved_time and main.sim.points == 1, "closing narration cannot advance gameplay or repeat rewards")
 	main._physics_process(Story.DURATION)
-	check(main.mode == "workshop", "closing text fades into the explicit between-week workshop")
+	check(main.mode == "results", "closing text fades into weekly results before the workshop")
 	check(main.FAN_ICON.get_image().get_used_rect().size.x > 150 and main.FAN_ICON.get_image().get_mipmap_count() > 0, "the rotating fan uses a high-resolution mipmapped vector-source icon")
 	main.start_run()
 	main.finish_story()
@@ -137,14 +137,14 @@ func run() -> void:
 	game.score = 100
 	game.status = "lost"
 	scores.submit(game, "NEW")
-	for version in [2,1]:
+	for version in [3,2,1]:
 		var old: Dictionary = scores.entries(1)[0].duplicate(true)
 		old.rules = version
 		old.initials = "OLD"
 		scores.tables[1].append(old)
 	check(scores.flush(), "both older scoring versions remain preserved alongside the new ability rules")
 	scores = Scores.new(path)
-	check(scores.available_rules(1) == [3,2,1] and scores.entries(1,2).size() == 1 and scores.entries(1,1).size() == 1, "score archives can cycle through each prior rules version separately")
+	check(scores.available_rules(1) == [4,3,2,1] and scores.entries(1,2).size() == 1 and scores.entries(1,1).size() == 1, "score archives can cycle through each prior rules version separately")
 	for extension in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(path + extension): DirAccess.remove_absolute(path + extension)
 	main.queue_free()

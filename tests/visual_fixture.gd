@@ -16,7 +16,7 @@ func _initialize() -> void:
 	game.points = 0
 	var removed := 0
 	for i in range(game.slots.size()):
-		if i % 2 == 0 and removed < 132:
+		if i % 2 == 0 and removed < 1320:
 			game.slots[i].leaf_id = -1
 			removed += 1
 	game.missed = removed
@@ -60,6 +60,28 @@ func _initialize() -> void:
 		return
 	file = FileAccess.open("res://test-results/ability-fixture.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(studies))
+	file.close()
+	var results = Loop.new(641023, 0)
+	for stage in range(8):
+		results.spawned = results.week_leaf_count()
+		results.step(1.0 / 60, 0, false)
+		results.next_week()
+	results.tiers = [3,3,2]
+	results.points = 0
+	for i in range(120):
+		results.spawn_leaf()
+		var leaf: Dictionary = results.leaves[-1]
+		results.resolve_leaf(leaf, i < 90, leaf.home_slot)
+	results.leaves.clear()
+	results.spawned = results.week_leaf_count()
+	results.step(1.0 / 60, 0, false)
+	var summaries := {"version": 1, "slots": [{"name": "Week 9 result study", "checkpoint": Campaign.snapshot(results)}, null, null]}
+	if not Campaign.valid_document(summaries):
+		push_error("Invalid results review fixture")
+		quit(1)
+		return
+	file = FileAccess.open("res://test-results/results-fixture.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(summaries))
 	file.close()
 	print("Created validated late-week, boss and workshop UI fixtures.")
 	quit()

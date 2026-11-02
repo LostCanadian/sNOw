@@ -112,12 +112,12 @@ Use three difficulties, provisionally **Breezy**, **Blustery**, and **Gale**. Ke
 
 | Parameter | Breezy | Blustery | Gale |
 | --- | --- | --- | --- |
-| Scheduled leaves | 24 + 2 per following week | 30 + 2 per following week | 36 + 3 per following week |
-| Weekly misses before loss | 18 | 14 | 10 |
+| Scheduled leaves | 240 + 20 per following week | 300 + 20 per following week | 360 + 30 per following week |
+| Weekly misses before loss | 180 | 140 | 100 |
 | Shedding interval factor | ×1.15 | ×1.00 | ×0.85 |
 | Wind factor | ×0.70 | ×1.00 | ×1.30 |
 
-The final encounter adds twelve leaves to the schedule. These are current prototype values, not a finished balance claim. A new campaign has 288 individually occupied leaf positions. Keeping every leaf in week one preserves the whole canopy for week two. Saving exact occupancy and applying the 96-leaf floor prevents supply depletion; weekly danger resets prevent inherited near-defeat checkpoints. See [campaign rules](CAMPAIGN.md).
+The final encounter adds 120 leaves to the schedule. These are current prototype values, not a finished balance claim. A new campaign has 2,880 individually occupied leaf positions. Keeping every leaf in week one preserves the whole canopy for week two. Saving exact occupancy and applying the 960-leaf floor prevents supply depletion; weekly danger resets prevent inherited near-defeat checkpoints. See [campaign rules](CAMPAIGN.md).
 
 | Weeks | Seasonal presentation | Challenge / clothing direction |
 | --- | --- | --- |
@@ -147,7 +147,7 @@ Three branches begin from the same starter kit. Each has six one-point ranks; th
 | Blower | +15% force and +4 cone width per rank | +5% equipment load and +7.5% energy draw per rank |
 | Battery | +10% capacity and −4.5% draw/recharge time per rank | +0.5% equipment load per rank |
 
-The workshop uses equipment illustrations above three connected lanes. Node cards contain short names and rank/owned cues. Full effects, prerequisites and costs occupy a separate bounded description card; Buy and Start Next Week have independent targets. Reset Kit refunds the earned budget freely between weeks.
+The workshop uses equipment illustrations above three connected lanes. Node cards contain short names and rank/owned cues. Full effects, prerequisites and costs occupy a separate bounded description card; Buy and Back to Results have independent targets. Next Week is on the results page. Reset Kit refunds the earned budget freely between weeks.
 
 All modeled builds retain useful movement under maximum pile drag. Sweep leaf capture along each movement segment to avoid skipping empty spots at higher power. Human tests must still establish which loadouts and purchase orders win on each difficulty.
 
@@ -161,9 +161,9 @@ All modeled builds retain useful movement under maximum pile drag. Sweep leaf ca
 
 ### Between-week workshop UX
 
-Flow: week summary → **paper workshop upgrade tree** → next-week forecast → Start Week. Show three vertical branches connected by cut-paper paths, large boots/fan/battery icons, owned/available/locked states, points remaining, and readable prerequisites. Avoid colour-only state cues.
+Flow: closing text → **weekly results** → optional **paper workshop upgrade tree** → results → Start Week. Results show available upgrade points and can also return to Main Menu. Show three vertical branches connected by cut-paper paths, large boots/fan/battery icons, owned/available/locked states, points remaining, and readable prerequisites. Avoid colour-only state cues.
 
-Selecting a node previews “current → proposed” run speed, gust force/reach, continuous burst duration, recharge duration, and pile resistance. Explicitly label drawbacks, such as “Stronger gust; heavier to carry.” Include Confirm and Undo/Reallocate; Start Week can keep an existing build or bank points. Avoid auto-spending or a real-time decision countdown. After the boss encounter, go directly to the ending/results, not another workshop.
+Selecting a node previews “current → proposed” run speed, gust force/reach, continuous burst duration, recharge duration, and pile resistance. Explicitly label drawbacks, such as “Stronger gust; heavier to carry.” Include Confirm and Undo/Reallocate; close upgrades back to results, where Start Week can keep an existing build or bank points. Avoid auto-spending or a real-time decision countdown. After the boss encounter, go directly to the ending/results, not another workshop.
 
 Temporary pickups are deferred until the upgrade tree is balanced. If revisited, avoid duplicating upgrade identities or adding several competing resource meters. The earlier Cool Breeze heat pickup is retired with the heat system.
 
@@ -177,7 +177,7 @@ Temporary pickups are deferred until the upgrade tree is balanced. If revisited,
 
 Store the top ten scores **separately for each difficulty**, with three initials, score, highest week, win/loss, a scoring-rules version, and the completed build. Sort descending by score, then highest week; preserve earlier records for exact ties. Give the planned high-score initials entry a large touch-friendly alphabet selector and keyboard support; allow A–Z, default to AAA, and provide a skip option. Display initials as plain text.
 
-Use local campaign saves and separate local arcade high scores rather than accounts or global services. The three **save slots** are named campaigns; the three **difficulty score tables** are separate local records, now implemented. Each campaign contributes its best terminal score, with better retries replacing its earlier result. See [scores and licenses](SCORES_AND_LICENSES.md) for the implementation and current difficulty profiles. Version and validate checkpoint data, keep backup recovery, and indicate storage failure instead of claiming success. Browser saves are local to the browser/origin and can be cleared; native and browser installations do not share them. No cloud saves or login is needed.
+Use local campaign saves and separate local arcade high scores rather than accounts or global services. The three **save slots** are named campaigns; the three **difficulty score tables** are separate local records, now implemented. Each campaign contributes its best recorded completed-week/loss/victory score, with better results replacing its earlier row and retaining entered initials. See [scores and licenses](SCORES_AND_LICENSES.md) for the implementation and current difficulty profiles. Version and validate checkpoint data, keep backup recovery, and indicate storage failure instead of claiming success. Browser saves are local to the browser/origin and can be cleared; native and browser installations do not share them. No cloud saves or login is needed.
 
 Save only level boundaries/workshop edits. Foreground resume preserves a paused in-memory attempt, but reload or OS process death restores the latest saved checkpoint. Retrying rolls back attempt score, misses and resources together. A future leaderboard must define how checkpoint retries and campaign rules versions are compared.
 
@@ -191,7 +191,7 @@ Play opens a difficulty selector with a short description and that difficulty's 
 
 ### In-game HUD
 
-Display week out of twelve (or “Final Encounter”), temperature, score, winter-pressure meter, and blower charge with the fan/battery gauge. Place combo indicators close to the action without covering falling leaves. Use large readable numerals and restrained animation. Keep pause always accessible; difficulty can remain in pause rather than cluttering the HUD.
+Give score a compact independent bar at top left. Use a growing, pulsing paper snowflake for winter danger and a battery silhouette with green/yellow/red fill for charge, alongside pause. Show no numeric week, temperature, frost count or charge percentage during play. Clothing and weather indicate the season. Week, temperature, animated weekly leaf/points totals, a qualifying high-score alert and optional upgrades belong on the results page. Gameplay has no combo callouts; achievements remain future work. See [HUD and results](HUD_AND_RESULTS.md).
 
 ### Aspect ratios and fair play
 
@@ -230,3 +230,5 @@ Use the supplied ancient, asymmetric tree as the authoritative visual reference.
 The implementation title is sNOw only. Suggested alternatives are in [naming notes](NAMING.md); availability has not been checked. Earlier-rules high scores are archived separately when canopy, steering and upgrade rules change.
 
 The current build keeps each landed leaf intact as a ground object, with layered piles and foot scuffs. Blower rank 2 unlocks Leaflift Surge; Battery ranks 3 and 5 shorten its slow special cooldown. See [abilities/story](ABILITIES_AND_STORY.md) for exact behavior, chapter text and save/score compatibility. Achievement systems are [deferred past the initial release](ACHIEVEMENTS.md), and gameplay no longer announces rescue streaks.
+
+Future atmosphere and wildlife follow [AMBIENT_WORLD.md](AMBIENT_WORLD.md): seasonal rabbit coat, owl at night, optional wolf/bat on a selected full-moon night, separate sky/sun/moon positions and restrained blower reactions. This is a deferred scenery pass.

@@ -13,7 +13,7 @@ func check(ok: bool, label: String) -> void:
 		push_error("FAIL: " + label)
 func _initialize() -> void:
 	var game = Loop.new(55)
-	check(game.attached_count() == 288, "new campaigns begin with hundreds of separately occupied leaves")
+	check(game.attached_count() == Loop.Canopy.SLOT_COUNT, "new campaigns begin with thousands of separately occupied leaves")
 	for i in range(12): game.step(1.0 / 60, -1, false)
 	check(game.facing == -1 and game.aim < -0.5, "running left turns the character and aims the blower left")
 	var actor = Actor.new()
@@ -48,24 +48,24 @@ func _initialize() -> void:
 		game.resolve_leaf(leaf, true, leaf.home_slot)
 	game.leaves.clear()
 	game.step(1.0 / 60, 0, false)
-	check(game.status == "workshop" and game.attached_count() == 288, "a perfect week retains the entire canopy")
+	check(game.status == "workshop" and game.attached_count() == Loop.Canopy.SLOT_COUNT, "a perfect week retains the entire canopy")
 	game.next_week()
-	check(game.attached_count() == 288 and game.week_leaf_count() > initial_count and game.regrown == 0, "the next week increases shedding without arbitrarily deleting rescued leaves")
-	# A plausible sparse end-of-campaign checkpoint: 200 losses over twelve Breezy weeks.
+	check(game.attached_count() == Loop.Canopy.SLOT_COUNT and game.week_leaf_count() > initial_count and game.regrown == 0, "the next week increases shedding without arbitrarily deleting rescued leaves")
+	# A plausible sparse end-of-campaign checkpoint: 2,000 losses over twelve Breezy weeks.
 	game = Loop.new(55, 0)
 	game.week = 12
 	game.status = "workshop"
 	game.earned_points = 12
 	game.points = 12
-	for i in range(200): game.slots[i].leaf_id = -1
-	game.missed = 200
-	game.week_missed = 16
+	for i in range(2000): game.slots[i].leaf_id = -1
+	game.missed = 2000
+	game.week_missed = 160
 	game.x = 29
 	game.piles.fill(4)
 	var score: int = game.score
 	game.next_week()
-	check(game.attached_count() == Loop.RECOVERY_FLOOR and game.week_regrown == 8 and game.regrown == 8, "overnight recovery adds only the leaves needed for the safety floor")
-	check(game.week_missed == 0 and game.pressure() == 0 and game.missed == 200, "weekly danger resets while lifetime history remains accurate")
+	check(game.attached_count() == Loop.RECOVERY_FLOOR and game.week_regrown == 80 and game.regrown == 80, "overnight recovery adds only the leaves needed for the safety floor")
+	check(game.week_missed == 0 and game.pressure() == 0 and game.missed == 2000, "weekly danger resets while lifetime history remains accurate")
 	check(game.score == score and game.earned_points == 12, "regrowth never awards points, rescues or extra upgrades")
 	check(game.charge == 1 and game.pile_at(180) == 0 and game.x == 180, "the next week starts with a clean path, full battery and repeatable position")
 	var checkpoint: Dictionary = Campaign.snapshot(game)
@@ -78,8 +78,8 @@ func _initialize() -> void:
 			break
 	check(not Campaign.valid_checkpoint(depleted), "a checkpoint cannot restart below the guaranteed playable supply")
 	var loaded = Campaign.restore(checkpoint)
-	check(loaded.attached_count() == 96 and loaded.regrown == 8 and loaded.slots == game.slots, "saved leaf identities and regrowth survive retry exactly")
-	check(not loaded.next_week() and loaded.regrown == 8, "retry cannot repeat regrowth or skip a level")
+	check(loaded.attached_count() == Loop.RECOVERY_FLOOR and loaded.regrown == 80 and loaded.slots == game.slots, "saved leaf identities and regrowth survive retry exactly")
+	check(not loaded.next_week() and loaded.regrown == 80, "retry cannot repeat regrowth or skip a level")
 	var builds := 0
 	for a in range(7):
 		for b in range(7):
@@ -100,7 +100,7 @@ func _initialize() -> void:
 	legacy.points = 0
 	legacy.tiers = [2,2,2]
 	loaded = Campaign.restore(legacy)
-	check(loaded != null and loaded.tiers == [4,4,4] and loaded.attached_count() == 288, "old slots keep their budget and progress when migrating to the larger canopy and tree")
+	check(loaded != null and loaded.tiers == [4,4,4] and loaded.attached_count() == Loop.Canopy.SLOT_COUNT, "old slots keep their budget and progress when migrating to the larger canopy and tree")
 	check(Campaign.valid_checkpoint(Campaign.snapshot(loaded)), "a migrated slot can immediately save under the new rules")
 	var path := "user://archive-score-test-%d.json" % Time.get_ticks_usec()
 	var scores = Scores.new(path)

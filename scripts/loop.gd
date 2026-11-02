@@ -4,20 +4,21 @@ extends RefCounted
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
-const RULES := 3
+const RULES := 4
 const SURGE_DURATION := 0.85
-const RECOVERY_FLOOR := 96
+const RECOVERY_FLOOR := 960
 const GRAVITY := 48.0
 const GROUND := 502.0
 const Canopy = preload("res://scripts/canopy.gd")
 const CAPTURE_RADIUS := 15.0
-const MAX_ACTIVE := 150
+const MAX_ACTIVE := 1500
+const SHED_BATCH := 10
 const BASE_SPEED := 122.0
-const CAPACITY := 14 # Default weekly allowance. Cumulative loss remains in missed.
+const CAPACITY := 140 # Default weekly allowance. Cumulative loss remains in missed.
 const DIFFICULTIES := [
-	{"name": "Breezy", "capacity": 18, "leaves": 24, "increment": 2, "cadence": 1.15, "wind": 0.70, "fall": 0.88},
-	{"name": "Blustery", "capacity": 14, "leaves": 30, "increment": 2, "cadence": 1.0, "wind": 1.0, "fall": 1.0},
-	{"name": "Gale", "capacity": 10, "leaves": 36, "increment": 3, "cadence": 0.85, "wind": 1.30, "fall": 1.12},
+	{"name": "Breezy", "capacity": 180, "leaves": 240, "increment": 20, "cadence": 1.15, "wind": 0.70, "fall": 0.88},
+	{"name": "Blustery", "capacity": 140, "leaves": 300, "increment": 20, "cadence": 1.0, "wind": 1.0, "fall": 1.0},
+	{"name": "Gale", "capacity": 100, "leaves": 360, "increment": 30, "cadence": 0.85, "wind": 1.30, "fall": 1.12},
 ]
 const MAIN_WEEKS := 12
 const BOSS_STAGE := MAIN_WEEKS + 1
@@ -36,6 +37,7 @@ var direction := 0.0
 var facing := 1.0
 var aim := 0.0
 var score := 0
+var week_start_score := 0 # -1 only for older completed checkpoints without this detail.
 var combo := 0
 var rescued := 0
 var missed := 0
@@ -53,6 +55,9 @@ var surge_charge := 1.0
 var surge_left := 0.0
 var surge_held := false
 var slots: Array[Dictionary] = []
+var capture_grid := {}
+var attached_lookup := PackedInt32Array()
+var canopy_revision := 0
 var shedding_order: Array[int] = []
 var piles: Array[int] = []
 var points := 0
@@ -68,6 +73,7 @@ func _init(seed_value: int = 641023, difficulty_value := 1) -> void:
 	piles.resize(12)
 	piles.fill(0)
 	slots = Canopy.slot_layout()
+	index_canopy()
 	prepare_shedding()
 
 
@@ -122,7 +128,7 @@ func prepare_shedding() -> void:
 		var value := shedding_order[i]
 		shedding_order[i] = shedding_order[j]
 		shedding_order[j] = value
-	shedding_order.resize(mini(shedding_order.size(), int(DIFFICULTIES[difficulty].leaves) + int(DIFFICULTIES[difficulty].increment) * (week - 1) + (12 if is_boss() else 0)))
+	shedding_order.resize(mini(shedding_order.size(), int(DIFFICULTIES[difficulty].leaves) + int(DIFFICULTIES[difficulty].increment) * (week - 1) + (120 if is_boss() else 0)))
 
 
 func temperature() -> int:
@@ -146,14 +152,43 @@ func boss_phase() -> String:
 func capture_slot(from: Vector2, to: Vector2) -> int:
 	var best := -1
 	var nearest := CAPTURE_RADIUS * CAPTURE_RADIUS
-	for i in range(slots.size()):
-		if slots[i].leaf_id >= 0: continue
-		var point := Geometry2D.get_closest_point_to_segment(slots[i].position, from, to)
-		var distance := point.distance_squared_to(slots[i].position)
-		if distance < nearest:
-			nearest = distance
-			best = i
+	var start := Vector2i((from.min(to) - Vector2.ONE * CAPTURE_RADIUS) / 24.0)
+	var end := Vector2i((from.max(to) + Vector2.ONE * CAPTURE_RADIUS) / 24.0)
+	for cx in range(start.x, end.x + 1):
+		for cy in range(start.y, end.y + 1):
+			for i in capture_grid.get(Vector2i(cx, cy), []):
+				if slots[i].leaf_id >= 0: continue
+				var point := Geometry2D.get_closest_point_to_segment(slots[i].position, from, to)
+				var distance := point.distance_squared_to(slots[i].position)
+				if distance < nearest or (distance == nearest and best >= 0 and i < best):
+					nearest = distance
+					best = i
 	return best
+
+
+func index_canopy() -> void:
+	canopy_revision += 1
+	capture_grid.clear()
+	attached_lookup.resize(Canopy.SLOT_COUNT)
+	attached_lookup.fill(-1)
+	for i in range(slots.size()):
+		var cell := Vector2i(slots[i].position / 24.0)
+		if not capture_grid.has(cell): capture_grid[cell] = []
+		capture_grid[cell].append(i)
+		if slots[i].leaf_id >= 0: attached_lookup[slots[i].leaf_id] = i
+
+
+func find_attached_leaf(id: int) -> int:
+	var index := attached_lookup[id]
+	if index >= 0 and slots[index].leaf_id == id: return index
+	# Restores and editor/test fixtures may replace occupancy directly.
+	if index >= 0:
+		attached_lookup[id] = -1
+		for i in range(slots.size()):
+			if slots[i].leaf_id == id:
+				attached_lookup[id] = i
+				return i
+	return -1
 
 
 func pile_at(at_x: float) -> int:
@@ -179,7 +214,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 	if wants_surge and not surge_held: activate_surge()
 	surge_held = wants_surge
 	direction = clampf(move_axis, -1.0, 1.0)
-	var drag: float = minf(float(pile_at(x)) / 5.0, 1.0) * s.pile_penalty
+	var drag: float = minf(float(pile_at(x)) / 50.0, 1.0) * s.pile_penalty
 	var previous_x := x
 	x = clampf(x + direction * s.speed * (1.0 - drag) * (0.65 if surge_left > 0 else 1.0) * dt, 29.0, 331.0)
 	if absf(direction) > 0.01: facing = signf(direction)
@@ -203,7 +238,8 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 	week_time += dt
 	spawn_timer -= dt
 	if spawn_timer <= 0.0 and spawned < week_leaf_count() and leaves.size() < MAX_ACTIVE:
-		spawn_leaf()
+		for i in range(SHED_BATCH):
+			if not spawn_leaf(): break
 		spawn_timer += (0.38 if boss_phase() == "blast" else maxf(0.65, 1.30 - week * 0.045)) * DIFFICULTIES[difficulty].cadence
 	var origin := nozzle()
 	var airflow := air_axis()
@@ -278,14 +314,12 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 func spawn_leaf() -> bool:
 	if spawned >= shedding_order.size() or leaves.size() >= MAX_ACTIVE: return false
 	var id := shedding_order[spawned]
-	var slot_index := -1
-	for i in range(slots.size()):
-		if slots[i].leaf_id == id:
-			slot_index = i
-			break
+	var slot_index := find_attached_leaf(id)
 	if slot_index < 0: return false
 	var slot: Dictionary = slots[slot_index]
 	slot.leaf_id = -1
+	canopy_revision += 1
+	attached_lookup[id] = -1
 	leaves.append({
 		"id": id, "position": slot.position + Vector2(0, 9), "home_slot": slot_index,
 		"velocity": Vector2(rng.randf_range(-10, 10), 8.0),
@@ -305,9 +339,10 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 	if saved:
 		if slot_index < 0 or slot_index >= slots.size() or slots[slot_index].leaf_id >= 0: return
 		if leaf.id < 0 or leaf.id >= slots.size(): return
-		for slot in slots:
-			if slot.leaf_id == leaf.id: return
+		if find_attached_leaf(leaf.id) >= 0: return
 		slots[slot_index].leaf_id = leaf.id
+		canopy_revision += 1
+		attached_lookup[leaf.id] = slot_index
 		slots[slot_index].attached_at = week_time
 		leaf.position = slots[slot_index].position
 	leaf.state = "rescued" if saved else "grounded"
@@ -355,6 +390,7 @@ func next_week() -> bool:
 	if status != "workshop":
 		return false
 	week += 1
+	week_start_score = score
 	x = 180.0
 	direction = 0
 	facing = 1
@@ -397,6 +433,7 @@ func restore_playable_canopy() -> int:
 		filled += 1
 		if filled >= count: break
 	regrown += filled
+	index_canopy()
 	return filled
 
 

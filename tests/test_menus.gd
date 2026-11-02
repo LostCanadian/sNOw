@@ -37,6 +37,7 @@ func run() -> void:
 	main.sim.spawned = main.sim.week_leaf_count()
 	main._physics_process(1.0 / 60)
 	main.finish_story()
+	main.show_workshop()
 	await process_frame
 	var nodes = main.overlay.find_children("*", "Button", true, false)
 	var overlaps := false

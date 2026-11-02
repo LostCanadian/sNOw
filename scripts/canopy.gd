@@ -1,8 +1,9 @@
 extends RefCounted
 ## A season tree adapted from the user-attached reference. Tips are original-image pixel coordinates.
-## First 48 slot identities are retained; paired leaves expand the crown to 288.
+## Keep the original twig identities; paired sprays build a full 2,880-leaf crown.
 const TREE_RECT := Rect2(45, 78, 300, 424)
 const IMAGE_SIZE := Vector2(1024, 1536)
+const Sprays = preload("res://scripts/canopy_sprays.gd")
 const TWIG_TIPS := [
 	Vector2(80, 288),
 	Vector2(108, 368),
@@ -53,7 +54,9 @@ const TWIG_TIPS := [
 	Vector2(565, 340),
 	Vector2(630, 330),
 ]
-const SLOT_COUNT := 288
+const PREVIOUS_COUNT := 288
+const DENSITY := 10
+const SLOT_COUNT := PREVIOUS_COUNT * DENSITY
 const LEGACY_COUNT := 48
 const EXTRA_LEAVES := [
 	Vector3(87, 295, -1.481170),
@@ -319,4 +322,18 @@ static func slot_layout() -> Array[Dictionary]:
 		point.y = maxf(point.y, 92)
 		angle = (point - stem).angle() + PI / 2.0
 		result.append({"position": point, "stem": stem, "angle": angle, "leaf_id": result.size(), "attached_at": -10.0})
+	# Extend each authored attachment into a small, asymmetrical leafy twig spray.
+	# Stable identities 0..287 remain first; each following layer adds one per twig.
+	for layer in range(1, DENSITY):
+		for base in range(PREVIOUS_COUNT):
+			var pair := float((layer - 1) / 2)
+			var twig: Vector3 = Sprays.POINTS[(layer - 1) * PREVIOUS_COUNT + base]
+			var stem := TREE_RECT.position + Vector2(twig.x, twig.y) / IMAGE_SIZE * TREE_RECT.size
+			var angle: float = twig.z
+			var jitter := sin(base * 2.399 + layer * 1.7) * 1.7
+			var point := stem + Vector2.UP.rotated(angle) * (8.0 + pair * 1.7 + jitter)
+			point.x = clampf(point.x, 24, 336)
+			point.y = maxf(point.y, 87)
+			angle = (point - stem).angle() + PI / 2.0
+			result.append({"position": point, "stem": stem, "angle": angle, "leaf_id": result.size(), "attached_at": -10.0})
 	return result

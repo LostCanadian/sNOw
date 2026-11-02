@@ -32,6 +32,8 @@ func run() -> void:
 		oriented = oriented and direction.dot(Vector2.UP.rotated(slot.angle)) > 0.999
 	for tip in main.Canopy.TWIG_TIPS:
 		oriented = oriented and tree_image.get_pixelv(Vector2i(tip)).a > 0.4
+	for twig in main.Canopy.Sprays.POINTS:
+		oriented = oriented and tree_image.get_pixel(int(twig.x), int(twig.y)).a > 0.7
 	check(oriented, "leaf stems meet the illustrated twig silhouette and point organically outward")
 	var clouds_valid := true
 	for layer in range(3):
@@ -76,7 +78,8 @@ func run() -> void:
 	main.sim.spawned = main.sim.week_leaf_count()
 	main._physics_process(1.0 / 60.0)
 	main.finish_story()
-	check(main.mode == "workshop" and main.sim.points == 1, "week boundary opens workshop")
+	check(main.mode == "results" and main.sim.points == 1, "week boundary opens its results before upgrades")
+	main.show_workshop()
 	main.purchase(1)
 	check(main.sim.tiers == [0, 1, 0] and main.sim.points == 0, "workshop purchase applies the equipment build")
 	main.continue_week()
@@ -126,7 +129,8 @@ func run() -> void:
 	main.pause_game()
 	main._physics_process(1.0)
 	main.resume_game()
-	check(main.mode == "workshop", "workshop survives pause and explicit resume")
+	check(main.mode == "results", "weekly results survive pause and explicit resume")
+	main.show_workshop()
 	main.purchase(0)
 	main.continue_week()
 	main.finish_story()

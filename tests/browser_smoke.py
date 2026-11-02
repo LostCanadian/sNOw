@@ -123,11 +123,18 @@ def run(url: str, executable: str):
         page.keyboard.press("Escape")
         page.wait_for_function("window.snowSnapshot.mode === 'play'")
         page.wait_for_function("window.snowSnapshot.mode === 'lost'", timeout=120000)
-        page.wait_for_function("window.snowSnapshot.result_visible", timeout=20000)
+        try:
+            page.wait_for_function("window.snowSnapshot.result_visible", timeout=20000)
+        except Exception:
+            state = snap()
+            print('Ending diagnostic:', {key: state.get(key) for key in ['mode', 'phase', 'score', 'week_missed', 'result_time', 'result_tallied', 'result_visible']}, errors[-8:], flush=True)
+            page.locator('canvas').screenshot(path='test-results/ending-failure.png')
+            raise
         page.screenshot(path=str(output / "browser-winter-loss.png"))
         record("misses trigger actual winter loss and its result screen")
         ended_score = snap()["score"]
-        click(180, 318)
+        page.wait_for_function("window.snowSnapshot.result_tallied")
+        click(180, 410)
         page.wait_for_function("window.snowSnapshot.mode === 'initials'")
         click(180, 258)
         page.keyboard.press("Control+A")
@@ -139,10 +146,10 @@ def run(url: str, executable: str):
         assert score_document["tables"][1][0]["score"] == ended_score
         click(180, 554)
         page.wait_for_function("window.snowSnapshot.mode === 'lost'")
-        click(180, 368)
+        click(180, 502)
         page.wait_for_function("window.snowSnapshot.mode === 'play'")
         assert snap()["week"] == 1 and snap()["tiers"] == [0, 0, 0]
-        assert snap()["week_missed"] == 0 and snap()["attached"] + snap()["air"] == 288
+        assert snap()["week_missed"] == 0 and snap()["attached"] + snap()["air"] == 2880
         page.keyboard.press("Escape")
         page.wait_for_function("window.snowSnapshot.mode === 'paused'")
         click(180, 386)
@@ -169,6 +176,8 @@ def run(url: str, executable: str):
         click(180,323)
         page.wait_for_function("window.snowSnapshot.mode === 'slots'")
         click(180,322)
+        page.wait_for_function("window.snowSnapshot.mode === 'results' && window.snowSnapshot.result_tallied")
+        click(180,456)
         page.wait_for_function("window.snowSnapshot.mode === 'workshop'")
         assert snap()["points"] == 1
         click(180,222)  # Inspect Fan rank 1.
@@ -191,9 +200,13 @@ def run(url: str, executable: str):
         click(180,323)
         page.wait_for_function("window.snowSnapshot.mode === 'slots'")
         click(180,322)
+        page.wait_for_function("window.snowSnapshot.mode === 'results' && window.snowSnapshot.result_tallied")
+        click(180,456)
         page.wait_for_function("window.snowSnapshot.mode === 'workshop'")
         assert snap()["tiers"] == [0,1,0] and snap()["points"] == 0
         click(261,536)
+        page.wait_for_function("window.snowSnapshot.mode === 'results'")
+        click(180,502)
         page.wait_for_function("window.snowSnapshot.mode === 'play' && window.snowSnapshot.week === 2")
         assert snap()["week_missed"] == 0 and snap()["tiers"] == [0,1,0]
         page.reload(wait_until="networkidle")

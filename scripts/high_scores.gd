@@ -1,7 +1,7 @@
 extends RefCounted
 ## Top ten per difficulty, one best result per campaign. No accounts or network API.
 const Campaign = preload("res://scripts/campaign.gd")
-const RULES := 3
+const RULES := 4
 const StoragePaths = preload("res://scripts/storage_paths.gd")
 const WEB_KEY := "snow.highscores.v1"
 const LIMIT := 10
@@ -41,6 +41,9 @@ static func valid_record(record) -> bool:
 		if not Campaign.whole(record.get(field), 0, 1000000000): return false
 	if record.score <= 0 or record.week < 1 or record.week > 13 or record.difficulty > 2 or not Campaign.whole(record.rules, 1, RULES): return false
 	if not record.get("won") is bool or (record.won and record.week != 13): return false
+	if record.has("outcome"):
+		if not record.outcome is String or record.outcome not in ["workshop", "lost", "won"]: return false
+		if (record.outcome == "won") != record.won or (record.outcome == "workshop" and record.week > 12): return false
 	if not record.get("tiers") is Array or record.tiers.size() != 3: return false
 	for tier in record.tiers:
 		if not Campaign.whole(tier, 0, 2 if record.rules == 1 else 6): return false
@@ -81,16 +84,22 @@ func available_rules(difficulty: int) -> Array[int]:
 
 func candidate(game, initials: String) -> Dictionary:
 	return {"id": game.run_id, "initials": clean_initials(initials), "score": game.score,
+		"outcome": game.status,
 		"week": game.week, "won": game.status == "won", "tiers": game.tiers.duplicate(),
 		"difficulty": game.difficulty, "rules": RULES}
 
 func qualifies(game) -> bool:
 	var record := candidate(game, "AAA")
-	if game.status not in ["lost", "won"] or not valid_record(record): return false
+	if game.status not in ["workshop", "lost", "won"] or not valid_record(record): return false
 	var table: Array = entries(game.difficulty)
 	for old in table:
 		if old.id == record.id: return better(record, old)
 	return table.size() < LIMIT or better(record, table[-1])
+
+func initials_for(game) -> String:
+	for record in entries(game.difficulty):
+		if record.id == game.run_id: return record.initials
+	return ""
 
 func submit(game, initials: String) -> bool:
 	if not qualifies(game): return false
