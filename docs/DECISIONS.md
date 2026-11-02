@@ -39,7 +39,7 @@ This log separates the requested game from proposed implementation choices. “R
 | Temporary power-ups | Deferred until the upgrade tree is balanced; retire heat-based Cool Breeze | Scope recommendation |
 | Between-week upgrades | Boots/agility, blower/strength, battery/endurance branches; stronger equipment adds weight | User-requested feature; nodes and balance proposed |
 | Upgrade lifetime | Carry across weeks in the saved campaign; reset only on a new campaign | Recommended default for comparable arcade starting conditions; cross-run progression remains a separate choice |
-| Upgrade economy | One point per week 1–12, separate from score; tier costs 1 then 3; between-week reallocation | Proposed, to test; no score farming or permanent grind |
+| Upgrade economy | Two Gold Leaves per week 1–12, separate from score; explicit branch costs and prerequisites; between-week reallocation | Proposed, to test; no score farming or permanent grind |
 
 ## Questions to resolve with evidence
 
@@ -56,7 +56,7 @@ Motion prototype: rigid thigh/shin/shoe cutouts with fixed-length hip/knee/ankle
 
 License notices are available offline from the main menu: Godot MIT and engine-library copyright/terms come from the running engine APIs; DejaVu font terms are explicitly bundled with exports. This adds third-party notices without selecting a license for the game itself.
 
-The working title is sNOw only. Upgrade economy is now 18 one-point nodes (three branches × six ranks), with 12 earned points and 28 final full-budget allocations. Old four-point rank-two purchases migrate to rank four; rules-one scores remain in the Previous Scores archive.
+The working title is sNOw only. Upgrade economy now has 30 icon nodes across three equipment tabs, with 24 earned Gold Leaves and branching prerequisites. Legacy equipment maps into explicit nodes with the extra currency credited; rules 1–5 scores remain in the Previous Scores archive. See [beta details](BETA_POLISH.md).
 
 HUD/results: score stays top left; numeric week/temperature move to a saved weekly summary. Snowflake size/pulse conveys frost and battery fill conveys charge. Upgrade visits return to results. Qualifying completed weeks now accept initials, and subsequent improvements retain them automatically; score footers are removed.
 

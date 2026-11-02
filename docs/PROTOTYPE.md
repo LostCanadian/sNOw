@@ -9,11 +9,11 @@
 - An articulated cutout rig with rigid thigh/shin/shoe patches, fixed bone lengths, distance-driven strides in both directions, subtle torso motion and weighted electric-blower vibration. Feet stop cycling against boundaries and follow actual slowed/upgraded movement. Wind streaks travel away from the visual nozzle; physics uses its shared rest position.
 - Seeded per-leaf flutter phase/frequency, aerodynamic drag, gravity, lateral wind, tumble and foreshortening, with upward blower force, once-only scoring, intact scuffable ground leaves, layered pile slowdown, battery depletion/release-to-recharge, score/combo, 12 main weeks and a final North Wind encounter, and weekly winter pressure.
 - A conserved canopy of 2,880 individually occupied branch positions, with a 960-leaf between-week recovery floor. Shedding opens a gap; an upward-blown leaf reattaches only near a real empty position, including one other than its original spot. Missed leaves leave the tree barer across weeks; overnight regrowth occurs only below the recovery floor and awards no points. Weekly schedules only use the remaining attached leaves. Late-week colours turn orange/red independently of canopy occupancy.
-- Between-week workshop with boots, blower and battery branches; prerequisites, one point per completed week 1–12, weight/energy tradeoffs, reallocation, and carryover within a run.
-- Blower rank 2 unlocks Leaflift Surge: a brief airborne screen-plane tumble lifts ground leaves and stirs airborne ones, with a 36-second recharge reduced to 31/26 seconds by Battery ranks 3/5. Tap the leaf-lifting button or press E.
+- Between-week workshop with boots, blower and battery branches; prerequisites, two Gold Leaves per completed week 1–12, weight/energy tradeoffs, reallocation, and carryover within a run.
+- The Blower Whirlwind node unlocks a tornado ability: a brief airborne screen-plane tumble lifts ground leaves and stirs airborne ones, with a 36-second recharge reduced to 31/24 seconds by Battery Whirlwind cell and Storm reserve. Tap the leaf-lifting button or press E.
 - Unique short opening/closing paper panels frame all twelve weeks and the finale. Physics and recharge clocks wait for the panel to fade; tap or Space/Enter can skip it. Achievements are deferred; rescue-streak announcements are removed.
 - Small warning flakes near defeat; clouds, cut-paper snowflakes and ground snow on loss; flowers on victory. Main-menu season previews allow immediate art review.
-- Soft-effects and mute options; a quiet synthesized electric whirr after starting a run. No microphone input or external audio service.
+- Soft-effects, mute and independent persistent music/effects volume; nine original retro score loops and layered action effects. No microphone input or external audio service.
 
 The title screen offers **Continue / New game** to choose one of three named Save Slots and **Explore the seasons** to review the visual states. New saves choose Breezy, Blustery or Gale; weeks are deliberately short and not the finished difficulty curve. The main menu also opens local **High Scores** and offline **License** notices. See [scores and licenses](SCORES_AND_LICENSES.md) for the storage/deduplication contract and current difficulty tuning. Nothing is purchased with score or real money.
 
@@ -58,7 +58,7 @@ The shell fits a constant portrait rectangle within the viewport's safe-area pad
 | Move | A/D or Left/Right | Hold a direction button; slide between directions |
 | Blow | Hold Space | Hold the fan button alongside a direction touch |
 | Recharge | Release Space | Release the fan; wait briefly |
-| Leaflift Surge (Blower rank 2) | Press E | Tap the leaf-lifting button |
+| Whirlwind (Blower tree) | Press E | Tap the leaf-lifting button |
 | Skip story panel | Space / Enter | Tap after the short minimum |
 | Pause/resume | Escape | Tap pause, then Resume |
 | Workshop/menu | Tab, arrows where supported, Enter/Space | Tap/click buttons |
@@ -116,7 +116,7 @@ Headless Chromium uses software WebGL in this environment. It can establish func
 - Branch capture has a forgiving 15-logical-pixel radius and sweeps each motion segment to avoid missing slots at higher speeds. The radius, branch layout, foliage density and marker visibility need phone-scale playtesting. Arriving at an arbitrary sky height never counts as a rescue.
 - Weather/endings demonstrate the visual states rather than finished cinematic direction. Warning flakes do not collide with leaves or change movement.
 - Workshop purchases immediately change the visible build readout; production needs a fuller before/after preview and confirmation flow.
-- No persistent settings, exact mid-attempt resume after process termination, global leaderboard, production music, or temporary pickups. These remain in the staged design plan.
+- No exact mid-attempt resume after process termination, global leaderboard, native-device certification or temporary pickups. These remain in the staged design plan.
 - Art readability, battery cadence, week difficulty, scoring and all upgrade numbers need human playtesting. Fixed-step logic and equal viewports do not solve every future ranked-play fairness issue.
 
 Next gate: play this on physical Android and iPhone browsers, review empty-branch aiming and the paper effect at phone scale, then refine branch art, scenery depth and animated character assets.
@@ -137,10 +137,16 @@ Current menu captures: [main menu](images/prototype-menu.png), [High Scores](ima
 
 Updated campaign rules are in [CAMPAIGN.md](CAMPAIGN.md). The illustrated [workshop](images/prototype-workshop.png) has eighteen inspectable nodes and separate descriptions; [detail view](images/prototype-workshop-detail.png). Native layout tests check non-overlapping hit areas and bounded images/text. Title, Save Slots labels and browser branding now use sNOw only; native legacy save paths and archived old scores remain supported. All winning-build and pacing claims still require human full-campaign testing.
 
-The [opening panel](images/prototype-story-intro.png), [closing panel](images/prototype-story-outro.png), [intact ground leaves](images/prototype-ground-leaves.png), and [Leaflift Surge study](images/prototype-surge.png) are actual browser frames. The [surge motion clip](images/prototype-surge.mp4) shows the first cutout spin and leaf fountain. See [abilities and chapter text](ABILITIES_AND_STORY.md) for cooldowns, recovery accounting, score-version migration and capture-fixture boundaries. The airborne tumble rotates the articulated cutout in the screen plane; extra artist-authored arm/face poses remain future polish.
+The [opening panel](images/prototype-story-intro.png), [closing panel](images/prototype-story-outro.png), [intact ground leaves](images/prototype-ground-leaves.png), and [Whirlwind study](images/prototype-surge.png) are actual browser frames. The [surge motion clip](images/prototype-surge.mp4) shows the first cutout spin and leaf fountain. See [abilities and chapter text](ABILITIES_AND_STORY.md) for cooldowns, recovery accounting, score-version migration and capture-fixture boundaries. The airborne tumble rotates the articulated cutout in the screen plane; extra artist-authored arm/face poses remain future polish.
 
 [HUD/results details](HUD_AND_RESULTS.md): score-only bar, numeric-free frost/battery badges, a saved weekly tally and optional upgrades that return to results. [Weekly results](images/prototype-results.png), [initials entry](images/prototype-initials.png), [compact HUD](images/prototype-compact-hud.png) and [near-loss frost](images/prototype-frost-hud.png) are actual browser captures. [Fresh start](images/prototype-fresh-start.png) shows the replacement difficulty picker. The dense 2,880-leaf canopy uses cached MultiMesh batches; capture uses a spatial index. Actual phone performance remains unverified. The intro caption is removed while optional skip input remains. Future wildlife/sky direction is in [AMBIENT_WORLD.md](AMBIENT_WORLD.md).
 
 The [motion/season update](MOTION_AND_SEASONS.md) fixes leg stretching, removes detachment offsets/size changes, adds subtle empty-slot twinkles, uses colour-weighted shedding with a gentler opening, bounds ground scuffs to knee height, replaces Surge with an airborne tumble affecting both ground and air, and drops every actual leaf before snow covers the scene. Scores and migrated campaign baselines are ten times smaller under rules 5; older score tables remain archived. All HUD controls share a 40-unit height, and play/pause use smooth vector icons. [Coffee/one-use upgrades](CONSUMABLES.md) are documentation only.
 
 Current captures include [the articulated walk](images/prototype-walk.png), [the whole-canopy fall](images/prototype-winter-fall.png), [the pile before snow](images/prototype-winter-ground.png), and a [continuous winter clip](images/prototype-winter-fall.mp4). The full-canopy ending uses a validated late-week start checkpoint, then plays the actual loss/ending through real browser input. This does not claim a human campaign win or physical-phone performance.
+
+## Beta regression
+
+The current smoke suite is `tests/browser_beta.py`: export debug to `build/test`, serve `build/` on port 8000, generate fixtures with `tests/visual_fixture.gd`, then run the Python script with Playwright and Chromium. It exercises real clicks/keys, saved Continue, results, initials, purchases and prerequisites, Whirlwind, responsive canvas sizing, and output-level WebAudio checks for sound, pause and mute. A release export omits its telemetry hooks.
+
+Run all `tests/test_*.gd` through `tools/godot.sh --headless --script <path>` for simulation, save migration, UI and audio-routing regression. Allow a short real-time audio-thread drain when freeing audio scenes in headless tests.

@@ -6,7 +6,7 @@ Potential later achievements:
 
 - A long uninterrupted rescue streak.
 - A week with no leaves touching the ground.
-- Restoring several grounded leaves with one Leaflift Surge.
+- Restoring several grounded leaves with one Whirlwind.
 - Completing a week without a surge, or with a specialist equipment build.
 - Holding autumn through all twelve weeks and the final encounter.
 

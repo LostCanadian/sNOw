@@ -6,22 +6,22 @@ Landing retains the original leaf dictionary, identity, paper texture, colour an
 
 Ground leaves are separate from the active air pool. Ordinary footsteps disturb them without granting free canopy captures. The path clears at the next-week boundary, preserving the established saved-canopy/recovery-floor rule. Falling leaves beyond the viewport still return through edge airflow.
 
-## Leaflift Surge
+## Whirlwind
 
-Blower rank 2 unlocks **Leaflift Surge**. Press **E** or tap its leaf-lifting button. A short airborne tumble rotates the whole cutout in the screen plane; the nozzle and airflow follow that rotation, lifting nearby original ground leaves and stirring airborne ones. It works from a separate reserve, even when the ordinary blower battery is empty. Its cooldown advances only during active gameplay, never during pauses, story panels or menus.
+The Blower **Whirlwind** node costs three Gold Leaves and requires Torque fan. Press **E** or tap its tornado button. A short airborne tumble rotates the whole cutout in the screen plane; the nozzle and airflow follow that rotation, lifting nearby original ground leaves and stirring airborne ones. It works from a separate reserve, even when the ordinary blower battery is empty. Its cooldown advances only during active gameplay, never during pauses, story panels or menus.
 
 | Upgrade | Effect |
 | --- | --- |
-| Blower rank 2 — Leaflift Surge | Unlock; 36-second base recharge |
-| Higher Blower ranks | Larger lifting radius, alongside their normal lift/width changes |
-| Battery rank 3 — Quick Recovery | Surge cooldown becomes 31 seconds |
-| Battery rank 5 — Surge Cell | Surge cooldown becomes 26 seconds |
+| Blower Whirlwind | Unlock; 36-second base recharge |
+| Blower Vortex core / Cyclone | Larger lifting radius; Cyclone also adds force |
+| Battery Whirlwind cell | Recharge reduced by five seconds |
+| Battery Storm reserve | Recharge reduced by seven more seconds (24 seconds with both) |
 
 The normal battery recharge remains separate and quick. Holding E does not automatically spend another surge when it becomes ready; the action needs a new press. Quick press/release input is buffered so it works even between physics frames. If neither ground nor airborne leaves are in range, the charge is not wasted. The player moves at 65% speed during the 1.15-second airborne tumble. New weeks/retries start with ready reserves and the saved clean path.
 
 **Recovery is real:** lifting a ground leaf removes it from the ground pile and its current-week frost penalty while it is back in play. It earns no points merely for being lifted. It must reach a real empty branch position to earn its one rescue. If it lands again, its miss returns. Existing duplicate-score/identity guards remain in place. The accounting invariant is `attached + airborne + unrecovered misses − regrown = 2880`; grounded leaves are already represented in unrecovered misses, so they are not counted twice.
 
-Older scoring versions 1–4 remain separately viewable under Previous Scores. Current rules version 5 covers colour-weighted shedding and smaller score awards alongside ground recovery and the special ability; no earlier table is overwritten or compared against the new scores. Existing campaign checkpoints migrate without losing their leaves, completed weeks or point budget.
+Older scoring versions 1–5 remain separately viewable under Previous Scores. Current rules version 6 covers the branching progression, Gold Leaves and positional airflow; no earlier table is overwritten or compared against the new scores. Existing campaign checkpoints migrate without losing their leaves, completed weeks or earned-week ledger and mapped equipment; the extra Gold Leaves for completed weeks are credited.
 
 ## Quiet gameplay UI
 

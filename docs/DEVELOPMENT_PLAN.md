@@ -96,7 +96,7 @@ Exit gate: all required platform checks have evidence, no known progress/scoring
 | Environment | Flat colour backdrop | Sky, clouds, distant trees, foreground accents, warm/cold lighting presets, subtle fog |
 | UI and branding | Text buttons and bars | Stylized sNOw logo, icons, readable font, button states, charge/danger indicators, workshop tree and equipment upgrade variants |
 | Effects | Debug lines and dots | Gust ribbons, leaf trails, attachment puff, restrained snow, sunshine accents |
-| Audio | Temporary cues | Blower loop with clean transitions, rustles, catch/miss/low-charge sounds, wind cues, music and endings |
+| Audio | Nine original MIDI/Ogg scene scores and layered effects; persistent mix controls | Blower loop with clean transitions, rustles, catch/miss/low-charge sounds, wind cues, music and endings |
 
 Create one art style sheet before production: palette, outline thickness, lighting direction, character proportions, scale guide, and small-screen contrast examples. Use modular layers so autumn/winter/win states reuse the scene. Keep source assets editable and export through a documented pipeline with consistent pivots, naming, atlas padding, and import/filter settings.
 
@@ -122,7 +122,7 @@ Next: review the playable art prototype on physical Android/iPhone browsers, rec
 
 Implemented menu increment: per-difficulty local top tens, three-initial entry, campaign-best deduplication, backward-compatible difficulty/identity checkpoints, three initial difficulty profiles and offline License notices. See [scores and licenses](SCORES_AND_LICENSES.md). Human balance testing and signed native builds remain outstanding.
 
-Current interaction increment: mirrored facing, shared upright/directional blower pose and force cone, soft border-return airflow, an illustrated non-overlapping 18-node workshop with separate descriptions, Save Slots terminology, and the user-selected persistent-canopy/recovery-floor rule. The working title is sNOw; visual-style labels are not game branding.
+Current interaction increment: mirrored facing, shared upright/directional blower pose and force cone, soft border-return airflow, a branching 30-node icon workshop with separate descriptions, Save Slots terminology, and the user-selected persistent-canopy/recovery-floor rule. The working title is sNOw; visual-style labels are not game branding.
 
 Ground/ability/story increment: one persistent sprite per landed leaf, walking disturbance, bounded pile drag, a slow-recharging ground-lifting surge and two recovery upgrades, vector-source fan controls without HOLD, and unique fade-in/closing interludes for all weeks. Achievements are a documented post-release goal, not part of the initial HUD.
 

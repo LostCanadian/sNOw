@@ -69,5 +69,8 @@ func _initialize() -> void:
 	check(turned and leaf.roll >= 0.62 and leaf.roll <= 1.0, "flutter tumbles and foreshortens the paper leaf")
 	game.spawn_leaf()
 	check(game.leaves[0].flutter_phase != game.leaves[1].flutter_phase and game.leaves[0].drag != game.leaves[1].drag, "individual leaves receive different seeded aerodynamic properties")
+	actor.rebuild(Actor.LIMBS,Rect2(0,0,256,256))
+	check(actor.limb_mesh.get_surface_count() == 1 and actor.mesh.get_surface_count() == 1 and actor.limb_regions.size() == 18, "body and eighteen separate limb sprites have independent rendering surfaces")
+	check(actor.limb_regions.all(func(rect): return rect.size.x > 80 and rect.size.y > 100), "limb bounds retain complete solid artwork instead of sampling transparent cell padding")
 	print("Cutout animation and flutter: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

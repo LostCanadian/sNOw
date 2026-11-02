@@ -1,10 +1,14 @@
 # Articulated motion and seasonal shedding
 
+## Beta motion update
+
+The walking renderer now uses a separate 18-piece thigh/shin/shoe atlas with three clothing sets. Each segment has its own rigid hip, knee or ankle transform; complete hidden hinge ends overlap at the joints. The body uses the existing wardrobe artwork. Source sprite bounds are baked by alpha-component analysis without modifying the artwork. A 29-unit stride, 62% planted stance, lower foot lift and small swing-phase shoe pitch replace the broader gait. Feet stop cycling when movement stops or reaches a boundary.
+
 ## Character
 
-The old leg skinning stretched painted regions between bones of mismatched lengths. The replacement uses separate rigid thigh, shin and shoe patches sampled from each original wardrobe frame. Hip/knee joints rotate those pieces with fixed lengths and unit scale; shoe layers stay level. A short crouch gives the legs enough reach for a distance-driven run cycle. Long coats cover the hip hinges. Turning retains gait progress; standing still stops the cycle. Blower/upper-body aiming and restrained motor vibration remain separate from the legs.
+The old leg skinning stretched painted regions between bones of mismatched lengths. The replacement uses separate illustrated thigh, shin and shoe sprites from the dedicated limb atlas. Hip/knee joints rotate those pieces with fixed lengths and unit scale; shoes stay level in stance and tilt slightly in swing. A short crouch gives the legs enough reach for a distance-driven run cycle. Long coats cover the hip hinges. Turning retains gait progress; standing still stops the cycle. Blower/upper-body aiming and restrained motor vibration remain separate from the legs.
 
-This is an articulated cutout animation using the existing twelve costumes. Artist-painted hinge caps, additional arm/face poses and a hand-authored animation pass remain future polish. The runtime does not warp the leg textures to reach an impossible foot position.
+This is an articulated cutout animation using the existing twelve costumes. Additional arm/face poses and a hand-authored animation pass remain future polish. The runtime does not warp the leg textures to reach an impossible foot position.
 
 ## Colour and falling rate
 
@@ -30,7 +34,7 @@ The latest direction replaces both the earlier faux vertical-axis spin and the i
 
 The nozzle and force cone follow the whole-character rotation. Moving wind streaks continue in that direction; there are no rays bouncing off the ground. Nearby ground leaves transfer into the air once, restoring their miss budget. Leaves already airborne receive the rotating cone and a local circulating/upward draft too. The ability can start when only airborne leaves are in range. Lifting alone earns no score; points require actual reattachment.
 
-The touch action shows only its icon and a recharge ring. E still activates it. Unlock/cooldown upgrades remain Blower rank 2 and Battery ranks 3/5, with 36/31/26-second recharge. Pause freezes the tumble, forces and recharge.
+The touch action shows only its icon and a recharge ring. E still activates it. The Whirlwind node unlocks it, and Battery Whirlwind cell/Storm reserve reduce the 36-second cooldown to 31/24 seconds. Pause freezes the tumble, forces and recharge.
 
 ## Winter ending
 
@@ -42,7 +46,7 @@ Ending foliage uses instanced paper-leaf batches; transforms upload once per ren
 
 ## Scoring and migration
 
-Rules **5** reduce every gameplay score award by ten: rescue 10 × combo multiplier, weekly bonus 50 + 5 × unused miss allowance, finale bonus 500. Upgrade points are unchanged.
+Rules **5** reduce every gameplay score award by ten: rescue 10 × combo multiplier, weekly bonus 50 + 5 × unused miss allowance, finale bonus 500. Rules 6 then replace upgrade points with two Gold Leaves per completed week and explicit branch nodes.
 
 Earlier campaign totals and known week-start score baselines divide by ten on migration. A newly saved rules-5 checkpoint is never converted again. Existing canopy, weeks, upgrades and identity remain. Earlier playing checkpoints regenerate a repeatable colour-weighted schedule from their saved RNG state; completed summaries keep their historical counts. Score tables for rules 1–4 remain separately accessible under Previous Scores with their original historical numbers.
 

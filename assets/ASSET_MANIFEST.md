@@ -13,7 +13,7 @@
 | `icon.svg` | Original vector artwork authored in this repository | Temporary project icon; not final branding. |
 | `fonts/DejaVuSans.ttf`, `fonts/DejaVuSerif.ttf` | DejaVu Fonts project, copied from the environment's installed fonts | Redistributed under the bundled [font license](fonts/LICENSE.txt); retain that license with distributions. |
 | Anchor markers, wind streaks, fog, shadows, clouds and flowers | Original procedural drawing in `scripts/main.gd`; artist-authored twig positions/orientations in `scripts/canopy.gd` | Separate runtime layers. Leaves use the textured paper sprite above; no purchased assets. |
-| Electric whirr | Original synthesized tone in `scripts/main.gd` | Temporary, quiet motor cue. No recorded audio samples. |
+| Music and sound effects | Original offline synthesis in `tools/generate_audio.py`, played by `scripts/audio_director.gd` | Nine MIDI/Ogg scores, eleven effects; no recorded samples. |
 
 Generated image originals are retained outside the checkout under `/workspace/generated_images` in this task. Runtime copies are included here so the project does not depend on those paths. The earlier comparison/progression sheets are creative references, not included in the runtime build. Review final production assets, consistency, and distribution rights before shipping; the attached tree supplied by the user is the reference for the current Season Tree adaptation.
 
@@ -23,7 +23,7 @@ The in-game License screen reads Godot’s full MIT text and bundled-library cop
 
 `art/upgrade_icons.png` was generated with OpenAI image generation for this project (`exec-fc2d4fb0-083c-4bb5-ac97-8f63de8eb65f.png`): textured boots, electric fan and battery icons. Atlas regions in `scripts/main.gd` preserve each full silhouette; icons use fixed header bounds with smooth mipmapped filtering.
 
-`art/fan.svg` and `art/surge.svg` are original vector UI assets authored in this repository. Smooth curved fan blades and upward leaf jets use 256px sources with mipmaps; no external artwork or new runtime libraries were introduced.
+`art/fan.svg` and `art/surge.svg` are original vector UI assets authored in this repository. Smooth curved fan blades and the current tornado symbol use vector sources with mipmaps; no external artwork or new runtime libraries were introduced.
 
 `art/hud_frost.svg` and `art/battery_frame.svg` are original vector status assets authored in this repository. The sixfold punched-paper flake has a 256px source; the rounded battery frame is 256 × 144. Both use mipmaps and runtime tint/fill, without new dependencies.
 
@@ -32,3 +32,9 @@ The in-game License screen reads Godot’s full MIT text and bundled-library cop
 `art/play.svg`, `art/pause.svg` and `art/twinkle.svg` are original vector interface assets authored here, with mipmaps. The walking rig now samples rigid thigh/shin/shoe cutouts from the existing wardrobe atlas using UV regions; the artwork itself is unchanged. No new runtime library was introduced.
 
 `art/gold_leaf.svg` and `art/upgrades/*.svg` are original vector UI artwork authored in this repository. Each upgrade has a thematic line icon; the tornado icon replaces the previous Leaflift Surge symbol. No additional library or external asset license is required.
+
+`art/caretaker_limbs.png` is a new OpenAI-generated transparent atlas derived from the existing wardrobe reference (original: `/workspace/generated_images/exec-46b9edc8-9d97-4575-acfa-bb3862a7234d.png`). Eighteen isolated thigh/shin/shoe illustrations cover shorts, green trousers and brown trousers/boots. `tools/build_limb_regions.py` bakes the solid component bounds into `scripts/limb_regions.gd` without altering source pixels. The runtime uses these separate pieces for the lower-body rig.
+
+`audio/*.ogg` and `audio/midi/*.mid` are original compositions and synthesized effects authored by `tools/generate_audio.py`. Nine eight-bar MIDI scores are rendered with original sine/soft-pulse/triangle voices and procedural noise; no recordings, soundfonts, downloaded samples, external songs or audio libraries are redistributed. NumPy and ffmpeg are authoring tools only. Ogg files play offline through Godot; MIDI source files preserve the notes, tempo and instrumentation.
+
+`audio/streams/*.mp3data` are MP3 renderings of the same nine scores, for browser codec compatibility. They are explicitly included as raw package files so browser media elements can stream them without asking Godot to allocate long WebAudio sample buffers. The audio generator renders both formats from the same synthesized samples.

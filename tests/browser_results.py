@@ -39,18 +39,17 @@ with sync_playwright() as p:
     click(180, 242); mode('results')
     page.wait_for_function('window.snowSnapshot.result_time > 0.4')
     assert not snap()['result_tallied'] and snap()['score_rows'] == [0, 0, 0]
-    page.keyboard.press('Escape'); mode('paused')
-    frozen = snap()['result_time']
-    page.wait_for_timeout(500)
-    assert snap()['result_time'] == frozen
-    page.keyboard.press('Escape'); mode('results')
+    page.evaluate("window.dispatchEvent(new Event('blur'))")
+    page.wait_for_timeout(250)
+    assert snap()['mode'] == 'results'
+    page.evaluate("window.dispatchEvent(new Event('focus'))")
     page.wait_for_function('window.snowSnapshot.result_tallied')
     assert snap()['result_new_high']
     assert snap()['result_display'] == ['90', '30', str(expected['score'] - expected['week_start_score'])]
     capture('results')
-    print('PASS: completed-week results tally the saved counts, pause correctly, and reveal the high-score alert.', flush=True)
+    print('PASS: completed-week results tally the saved counts, stay open across focus changes, and reveal the high-score alert.', flush=True)
 
-    click(180, 410); mode('initials')
+    click(100, 427); mode('initials')
     capture('initials')
     click(180, 258)
     page.keyboard.press('Control+A')
@@ -66,26 +65,26 @@ with sync_playwright() as p:
     assert snap()['result_tallied']
     print('PASS: weekly initials can be entered before campaign end, stored in the right table, and viewed without losing results.', flush=True)
 
-    click(180, 456); mode('workshop')
-    click(72, 306)
-    page.wait_for_function('window.snowSnapshot.selected_upgrade[0]===0 && window.snowSnapshot.selected_upgrade[1]===4')
-    click(96, 536)
-    page.wait_for_function('window.snowSnapshot.tiers[0]===4 && window.snowSnapshot.points===0')
-    click(261, 536); mode('results')
+    click(230, 427); mode('workshop')
+    click(60, 333)
+    page.wait_for_function('window.snowSnapshot.selected_upgrade[0]===0 && window.snowSnapshot.selected_upgrade[1]===3')
+    click(100, 526)
+    page.wait_for_function('window.snowSnapshot.tiers[0]===4 && window.snowSnapshot.points===7')
+    click(260, 526); mode('results')
     assert snap()['score'] == expected['score'] and snap()['result_tallied']
-    click(180, 544); mode('title')
+    click(100, 477); mode('title')
     page.reload(wait_until='networkidle')
     page.wait_for_function("window.snowSnapshot?.mode === 'title'", timeout=90000)
     click(180, 323); mode('slots')
     click(180, 242); mode('results')
     page.wait_for_function('window.snowSnapshot.result_tallied')
-    assert snap()['tiers'] == [4, 3, 2] and snap()['points'] == 0
+    assert snap()['tiers'] == [4, 3, 2] and snap()['points'] == 7
     assert snap()['result_display'] == ['90', '30', str(expected['score'] - expected['week_start_score'])]
     assert not snap()['result_new_high'] and snap()['score_rows'] == [1, 0, 0]
-    click(180, 410); mode('scores')
+    click(100, 427); mode('scores')
     assert page.evaluate("JSON.parse(localStorage.getItem('snow.highscores.v1')).tables[0][0].initials") == 'ICE'
     click(180, 554); mode('results')
-    click(180, 502); mode('intro')
+    click(250, 477); mode('intro')
     mode('play')
     assert snap()['week'] == 10 and snap()['week_rescued'] == 0 and snap()['week_missed'] == 0
     saved = page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1')).slots[0].checkpoint")

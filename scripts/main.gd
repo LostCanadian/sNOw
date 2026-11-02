@@ -1,6 +1,7 @@
 extends Node2D
 ## A small paper theatre: simulation stays separate from cutout presentation and UI.
 
+const AudioDirector = preload("res://scripts/audio_director.gd")
 const WinterFall = preload("res://scripts/winter_fall.gd")
 const GOLD_LEAF = preload("res://assets/art/gold_leaf.svg")
 const PLAY_ICON = preload("res://assets/art/play.svg")
@@ -100,12 +101,11 @@ var paused_mode := "play"
 var paused_overlay: Control
 var lifecycle_callback: JavaScriptObject
 var save_notice := ""
-var audio: AudioStreamPlayer
-var playback: AudioStreamGeneratorPlayback
-var audio_phase := 0.0
+var sounds: Node
 var last_frame_ms := 0.0
 var test_hooks := false
 var telemetry_tick := 0
+var debug_pointer := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -134,14 +134,9 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		lifecycle_callback = JavaScriptBridge.create_callback(func(_args): pause_for_focus())
 		JavaScriptBridge.get_interface("window").snowPauseRequested = lifecycle_callback
-	var stream := AudioStreamGenerator.new()
-	stream.mix_rate = 22050
-	stream.buffer_length = 0.08
-	audio = AudioStreamPlayer.new()
-	audio.stream = stream
-	audio.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
-	audio.volume_db = -20
-	add_child(audio)
+	sounds = AudioDirector.new()
+	add_child(sounds)
+	muted = sounds.muted
 	show_title()
 	if "--smoke" in OS.get_cmdline_user_args():
 		start_run()
@@ -174,9 +169,11 @@ func _physics_process(dt: float) -> void:
 		actor.advance(sim.x - previous_x if sim.surge_left <= 0 else 0.0, dt, sim.blowing or sim.surge_left > 0, reduced_effects, sim.facing, sim.aim)
 		update_actor_mesh()
 		for event in sim.events:
+			sounds.leaf_cue(event.saved)
 			if sparks.size() < 50:
 				sparks.append({"position": event.position, "time": 0.0, "saved": event.saved})
 		if sim.status == "workshop":
+			sounds.play_cue("week_clear",0.6)
 			mode = "outro"
 			story_time = 0
 			clear_input()
@@ -210,13 +207,14 @@ func _physics_process(dt: float) -> void:
 			spark.time += dt
 		sparks = sparks.filter(func(spark: Dictionary) -> bool: return spark.time < 0.8)
 	queue_redraw()
-	fill_audio()
+	fill_audio(dt)
 	if OS.has_feature("web"):
 		JavaScriptBridge.get_interface("window").snowShouldConfirmExit = active_slot >= 0 and sim.status == "playing" and sim.week_time > 0
 	if test_hooks:
 		telemetry_tick += 1
 		if telemetry_tick % 6 == 0:
 			var snapshot := {
+				"debug_pointer": [debug_pointer.x,debug_pointer.y], "mouse_down": Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT), "ui_buttons": overlay.find_children("*","Button",true,false).map(func(b): return {"text":b.text,"name":b.name,"rect":[b.global_position.x,b.global_position.y,b.size.x,b.size.y]}) if is_instance_valid(overlay) else [],
 				"ending_phase": winter_fall.phase, "ending_attached": winter_fall.attached, "ending_air": winter_fall.airborne, "ending_ground": winter_fall.grounded, "snow_cover": winter_fall.cover(),
 				"mode": mode, "score": sim.score, "week": sim.week, "x": sim.x, "charge": sim.charge,
 				"ground_positions": sim.ground_leaves.map(func(leaf): return [leaf.id, leaf.position.x, leaf.position.y, leaf.velocity.x]),
@@ -225,7 +223,8 @@ func _physics_process(dt: float) -> void:
 				"week_rescued": sim.week_rescued, "week_points": sim.score - sim.week_start_score if sim.week_start_score >= 0 else -1,
 				"result_display": result_numbers.map(func(label): return label.text if is_instance_valid(label) else ""),
 				"blowing": sim.blowing, "rescued": sim.rescued, "missed": sim.missed,
-				"points": sim.points, "tiers": sim.tiers, "selected_upgrade": [selected_upgrade.x, selected_upgrade.y], "touches": touches.size(),
+				"audio_track": sounds.track, "audio_cues": sounds.cue_counts, "audio_unlocked": sounds.unlocked, "audio_muted": sounds.muted,
+				"points": sim.points, "tiers": sim.tiers, "owned": sim.owned, "selected_upgrade": [selected_upgrade.x, selected_upgrade.y], "touches": touches.size(),
 				"week_missed": sim.week_missed, "regrown": sim.regrown, "week_regrown": sim.week_regrown,
 				"airborne": sim.leaves.map(func(leaf): return [leaf.position.x, leaf.position.y, leaf.id]),
 				"air_details": sim.leaves.map(func(leaf): return [leaf.id,leaf.home_slot,leaf.position.x,leaf.position.y,leaf.angle,leaf.colour.to_html(false),leaf.age]),
@@ -247,7 +246,9 @@ func _physics_process(dt: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if (event is InputEventKey or event is InputEventMouseButton or event is InputEventScreenTouch) and event.is_pressed() and is_instance_valid(sounds): sounds.unlock()
 	var pressed: bool = (event is InputEventScreenTouch and event.pressed and not event.canceled) or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed)
+	if pressed: debug_pointer = event.position
 	if pressed and PAUSE.has_point(event.position):
 		if mode == "paused": resume_game()
 		else: pause_game()
@@ -335,8 +336,11 @@ func _notification(what: int) -> void:
 		clear_input()
 		pause_for_focus()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and is_instance_valid(ui):
-		if mode != "paused": pause_game()
-		confirm_discard(func(): get_tree().quit())
+		if sim.status == "playing" and sim.week_time > 0 and mode in ["play", "intro", "paused"]:
+			if mode != "paused": pause_game()
+			confirm_discard(func(): get_tree().quit())
+		else:
+			get_tree().quit()
 
 
 func start_run(slot_index := -1, slot_name := "", difficulty := -1) -> void:
@@ -358,14 +362,6 @@ func start_run(slot_index := -1, slot_name := "", difficulty := -1) -> void:
 	clear_overlay()
 	clear_input()
 	begin_intro()
-	if DisplayServer.get_name() != "headless" and not audio.playing:
-		audio.play()
-		playback = audio.get_stream_playback()
-
-
-func _exit_tree() -> void:
-	if is_instance_valid(audio): audio.stop()
-	playback = null
 
 
 func pause_for_focus() -> void:
@@ -564,9 +560,6 @@ func load_slot(index: int) -> void:
 		text_label(panel, "Continue from the start of this level.", Rect2(12, 61, 280, 28), 11, INK)
 		button(panel, "Continue", Rect2(24, 105, 256, 38), begin_intro)
 		button(panel, "Save Slots", Rect2(24, 155, 256, 38), show_slots, true)
-	if DisplayServer.get_name() != "headless" and not audio.playing:
-		audio.play()
-		playback = audio.get_stream_playback()
 
 
 func clear_overlay() -> void:
@@ -638,7 +631,13 @@ func button(parent: Node, content: String, rect: Rect2, callback: Callable, seco
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		b.add_theme_color_override(state, INK if secondary else CREAM)
 	b.add_theme_color_override("font_disabled_color", Color("687064"))
-	b.pressed.connect(callback)
+	b.pressed.connect(func():
+		if is_instance_valid(sounds):
+			sounds.unlock()
+			sounds.play_cue("menu_tap",0.45)
+		callback.call())
+	b.focus_entered.connect(func():
+		if is_instance_valid(sounds): sounds.play_cue("menu_focus",0.2))
 	parent.add_child(b)
 	b.position = rect.position
 	b.size = rect.size
@@ -673,7 +672,7 @@ func show_title() -> void:
 	text_label(panel, "Keep a little autumn alive.", Rect2(12, 107, 284, 22), 11, INK)
 	button(panel, "Continue / New game", Rect2(25, 147, 258, 45), show_slots)
 	button(panel, "Explore the seasons", Rect2(25, 203, 258, 40), show_season_lab, true)
-	text_label(panel, "Move: A / D or arrows · Blow: hold Space\nE: Leaflift Surge (unlock in the workshop)", Rect2(12, 299, 284, 43), 10, INK)
+	text_label(panel, "Move: A / D or arrows · Blow: hold Space\nE: Whirlwind (unlock in the workshop)", Rect2(12, 299, 284, 43), 10, INK)
 	button(panel, "High Scores", Rect2(25, 254, 123, 38), func(): show_high_scores(), true)
 	button(panel, "License", Rect2(160, 254, 123, 38), show_license, true)
 	add_options(panel, 354)
@@ -692,14 +691,18 @@ func add_options(parent: Node, y: float) -> void:
 	parent.add_child(effects)
 	var sound := CheckButton.new()
 	sound.text = "Mute"
-	sound.position = Vector2(182, y)
-	sound.size = Vector2(100, 30)
+	sound.position = Vector2(158, y)
+	sound.size = Vector2(83, 30)
 	sound.button_pressed = muted
 	sound.add_theme_font_override("font", BODY_FONT)
 	sound.add_theme_font_size_override("font_size", 10)
 	sound.add_theme_color_override("font_color", INK)
-	sound.toggled.connect(func(value: bool): muted = value)
+	sound.toggled.connect(func(value: bool):
+		muted = value
+		sounds.muted = value
+		sounds.save_preferences())
 	parent.add_child(sound)
+	button(parent, "Audio", Rect2(243, y, 53, 30), show_audio_options, true).add_theme_font_size_override("font_size", 10)
 
 
 func show_license() -> void:
@@ -942,6 +945,7 @@ func show_workshop(animate := false) -> void:
 	button(panel, "Back to results", Rect2(176, 431, 148, 38), show_result, true)
 	button(panel, "Reset kit", Rect2(12, 478, 72, 20), func():
 		sim.refund_build()
+		sounds.play_cue("reset",0.5)
 		save_boundary()
 		show_workshop(true), true).add_theme_font_size_override("font_size", 9)
 	text_label(panel, "Saved" if save_notice.is_empty() else save_notice, Rect2(94, 478, 228, 18), 8, INK)
@@ -949,6 +953,7 @@ func show_workshop(animate := false) -> void:
 
 func purchase(branch: int, node := -1) -> void:
 	if sim.buy(branch, node):
+		sounds.play_cue("upgrade",0.8)
 		save_boundary()
 		show_workshop()
 
@@ -1334,6 +1339,7 @@ func draw_character(winter: bool, victory: bool) -> void:
 		var mirror := Transform2D(0, Vector2(actor.direction,1), 0, Vector2.ZERO)
 		var transform: Transform2D = Transform2D(0, Vector2(px,Loop.GROUND)) * sim.surge_transform() * mirror
 		draw_set_transform_matrix(transform)
+		draw_mesh(actor.limb_mesh, actor.LIMBS)
 		draw_mesh(actor.mesh, WARDROBE)
 		draw_set_transform(Vector2.ZERO)
 		return
@@ -1479,15 +1485,34 @@ func write_center(content: String, x: float, y: float, size_px: int, colour: Col
 	write(content, Vector2(x - width / 2.0, y), size_px, colour, serif)
 
 
-func fill_audio() -> void:
-	if playback == null: return
-	var available := playback.get_frames_available()
-	var active: bool = (sim.blowing or sim.surge_left > 0) and mode == "play" and not muted
-	for i in range(available):
-		audio_phase += TAU * (145.0 if sim.surge_left > 0 else 105.0) / 22050.0
-		if audio_phase > TAU: audio_phase -= TAU
-		var sample := sin(audio_phase) * 0.12 + sin(audio_phase * 2.0) * 0.03
-		playback.push_frame(Vector2.ONE * sample * (1.0 if active else 0.0))
+func fill_audio(dt: float) -> void:
+	if not is_instance_valid(sounds): return
+	sounds.muted = muted
+	var audio_mode := mode
+	if mode == "scores" and scores_return_to_result: audio_mode = sim.status if sim.status in ["lost","won"] else "results"
+	if mode == "initials": audio_mode = sim.status if sim.status in ["lost","won"] else "results"
+	sounds.update(audio_mode, sim.week, sim.blowing, sim.charge, actor.gait_distance, actor.movement > 0.05, sim.surge_left > 0, dt)
+
+
+func show_audio_options() -> void:
+	mode = "audio_options"
+	var panel := new_panel(Rect2(28, 162, 304, 316))
+	text_label(panel, "Sound & music", Rect2(12, 17, 280, 37), 23, INK, true)
+	for i in range(2):
+		var property := "music_volume" if i == 0 else "effects_volume"
+		text_label(panel, "Music" if i == 0 else "Sound effects", Rect2(18, 68+i*78, 268, 25), 13, INK)
+		var slider := HSlider.new()
+		slider.min_value = 0
+		slider.max_value = 1
+		slider.step = 0.05
+		slider.value = sounds.get(property)
+		slider.position = Vector2(30, 104+i*78)
+		slider.size = Vector2(244,24)
+		slider.value_changed.connect(func(value):
+			sounds.set(property,value)
+			sounds.save_preferences())
+		panel.add_child(slider)
+	button(panel, "Back to menu", Rect2(24, 246, 256, 40), show_title)
 
 
 func begin_intro() -> void:

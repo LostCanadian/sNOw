@@ -123,6 +123,6 @@ func run() -> void:
 		if name.begins_with(prefix.get_file()): DirAccess.remove_absolute("user://" + name)
 	main.queue_free()
 	await process_frame
-	await process_frame
+	await create_timer(0.5).timeout
 	print("Results, HUD and weekly scores: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

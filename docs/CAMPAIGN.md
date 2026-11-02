@@ -12,7 +12,7 @@ A new campaign begins with **2,880 individually attached leaves** on the supplie
 
 **If every leaf is rescued in week one, week two still starts with all 2,880.** Nothing removes leaves simply because another week has begun. Seasonal colour advances and the next shedding schedule is harder. Misses leave persistent gaps; successful play preserves a fuller tree.
 
-Landing now keeps the original leaf in a physical ground pile. Walking disturbs it; the unlocked Leaflift Surge can return it to the air and remove its frost penalty while it is in play. Points still require actual reattachment. See [abilities and story](ABILITIES_AND_STORY.md).
+Landing now keeps the original leaf in a physical ground pile. Walking disturbs it; the unlocked Whirlwind can return it to the air and remove its frost penalty while it is in play. Points still require actual reattachment. See [abilities and story](ABILITIES_AND_STORY.md).
 
 Danger is **weekly**. Reaching that week's miss allowance loses the level. Its completed checkpoint remains safe, and Retry restores that level's starting canopy, score, loadout, random state, clean path, full battery and zero weekly misses. Campaign rescue/unrecovered-miss totals are tracked separately and do not consume the next week's allowance.
 
@@ -36,7 +36,7 @@ Leaves flutter and tumble with seeded variation in drag, phase and spin. A retur
 
 ## Eighteen upgrades, twelve points
 
-Boots, Blower and Battery each have six one-point ranks: **18 nodes**, with only **12 points** earned from the twelve main weeks. Previous rank in the branch is required. This yields **28 distinct full-budget final allocations**, plus many purchase orders and partially spent kits. Examples include 6/6/0, 6/0/6, 0/6/6 and 4/4/4. The boss awards no unusable extra upgrade point.
+Boots, Blower and Battery each have a ten-node branching tree. Two Gold Leaves are earned for each of twelve main weeks, for a 24-leaf budget competing with 41 leaves of upgrades. Nodes have explicit prerequisites and costs; Whirlwind requires Torque fan and three additional Gold Leaves. The boss awards no unusable currency. See [current beta progression](BETA_POLISH.md).
 
 Tap any node to inspect it, including locked/owned ones. Its full description and prerequisite appear in a separate fixed card. Buying is a separate explicit action. Equipment icons identify the three lanes, connectors show prerequisites, and node hit areas do not overlap. Reset Kit freely refunds the earned budget in the workshop.
 
@@ -67,3 +67,5 @@ Rules version 4 expands the canopy to 2,880 leaves and sheds batches of ten at t
 To change difficulty in an occupied slot: Save Slots → Edit → Start fresh… → choose a difficulty/name → Review fresh start → confirm. Cancellation preserves the original campaign. Confirmation resets that slot to week 1 with a new campaign identity and chosen difficulty; other saves and score tables remain intact. Difficulty stays fixed during an existing campaign.
 
 Rules 5 change the seasonal colour mix, weighted selection and cadence; week-one events contain four leaves and late events ten. [Motion/season rules](MOTION_AND_SEASONS.md) cover exact colour weights, rigid limb animation, the airborne Surge, knee-height scuffs, leaf-first winter and score conversion. Earlier campaign scores divide by ten, while archived score tables keep their historical numbers. One-use upgrade items such as coffee remain [future work](CONSUMABLES.md).
+
+Beta checkpoint UX: loading a playing checkpoint offers Continue, which begins the saved level from the start. Resume/Restart remain live-pause actions, where they refer to genuinely different choices. Results and menus never auto-pause on focus loss. See [beta polish](BETA_POLISH.md).

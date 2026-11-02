@@ -139,33 +139,17 @@ Recommended scope: upgrades last for the current saved campaign and reset when s
 
 ### Branches and initial nodes
 
-Three branches begin from the same starter kit. Each has six one-point ranks; the preceding rank is required. Eighteen nodes compete for twelve campaign points, yielding 28 distinct final full-budget allocations. Locked and owned nodes remain inspectable; purchasing is separate from inspection.
+Boots, Blower and Battery act as equipment tabs. Each contains ten icon nodes with an explicit prerequisite graph: a root, two paths, four specializations and three capstones. The middle capstone requires both inner paths. Inspect any node to read its name and effect; purchase separately. Owned checks, lock icons and connector colours distinguish state.
 
-| Branch | Rank effects | Tradeoff |
-| --- | --- | --- |
-| Boots | +5% running speed per rank; maximum pile slowdown starts at 32% and falls by 2.5 percentage points per rank | Invest in repositioning and carrying heavier equipment |
-| Blower | +15% force and +4 cone width per rank | +5% equipment load and +7.5% energy draw per rank |
-| Battery | +10% capacity and −4.5% draw/recharge time per rank | +0.5% equipment load per rank |
-
-The workshop uses equipment illustrations above three connected lanes. Node cards contain short names and rank/owned cues. Full effects, prerequisites and costs occupy a separate bounded description card; Buy and Back to Results have independent targets. Next Week is on the results page. Reset Kit refunds the earned budget freely between weeks.
-
-All modeled builds retain useful movement under maximum pile drag. Sweep leaf capture along each movement segment to avoid skipping empty spots at higher power. Human tests must still establish which loadouts and purchase orders win on each difficulty.
+Boots specialize in speed, carrying weight or pile resistance. Blower paths offer width/steering/reach or Whirlwind and its radius/force improvements. Battery paths offer burst capacity, ordinary recharge or Whirlwind cooldown. See [the current rules and validation](BETA_POLISH.md) and `scripts/upgrades.gd` for the exact effects and costs.
 
 ### Earning and spending
 
-- Award one upgrade point after each of weeks 1–12, regardless of score or rescue rate. No points after the final week, since the run is over.
-- Twelve points are available before the finale. Fully upgrading a branch costs six; all three branches would require eighteen. Players must choose a final allocation and purchase order rather than arriving at the same fully upgraded kit.
-- Points are separate from arcade score. Never force the player to reduce a high score to buy equipment, and do not reward repeated juggling or replaying a week with extra points.
-- Unspent points carry forward within the run. Allow free reallocation only between weeks, refunding dependents when removing a prerequisite. Confirm a complete valid build before starting the next week; no changes during active play.
-- Starting a new campaign clears its points and build. Retrying a level restores its checkpoint, including the awarded-point ledger, rather than clearing completed progress or retaining attempt rewards. Workshop edits autosave.
+Each of weeks 1–12 awards two Gold Leaves. Roots and specializations cost one, capstones cost two, and Whirlwind costs three after Torque fan (four total). The 24-leaf campaign budget is smaller than the 41-leaf complete tree. The finale awards none. Gold Leaves are separate from arcade score; retries and repeated menu visits cannot duplicate them. Unspent Gold Leaves carry forward, and Reset kit refunds exact costs between weeks. Purchases and branch choices autosave.
 
 ### Between-week workshop UX
 
-Flow: closing text → **weekly results** → optional **paper workshop upgrade tree** → results → Start Week. Results show available upgrade points and can also return to Main Menu. Show three vertical branches connected by cut-paper paths, large boots/fan/battery icons, owned/available/locked states, points remaining, and readable prerequisites. Avoid colour-only state cues.
-
-Selecting a node previews “current → proposed” run speed, gust force/reach, continuous burst duration, recharge duration, and pile resistance. Explicitly label drawbacks, such as “Stronger gust; heavier to carry.” Include Confirm and Undo/Reallocate; close upgrades back to results, where Start Week can keep an existing build or bank points. Avoid auto-spending or a real-time decision countdown. After the boss encounter, go directly to the ending/results, not another workshop.
-
-Temporary pickups are deferred until the upgrade tree is balanced. If revisited, avoid duplicating upgrade identities or adding several competing resource meters. The earlier Cool Breeze heat pickup is retired with the heat system.
+Flow: closing text → weekly results → optional workshop → results → next week. Results use equal-size buttons with a numbered gold leaf badge on Upgrades. Equipment tabs reveal one branching tree with animated node entrances; Soft effects disables the motion. Descriptions and costs appear only for the selected node. Locked paths stay inspectable and list their prerequisites. Next Week stays on results. There is no automatic spending or decision countdown.
 
 ## Points and high scores
 
@@ -229,7 +213,7 @@ Use the supplied ancient, asymmetric tree as the authoritative visual reference.
 
 The implementation title is sNOw only. Suggested alternatives are in [naming notes](NAMING.md); availability has not been checked. Earlier-rules high scores are archived separately when canopy, steering and upgrade rules change.
 
-The current build keeps each landed leaf intact as a ground object, with layered piles and foot scuffs. Blower rank 2 unlocks Leaflift Surge; Battery ranks 3 and 5 shorten its slow special cooldown. See [abilities/story](ABILITIES_AND_STORY.md) for exact behavior, chapter text and save/score compatibility. Achievement systems are [deferred past the initial release](ACHIEVEMENTS.md), and gameplay no longer announces rescue streaks.
+The current build keeps each landed leaf intact as a ground object, with layered piles and foot scuffs. The Blower Whirlwind node unlocks the tornado ability; the Battery Whirlwind cell and Storm reserve nodes shorten its cooldown. See [abilities/story](ABILITIES_AND_STORY.md) for exact behavior, chapter text and save/score compatibility. Achievement systems are [deferred past the initial release](ACHIEVEMENTS.md), and gameplay no longer announces rescue streaks.
 
 Future atmosphere and wildlife follow [AMBIENT_WORLD.md](AMBIENT_WORLD.md): seasonal rabbit coat, owl at night, optional wolf/bat on a selected full-moon night, separate sky/sun/moon positions and restrained blower reactions. This is a deferred scenery pass.
 

@@ -152,14 +152,13 @@ func run() -> void:
 	main._notification(Node.NOTIFICATION_APPLICATION_FOCUS_IN)
 	check(main.mode == "paused", "returning from another app never auto-resumes")
 	main.resume_game()
+	main._physics_process(1.0 / 60)
 	main._notification(Node.NOTIFICATION_WM_CLOSE_REQUEST)
 	check(main.mode == "paused" and main.overlay != null, "native close requests open a confirmation rather than terminating immediately")
 	for extension in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(path + extension): DirAccess.remove_absolute(path + extension)
-	main.audio.stop()
-	main.playback = null
 	main.queue_free()
 	await process_frame
-	await process_frame
+	await create_timer(0.5).timeout
 	print("Scene/input: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

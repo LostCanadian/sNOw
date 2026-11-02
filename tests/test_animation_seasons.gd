@@ -173,6 +173,6 @@ func run() -> void:
 	check(main.PLAY_ICON.get_image().get_mipmap_count() > 0 and main.PAUSE_ICON.get_image().get_mipmap_count() > 0,"play/pause symbols use smooth mipmapped vector artwork")
 	main.queue_free()
 	await process_frame
-	await process_frame
+	await create_timer(0.5).timeout
 	print("Articulated motion, seasons and winter: %d checks, %d failures" % [checks,failures])
 	quit(1 if failures else 0)

@@ -134,7 +134,7 @@ def run(url: str, executable: str):
         record("misses trigger actual winter loss and its result screen")
         ended_score = snap()["score"]
         page.wait_for_function("window.snowSnapshot.result_tallied")
-        click(180, 410)
+        click(100, 427)
         page.wait_for_function("window.snowSnapshot.mode === 'initials'")
         click(180, 258)
         page.keyboard.press("Control+A")
@@ -146,7 +146,7 @@ def run(url: str, executable: str):
         assert score_document["tables"][1][0]["score"] == ended_score
         click(180, 554)
         page.wait_for_function("window.snowSnapshot.mode === 'lost'")
-        click(180, 502)
+        click(250, 477)
         page.wait_for_function("window.snowSnapshot.mode === 'play'")
         assert snap()["week"] == 1 and snap()["tiers"] == [0, 0, 0]
         assert snap()["week_missed"] == 0 and snap()["attached"] + snap()["air"] == 2880
@@ -177,22 +177,22 @@ def run(url: str, executable: str):
         page.wait_for_function("window.snowSnapshot.mode === 'slots'")
         click(180,322)
         page.wait_for_function("window.snowSnapshot.mode === 'results' && window.snowSnapshot.result_tallied")
-        click(180,456)
+        click(230,427)
         page.wait_for_function("window.snowSnapshot.mode === 'workshop'")
-        assert snap()["points"] == 1
-        click(180,222)  # Inspect Fan rank 1.
+        assert snap()["points"] == 2
+        click(180,172)  # Inspect Fan rank 1.
         page.wait_for_function("window.snowSnapshot.selected_upgrade[0] === 1")
-        click(96,536)   # Explicit Buy action, separate from inspection.
-        page.wait_for_function("window.snowSnapshot.tiers[1] === 1 && window.snowSnapshot.points === 0")
-        click(180,362)  # Locked rank 6 still has a readable description.
-        page.wait_for_function("window.snowSnapshot.selected_upgrade[1] === 6")
+        click(100,526)   # Explicit Buy action, separate from inspection.
+        page.wait_for_function("window.snowSnapshot.tiers[1] === 1 && window.snowSnapshot.points === 1")
+        click(300,390)  # Locked rank 6 still has a readable description.
+        page.wait_for_function("window.snowSnapshot.selected_upgrade[1] === 9")
         assert snap()["tiers"] == [0,1,0]
         page.screenshot(path=str(output / "browser-workshop.png"))
-        click(296,135)  # Refund the kit.
-        page.wait_for_function("window.snowSnapshot.points === 1 && window.snowSnapshot.tiers[1] === 0")
-        click(180,222)
+        click(60,564)  # Refund the kit.
+        page.wait_for_function("window.snowSnapshot.points === 2 && window.snowSnapshot.tiers[1] === 0")
+        click(180,172)
         page.wait_for_function("window.snowSnapshot.selected_upgrade[0] === 1")
-        click(96,536)
+        click(100,526)
         page.wait_for_function("window.snowSnapshot.tiers[1] === 1")
         record("workshop fixture: inspect locked nodes, buy explicitly and refund without overlapping controls")
         page.reload(wait_until="networkidle")
@@ -201,12 +201,12 @@ def run(url: str, executable: str):
         page.wait_for_function("window.snowSnapshot.mode === 'slots'")
         click(180,322)
         page.wait_for_function("window.snowSnapshot.mode === 'results' && window.snowSnapshot.result_tallied")
-        click(180,456)
+        click(230,427)
         page.wait_for_function("window.snowSnapshot.mode === 'workshop'")
-        assert snap()["tiers"] == [0,1,0] and snap()["points"] == 0
-        click(261,536)
+        assert snap()["tiers"] == [0,1,0] and snap()["points"] == 1
+        click(260,526)
         page.wait_for_function("window.snowSnapshot.mode === 'results'")
-        click(180,502)
+        click(250,477)
         page.wait_for_function("window.snowSnapshot.mode === 'play' && window.snowSnapshot.week === 2")
         assert snap()["week_missed"] == 0 and snap()["tiers"] == [0,1,0]
         page.reload(wait_until="networkidle")

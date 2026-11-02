@@ -49,6 +49,11 @@ func run() -> void:
 	for icon in main.overlay.find_children("*", "TextureRect", true, false):
 		bounded = bounded and icon.size.x <= 48 and icon.size.y <= 43
 	check(bounded, "equipment textures stay inside their header slots")
+	for tab in main.overlay.find_children("*", "Button", true, false):
+		if tab.text == "Blower":
+			tab.pressed.emit()
+			break
+	check(main.selected_upgrade == Vector2i(1,0), "Blower tab selects its own branching tree")
 	main.selected_upgrade = Vector2i(2, 6)
 	main.show_workshop()
 	var card_text = main.overlay.find_children("*", "RichTextLabel", true, false)
@@ -75,6 +80,6 @@ func run() -> void:
 		if FileAccess.file_exists(path + extension): DirAccess.remove_absolute(path + extension)
 	main.queue_free()
 	await process_frame
-	await process_frame
+	await create_timer(0.5).timeout
 	print("License and menu UI: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

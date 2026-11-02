@@ -153,6 +153,6 @@ func run() -> void:
 		if FileAccess.file_exists(path + extension): DirAccess.remove_absolute(path + extension)
 	main.queue_free()
 	await process_frame
-	await process_frame
+	await create_timer(0.5).timeout
 	print("Ground leaves, surge and story: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

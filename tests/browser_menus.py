@@ -45,15 +45,15 @@ with sync_playwright() as p:
             page.locator('canvas').screenshot(path='docs/images/prototype-license.png')
         if index == 3:
             page.locator('canvas').screenshot(path='test-results/browser-font-license.png')
-    page.keyboard.press('Escape')
-    mode('paused')
-    page.keyboard.press('Escape')
-    mode('license')
+    page.evaluate("window.dispatchEvent(new Event('blur'))")
+    page.wait_for_timeout(250)
+    assert snap()['mode'] == 'license'
+    page.evaluate("window.dispatchEvent(new Event('focus'))")
     assert snap()['license_section'] == 'DejaVu fonts'
     context.set_offline(False)
     click(180,541)
     mode('title')
-    print('PASS: all difficulty tabs and complete license sections work offline; pause retains the selected notice.',flush=True)
+    print('PASS: all difficulty tabs and complete license sections work offline; focus changes retain the selected notice.',flush=True)
     # New-garden difficulty controls: real UI selection persisted in the campaign.
     for difficulty, slot_y, x, capacity in [(0,242,62,180),(2,322,246,100),(1,402,154,140)]:
         click(180,323)

@@ -1,23 +1,27 @@
 extends RefCounted
-## Articulated paper cutout: rigid thighs, shins and shoes over the original atlas.
+## Separate illustrated thighs, shins and shoes, attached through hip/knee/ankle joints.
 ## Rotations preserve bone lengths and artwork scale; no blended leg skinning.
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const SIZE := Vector2(78, 76)
 const ANCHOR := Vector2(0.40, 1.0)
 const NOZZLE_UV := Vector2(0.95, 0.06)
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
-const STRIDE := 36.0
-const STANCE := 0.55
+const STRIDE := 29.0
+const STANCE := 0.62
 const COLUMNS := 14
 const ROWS := 12
 const BODY_CUT := 0.72
 const HIPS := [Vector2(0.285,0.70), Vector2(0.44,0.70)]
 const KNEES := [Vector2(0.255,0.84), Vector2(0.465,0.84)]
 const ANKLES := [Vector2(0.245,0.965), Vector2(0.49,0.965)]
-const PARTS := [
-	[Rect2(0.14,0.68,0.23,0.16), Rect2(0.12,0.81,0.24,0.13), Rect2(0.06,0.92,0.30,0.08)],
-	[Rect2(0.37,0.68,0.19,0.16), Rect2(0.36,0.81,0.23,0.13), Rect2(0.36,0.92,0.30,0.08)],
+const LIMBS = preload("res://assets/art/caretaker_limbs.png")
+# Independent artwork, not rectangles cut through the original complete legs.
+const LIMB_RECTS := [
+	[Rect2(-15.1,-25.0,12.2,16.0), Rect2(-14.8,-14.3,7.1,12.5), Rect2(-16.2,-7.4,15.0,7.4)],
+	[Rect2(-3.0,-25.0,11.8,16.0), Rect2(1.4,-14.3,7.1,12.5), Rect2(2.0,-7.4,15.0,7.4)],
 ]
+var limb_regions: Array[Rect2] = []
+var limb_mesh := ArrayMesh.new()
 var travel := 0.0
 var gait_distance := 0.0
 var time := 0.0
@@ -34,6 +38,7 @@ var torso_transform := Transform2D.IDENTITY
 var recoil := Vector2.ZERO
 
 func _init() -> void:
+	limb_regions.assign(preload("res://scripts/limb_regions.gd").RECTS)
 	update_joints()
 
 static func rest(uv: Vector2) -> Vector2:
@@ -79,7 +84,7 @@ func foot_target(leg: int) -> Vector2:
 	else:
 		var swing := (local_phase - STANCE) / (1 - STANCE)
 		stride_x = -cos(swing * PI) * STANCE * STRIDE * 0.5
-		lift = sin(swing * PI) * 4.5
+		lift = sin(swing * PI) * 3.3
 	var target := Vector2(rest(HIPS[leg]).x + stride_x, rest(ANKLES[leg]).y - lift)
 	return rest(ANKLES[leg]).lerp(target, movement)
 
@@ -110,7 +115,12 @@ func update_joints() -> void:
 		joints.append({"hip":hip, "knee":bent, "ankle":ankle})
 		bones.append(bone_transform(rest(HIPS[leg]), rest(KNEES[leg]), hip, bent))
 		bones.append(bone_transform(rest(KNEES[leg]), rest(ANKLES[leg]), bent, ankle))
-		feet.append(Transform2D(0, ankle - rest(ANKLES[leg])))
+		var local_phase := fposmod(phase() + leg*0.5, 1.0)
+		var swing := clampf((local_phase - STANCE) / (1-STANCE),0,1)
+		var shoe_angle := -sin(swing*PI) * 0.19 * movement
+		var shoe := Transform2D(shoe_angle,Vector2.ZERO)
+		shoe.origin = ankle - shoe * rest(ANKLES[leg])
+		feet.append(shoe)
 
 func bone_transform(a: Vector2, b: Vector2, target_a: Vector2, target_b: Vector2) -> Transform2D:
 	var rotation := Transform2D((target_b - target_a).angle() - (b - a).angle(), Vector2.ZERO)
@@ -138,21 +148,30 @@ func rebuild(texture: Texture2D, region: Rect2, body_cut := BODY_CUT) -> void:
 	var vertices := PackedVector3Array()
 	var uvs := PackedVector2Array()
 	var indices := PackedInt32Array()
-	# Each limb patch is a rigid textured piece, with overlap hiding the paper hinges.
+	# Separate atlas pieces hinge as rigid layers. Rear leg is drawn first.
+	var wardrobe_row := 0 if body_cut < 0.75 else (1 if body_cut < 0.79 else 2)
 	for leg in range(2):
 		for part in range(3):
-			var patch: Rect2 = PARTS[leg][part]
-			if part == 0:
-				var bottom := patch.end.y
-				patch.position.y = maxf(patch.position.y, body_cut - 0.025)
-				patch.size.y = bottom - patch.position.y
-			var transform := feet[leg] if part == 2 else bones[leg * 2 + part]
+			var patch: Rect2 = LIMB_RECTS[leg][part]
+			var region_index := wardrobe_row*6 + part*2 + leg
+			var source_region: Rect2 = limb_regions[region_index]
+			var transform := feet[leg] if part == 2 else bones[leg*2+part]
 			var start := vertices.size()
-			for uv in [patch.position, Vector2(patch.end.x,patch.position.y),patch.end,Vector2(patch.position.x,patch.end.y)]:
-				var posed: Vector2 = transform * rest(uv)
+			for corner in [Vector2.ZERO,Vector2(1,0),Vector2.ONE,Vector2(0,1)]:
+				var posed: Vector2 = transform * (patch.position + corner*patch.size)
 				vertices.append(Vector3(posed.x,posed.y,0))
-				uvs.append((region.position + uv * region.size) / texture.get_size())
+				uvs.append((source_region.position+corner*source_region.size)/LIMBS.get_size())
 			indices.append_array(PackedInt32Array([start,start+1,start+2,start,start+2,start+3]))
+	var limb_arrays := []
+	limb_arrays.resize(Mesh.ARRAY_MAX)
+	limb_arrays[Mesh.ARRAY_VERTEX] = vertices
+	limb_arrays[Mesh.ARRAY_TEX_UV] = uvs
+	limb_arrays[Mesh.ARRAY_INDEX] = indices
+	limb_mesh.clear_surfaces()
+	limb_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,limb_arrays)
+	vertices = PackedVector3Array()
+	uvs = PackedVector2Array()
+	indices = PackedInt32Array()
 	var body_start := vertices.size()
 	for row in range(ROWS + 1):
 		for column in range(COLUMNS + 1):
