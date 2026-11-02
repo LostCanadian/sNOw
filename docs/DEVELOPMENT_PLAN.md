@@ -123,3 +123,5 @@ Next: review the playable art prototype on physical Android/iPhone browsers, rec
 Implemented menu increment: per-difficulty local top tens, three-initial entry, campaign-best deduplication, backward-compatible difficulty/identity checkpoints, three initial difficulty profiles and offline License notices. See [scores and licenses](SCORES_AND_LICENSES.md). Human balance testing and signed native builds remain outstanding.
 
 Current interaction increment: mirrored facing, shared upright/directional blower pose and force cone, soft border-return airflow, an illustrated non-overlapping 18-node workshop with separate descriptions, Save Slots terminology, and the user-selected persistent-canopy/recovery-floor rule. The working title is sNOw; visual-style labels are not game branding.
+
+Ground/ability/story increment: one persistent sprite per landed leaf, walking disturbance, bounded pile drag, a slow-recharging ground-lifting surge and two recovery upgrades, vector-source fan controls without HOLD, and unique fade-in/closing interludes for all weeks. Achievements are a documented post-release goal, not part of the initial HUD.

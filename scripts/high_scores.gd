@@ -1,7 +1,7 @@
 extends RefCounted
 ## Top ten per difficulty, one best result per campaign. No accounts or network API.
 const Campaign = preload("res://scripts/campaign.gd")
-const RULES := 2
+const RULES := 3
 const StoragePaths = preload("res://scripts/storage_paths.gd")
 const WEB_KEY := "snow.highscores.v1"
 const LIMIT := 10
@@ -55,7 +55,7 @@ static func valid_document(data) -> bool:
 	var ids := {}
 	for difficulty in range(3):
 		var table = data.tables[difficulty]
-		if not table is Array or table.size() > LIMIT * 2: return false
+		if not table is Array or table.size() > LIMIT * RULES: return false
 		var previous := {}
 		var counts := {}
 		for i in range(table.size()):
@@ -72,6 +72,12 @@ static func valid_document(data) -> bool:
 
 func entries(difficulty: int, rules := RULES) -> Array:
 	return tables[difficulty].filter(func(record): return record.rules == rules)
+
+func available_rules(difficulty: int) -> Array[int]:
+	var result: Array[int] = [RULES]
+	for version in range(RULES - 1, 0, -1):
+		if not entries(difficulty, version).is_empty(): result.append(version)
+	return result
 
 func candidate(game, initials: String) -> Dictionary:
 	return {"id": game.run_id, "initials": clean_initials(initials), "score": game.score,
@@ -95,7 +101,7 @@ func submit(game, initials: String) -> bool:
 	while index < table.size() and not better(record, table[index]): index += 1
 	table.insert(index, record)
 	if table.size() > LIMIT: table.resize(LIMIT)
-	tables[game.difficulty] = table + entries(game.difficulty, 1)
+	tables[game.difficulty] = table + tables[game.difficulty].filter(func(old): return old.rules != RULES)
 	return flush()
 
 func read_raw(backup: bool) -> String:

@@ -1,6 +1,9 @@
 extends Node2D
 ## A small paper theatre: simulation stays separate from cutout presentation and UI.
 
+const StageStory = preload("res://scripts/stage_story.gd")
+const FAN_ICON = preload("res://assets/art/fan.svg")
+const SURGE_ICON = preload("res://assets/art/surge.svg")
 const Loop = preload("res://scripts/loop.gd")
 const PaperActor = preload("res://scripts/paper_actor.gd")
 const Canopy = preload("res://scripts/canopy.gd")
@@ -25,6 +28,7 @@ const RUST := Color("c56338")
 const LEFT := Rect2(16, 566, 60, 60)
 const RIGHT := Rect2(86, 566, 60, 60)
 const BLOW := Rect2(258, 558, 86, 70)
+const SURGE := Rect2(166, 562, 68, 66)
 const PAUSE := Rect2(310, 14, 36, 42)
 
 var sim = Loop.new()
@@ -36,6 +40,8 @@ var keys: Dictionary = {}
 var pointer_positions: Dictionary = {}
 var elapsed := 0.0
 var ending_time := 0.0
+var story_time := 0.0
+var surge_requested := false
 var ambient_rng := RandomNumberGenerator.new()
 var snow: Array[Dictionary] = []
 var sparks: Array[Dictionary] = []
@@ -107,9 +113,14 @@ func _ready() -> void:
 
 func _physics_process(dt: float) -> void:
 	last_frame_ms = dt * 1000.0
-	if mode == "play":
+	var was_story := mode in ["intro", "outro"]
+	if was_story:
+		story_time += dt
+		if story_time >= StageStory.DURATION: finish_story()
+	if mode == "play" and not was_story:
 		var axis := float(bool(keys.get("right", false))) - float(bool(keys.get("left", false)))
 		var blow: bool = keys.get("blow", false)
+		var surge: bool = keys.get("surge", false)
 		for action in touches.values():
 			if action == "left":
 				axis -= 1.0
@@ -117,18 +128,22 @@ func _physics_process(dt: float) -> void:
 				axis += 1.0
 			elif action == "blow":
 				blow = true
+			elif action == "surge":
+				surge = true
 		var previous_x: float = sim.x
-		sim.step(dt, clampf(axis, -1, 1), blow)
-		actor.advance(sim.x - previous_x, dt, sim.blowing, reduced_effects, sim.facing, sim.aim)
+		if surge_requested: sim.surge_held = false
+		sim.step(dt, clampf(axis, -1, 1), blow, surge or surge_requested)
+		surge_requested = false
+		actor.advance(sim.x - previous_x, dt, sim.blowing or sim.surge_left > 0, reduced_effects, sim.facing, sim.aim)
 		update_actor_mesh()
 		for event in sim.events:
 			if sparks.size() < 50:
 				sparks.append({"position": event.position, "time": 0.0, "saved": event.saved})
 		if sim.status == "workshop":
-			mode = "workshop"
+			mode = "outro"
+			story_time = 0
 			clear_input()
 			save_boundary()
-			show_workshop()
 		elif sim.status in ["lost", "won"]:
 			mode = sim.status
 			ending_time = 0.0
@@ -139,6 +154,7 @@ func _physics_process(dt: float) -> void:
 		if ending_time >= 4.0 and overlay == null:
 			show_result()
 	if mode != "paused":
+		if mode in ["outro", "workshop"]: actor.advance(0, dt, false, reduced_effects, sim.facing, 0)
 		if mode != "play": update_actor_mesh()
 		elapsed += dt
 		for flake in snow:
@@ -158,6 +174,8 @@ func _physics_process(dt: float) -> void:
 		if telemetry_tick % 6 == 0:
 			var snapshot := {
 				"mode": mode, "score": sim.score, "week": sim.week, "x": sim.x, "charge": sim.charge,
+				"ground_positions": sim.ground_leaves.map(func(leaf): return [leaf.id, leaf.position.x, leaf.position.y, leaf.velocity.x]),
+				"story_time": story_time, "grounded": sim.ground_leaves.size(), "surge_charge": sim.surge_charge, "surge_active": sim.surge_left > 0, "surge_unlocked": sim.surge_unlocked(),
 				"blowing": sim.blowing, "rescued": sim.rescued, "missed": sim.missed,
 				"points": sim.points, "tiers": sim.tiers, "selected_upgrade": [selected_upgrade.x, selected_upgrade.y], "touches": touches.size(),
 				"week_missed": sim.week_missed, "regrown": sim.regrown, "week_regrown": sim.week_regrown,
@@ -185,6 +203,12 @@ func _input(event: InputEvent) -> void:
 		else: pause_game()
 		get_viewport().set_input_as_handled()
 		return
+	if mode in ["intro", "outro"]:
+		var skip_key: bool = event is InputEventKey and event.pressed and event.physical_keycode in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]
+		if pressed or skip_key:
+			if story_time >= 0.65: finish_story()
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventKey:
 		if event.echo:
 			return
@@ -193,12 +217,14 @@ func _input(event: InputEvent) -> void:
 			KEY_A, KEY_LEFT: action = "left"
 			KEY_D, KEY_RIGHT: action = "right"
 			KEY_SPACE: action = "blow"
+			KEY_E: action = "surge"
 			KEY_ESCAPE:
 				if event.pressed:
 					if mode == "paused": resume_game()
 					else: pause_game()
 		if action != "":
 			keys[action] = event.pressed and mode == "play"
+			if action == "surge" and event.pressed and mode == "play": surge_requested = true
 			if mode == "play": get_viewport().set_input_as_handled()
 	if mode != "play":
 		return
@@ -224,6 +250,7 @@ func action_at(point: Vector2) -> String:
 	if LEFT.has_point(point): return "left"
 	if RIGHT.has_point(point): return "right"
 	if BLOW.has_point(point): return "blow"
+	if SURGE.has_point(point) and sim.surge_unlocked(): return "surge"
 	return ""
 
 
@@ -234,16 +261,19 @@ func pointer_begin(id: int, point: Vector2) -> void:
 	var action := action_at(point)
 	if action != "":
 		touches[id] = action
+		if action == "surge": surge_requested = true
 		pointer_positions[id] = point
 
 
 func pointer_drag(id: int, point: Vector2) -> void:
 	if touches.has(id):
+		if action_at(point) == "surge" and touches[id] != "surge": surge_requested = true
 		touches[id] = action_at(point)
 		pointer_positions[id] = point
 
 
 func clear_input() -> void:
+	surge_requested = false
 	touches.clear()
 	pointer_positions.clear()
 	keys.clear()
@@ -275,7 +305,7 @@ func start_run(slot_index := -1, slot_name := "", difficulty := -1) -> void:
 	sparks.clear()
 	clear_overlay()
 	clear_input()
-	mode = "play"
+	begin_intro()
 	if DisplayServer.get_name() != "headless" and not audio.playing:
 		audio.play()
 		playback = audio.get_stream_playback()
@@ -363,7 +393,7 @@ func restart_level() -> void:
 	sim = restored
 	actor.reset()
 	update_actor_mesh(true)
-	mode = "play"
+	begin_intro()
 	ending_time = 0
 	sparks.clear()
 
@@ -463,7 +493,7 @@ func load_slot(index: int) -> void:
 		ending_time = 6.0
 		show_result()
 	else:
-		mode = "play"
+		begin_intro()
 		pause_game()
 	if DisplayServer.get_name() != "headless" and not audio.playing:
 		audio.play()
@@ -570,10 +600,10 @@ func show_title() -> void:
 	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(logo)
 	text_label(panel, "KEEP WINTER WAITING", Rect2(12, 77, 284, 20), 9, INK)
-	text_label(panel, "One magical tree. One stubborn autumn.", Rect2(12, 107, 284, 22), 11, INK)
+	text_label(panel, "Keep a little autumn alive.", Rect2(12, 107, 284, 22), 11, INK)
 	button(panel, "Continue / New game", Rect2(25, 147, 258, 45), show_slots)
 	button(panel, "Explore the seasons", Rect2(25, 203, 258, 40), show_season_lab, true)
-	text_label(panel, "Move: A / D or arrows  ·  Blow: hold Space\nOn a phone, hold the buttons below.", Rect2(12, 299, 284, 43), 10, INK)
+	text_label(panel, "Move: A / D or arrows · Blow: hold Space\nE: Leaflift Surge (unlock in the workshop)", Rect2(12, 299, 284, 43), 10, INK)
 	button(panel, "High Scores", Rect2(25, 254, 123, 38), func(): show_high_scores(), true)
 	button(panel, "License", Rect2(160, 254, 123, 38), show_license, true)
 	add_options(panel, 354)
@@ -636,7 +666,7 @@ func show_license() -> void:
 	button(panel, "Back to menu", Rect2(80, 449, 164, 36), show_title, true)
 
 
-func show_high_scores(difficulty := -1, from_result := false, legacy := false) -> void:
+func show_high_scores(difficulty := -1, from_result := false, rules := HighScores.RULES) -> void:
 	clear_input()
 	mode = "scores"
 	scores_return_to_result = from_result
@@ -644,10 +674,10 @@ func show_high_scores(difficulty := -1, from_result := false, legacy := false) -
 	var panel := new_panel(Rect2(18, 70, 324, 514))
 	text_label(panel, "High Scores", Rect2(8, 15, 308, 36), 25, INK, true)
 	for i in range(3):
-		var tab := button(panel, Loop.DIFFICULTIES[i].name, Rect2(12 + i * 102, 65, 96, 38), func(): show_high_scores(i, from_result, legacy), i != selected)
+		var tab := button(panel, Loop.DIFFICULTIES[i].name, Rect2(12 + i * 102, 65, 96, 38), func(): show_high_scores(i, from_result, rules), i != selected)
 		tab.add_theme_font_size_override("font_size", 11)
-	text_label(panel, "PREVIOUS RULES · ARCHIVED SCORES" if legacy else "LOCAL TOP TEN · INITIALS / SCORE / PROGRESS", Rect2(8, 111, 308, 21), 9, INK)
-	var table: Array = high_scores.entries(selected, 1 if legacy else HighScores.RULES)
+	text_label(panel, "PREVIOUS RULES %d · ARCHIVED SCORES" % rules if rules != HighScores.RULES else "LOCAL TOP TEN · INITIALS / SCORE / PROGRESS", Rect2(8, 111, 308, 21), 9, INK)
+	var table: Array = high_scores.entries(selected, rules)
 	if table.is_empty():
 		text_label(panel, "No scores yet.\n\nRescue some leaves and finish a run\nto put your initials here.", Rect2(10, 175, 304, 125), 13, INK)
 	for i in range(table.size()):
@@ -658,8 +688,10 @@ func show_high_scores(difficulty := -1, from_result := false, legacy := false) -
 		text_label(panel, "%06d" % int(record.score), Rect2(76, y, 83, 25), 13, INK)
 		var stage := "Final encounter" if record.week == Loop.BOSS_STAGE else "Week %d" % int(record.week)
 		text_label(panel, ("WIN" if record.won else "LOSS") + " · " + stage + "\nBoots %d · Fan %d · Cell %d" % [record.tiers[0], record.tiers[1], record.tiers[2]], Rect2(164, y, 152, 26), 8, INK)
-	var archived: bool = legacy or not high_scores.entries(selected, 1).is_empty()
-	if archived: button(panel, "Current rules" if legacy else "Previous scores", Rect2(80, 414, 164, 29), func(): show_high_scores(selected, from_result, not legacy), true)
+	var versions: Array[int] = high_scores.available_rules(selected)
+	var archived := versions.size() > 1 or rules != HighScores.RULES
+	var next_version: int = versions[(versions.find(rules) + 1) % versions.size()]
+	if archived: button(panel, "Current scores" if next_version == HighScores.RULES else "Previous scores (%d)" % next_version, Rect2(80, 414, 164, 29), func(): show_high_scores(selected, from_result, next_version), true)
 	var notice := text_label(panel, "Best result per campaign · Local to this device" if high_scores.error.is_empty() else high_scores.error, Rect2(12, 445 if archived else 416, 300, 19 if archived else 40), 8 if archived else 10, INK)
 	notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button(panel, "Back" if from_result else "Back to menu", Rect2(80, 465, 164, 36), return_from_scores, true)
@@ -807,7 +839,8 @@ func show_workshop() -> void:
 	detail.text = Upgrades.description(branch, rank)
 	card.add_child(detail)
 	var s: Dictionary = sim.stats()
-	text_label(panel, "Speed %d%% · Force %d%% · Burst %.1fs\nRecharge %.1fs · Maximum pile drag %d%%" % [roundi(s.speed / Loop.BASE_SPEED * 100), roundi(s.force / 410 * 100), s.burst, s.recharge, roundi(s.pile_penalty * 100)], Rect2(8, 400, 320, 29), 9, INK)
+	var ability_stat := "Surge %.0fs" % s.surge_cooldown if sim.surge_unlocked() else "Surge locked"
+	text_label(panel, "Speed %d%% · Force %d%% · Burst %.1fs\nRecharge %.1fs · Max pile drag %d%% · %s" % [roundi(s.speed / Loop.BASE_SPEED * 100), roundi(s.force / 410 * 100), s.burst, s.recharge, roundi(s.pile_penalty * 100), ability_stat], Rect2(8, 400, 320, 29), 9, INK)
 	var buy := button(panel, "Owned" if owned else "Buy · 1 point", Rect2(12, 439, 144, 38), func(): purchase(branch))
 	buy.disabled = owned or not available or sim.points < 1
 	button(panel, "Final encounter →" if sim.week == Loop.MAIN_WEEKS else "Start week %d →" % (sim.week + 1), Rect2(174, 439, 150, 38), continue_week, true)
@@ -830,14 +863,14 @@ func continue_week() -> void:
 		save_boundary()
 		clear_overlay()
 		clear_input()
-		mode = "play"
+		begin_intro()
 
 
 func show_result() -> void:
 	var won := mode == "won"
 	var panel := new_panel(Rect2(30, 167, 300, 320))
 	text_label(panel, "Winter can wait!" if won else "Winter found a way.", Rect2(10, 12, 280, 37), 23, INK, true)
-	text_label(panel, "Twelve weeks. One North Wind defeated." if won else "Your checkpoint is safe. Try this level again.", Rect2(8, 50, 284, 23), 10, INK)
+	text_label(panel, StageStory.chapter(Loop.BOSS_STAGE)[2].replace("\n", " ") if won else "Your checkpoint is safe. Try this level again.", Rect2(8, 50, 284, 23), 10, INK)
 	text_label(panel, "%s points · %s\n%d leaves returned to the trees" % [str(sim.score), "Final encounter" if sim.is_boss() else "Week %d" % sim.week, sim.rescued], Rect2(10, 80, 280, 40), 12, INK)
 	button(panel, "New high score · Enter initials" if high_scores.qualifies(sim) else "View high scores", Rect2(24, 130, 252, 40), show_initials if high_scores.qualifies(sim) else func(): show_high_scores(sim.difficulty, true), true)
 	text_label(panel, Loop.DIFFICULTIES[sim.difficulty].name + " · Best result per campaign", Rect2(8, 280, 284, 25), 10, INK)
@@ -854,6 +887,8 @@ func weather() -> float:
 
 func visual_mode() -> String:
 	var current := paused_mode if mode == "paused" else mode
+	if current == "intro": return "play"
+	if current == "outro": return "workshop"
 	if current == "initials" or (current == "scores" and scores_return_to_result): return sim.status
 	return current
 
@@ -887,6 +922,7 @@ func _draw() -> void:
 		if mode not in ["title", "preview"]:
 			draw_leaf(leaf.position, leaf.angle, leaf.colour, 7.0, leaf.get("roll", 1.0))
 	if sim.blowing and mode == "play": draw_gust()
+	if sim.surge_left > 0: draw_surge()
 	draw_character(winter, victory)
 	for spark in sparks:
 		var alpha: float = 1.0 - spark.time / 0.8
@@ -907,6 +943,8 @@ func _draw() -> void:
 	if save_notice != "" and mode == "play":
 		paper_box(Rect2(10, 521, 340, 27), INK, 5)
 		write_center(save_notice, 180, 538, 8, CREAM)
+	var story_mode := paused_mode if mode == "paused" else mode
+	if story_mode in ["intro", "outro"]: draw_story_card(story_mode)
 	draw_pause_button()
 
 
@@ -1029,12 +1067,8 @@ func draw_flowers(amount: float) -> void:
 
 
 func draw_piles() -> void:
-	for segment in range(sim.piles.size()):
-		var count: int = mini(sim.piles[segment], 12)
-		for i in range(count * 3):
-			var px := segment * 30 + 3 + fmod(i * 13.7, 27.0)
-			var py := Loop.GROUND + 4.0 - (i / 3.0) * 1.6 + sin(i * 2.0) * 2.0
-			draw_leaf(Vector2(px, py), i * 2.4, Loop.LEAF_COLOURS[(segment + i) % 4], 5.0)
+	for leaf in sim.ground_leaves:
+		draw_leaf(leaf.position, leaf.angle, leaf.colour, 7.0, leaf.get("roll", 1.0))
 
 
 func draw_leaf(p: Vector2, angle: float, colour: Color, size_px: float, roll := 1.0) -> void:
@@ -1064,7 +1098,11 @@ func draw_character(winter: bool, victory: bool) -> void:
 	draw_circle(Vector2.ZERO, 22, Color(0.12, 0.16, 0.1, 0.24))
 	draw_set_transform(Vector2.ZERO)
 	if not winter and not victory:
-		draw_set_transform(Vector2(px, Loop.GROUND), 0, Vector2(actor.direction, 1))
+		var turn := 1.0
+		if sim.surge_left > 0:
+			turn = cos((1.0 - sim.surge_left / Loop.SURGE_DURATION) * TAU)
+			if absf(turn) < 0.08: turn = 0.08 if turn >= 0 else -0.08
+		draw_set_transform(Vector2(px, Loop.GROUND), 0, Vector2(actor.direction * turn, 1))
 		draw_mesh(actor.mesh, WARDROBE)
 		draw_set_transform(Vector2.ZERO)
 		return
@@ -1104,7 +1142,7 @@ func draw_hud() -> void:
 	write("WEEKLY FROST", Vector2(155, 27), 8, CREAM)
 	write("%d / %d" % [sim.week_missed, sim.capacity()], Vector2(254, 27), 8, CREAM)
 	draw_bar(Rect2(155, 33, 133, 7), sim.pressure(), Color("c5deea"))
-	draw_fan(Vector2(141, 57), 6, elapsed * 4 if sim.blowing else 0, GOLD)
+	draw_fan(Vector2(141, 57), 6, elapsed * 4 if sim.blowing or sim.surge_left > 0 else 0, GOLD)
 	write("BATTERY", Vector2(155, 52), 8, CREAM)
 	write("%d%%" % roundi(sim.charge * 100), Vector2(261, 52), 8, CREAM)
 	draw_bar(Rect2(155, 58, 133, 7), sim.charge, GOLD if sim.charge > 0.22 else Color("e8a075"))
@@ -1115,24 +1153,29 @@ func draw_hud() -> void:
 		write_center("Release the fan to recharge", 180, 95, 11, INK)
 	elif not sim.blowing and sim.charge < 0.99 and sim.idle_charge_time > 0.5:
 		write_center("Recharging…", 180, 95, 10, INK)
-	elif sim.combo >= 5:
-		write_center("%d leaves in a row" % sim.combo, 180, 95, 11, INK)
+
 
 
 func draw_controls() -> void:
-	for control in [[LEFT, "left"], [RIGHT, "right"], [BLOW, "blow"]]:
+	var controls := [[LEFT, "left"], [RIGHT, "right"], [BLOW, "blow"]]
+	if sim.surge_unlocked(): controls.append([SURGE, "surge"])
+	for control in controls:
 		var rect: Rect2 = control[0]
 		var action: String = control[1]
 		var down: bool = keys.get(action, false) or action in touches.values()
 		var center := rect.get_center()
-		var radius := 32.0 if action == "blow" else 28.0
+		var radius := 32.0 if action == "blow" else (26.0 if action == "surge" else 28.0)
 		draw_circle(center + Vector2(0, 3), radius, Color(0.03, 0.08, 0.06, 0.3))
 		draw_circle(center, radius, GOLD if down else Color(0.13, 0.23, 0.19, 0.85))
 		draw_arc(center, radius, 0, TAU, 60, Color(0.96, 0.86, 0.65, 0.8), 1.1, true)
 		var colour := INK if down else CREAM
 		if action == "blow":
-			draw_fan(center + Vector2(0, -4), 12, elapsed * 6.0 if down else 0.0, colour)
-			write_center("HOLD", center.x, center.y + 22, 7, colour)
+			draw_fan(center, 15, elapsed * 6.0 if sim.blowing or sim.surge_left > 0 else 0.0, colour)
+		elif action == "surge":
+			var ready: bool = sim.surge_charge >= 1.0
+			draw_texture_rect(SURGE_ICON, Rect2(center - Vector2(12, 18), Vector2(24, 24)), false, colour if ready else Color(colour, 0.45))
+			draw_arc(center, radius + 3, -PI / 2, -PI / 2 + TAU * sim.surge_charge, 96, GOLD, 2.0, true)
+			write_center("SURGE" if ready else "%ds" % ceili((1 - sim.surge_charge) * sim.stats().surge_cooldown), center.x, center.y + 16, 8, colour)
 		else:
 			var sign_x := -1 if action == "left" else 1
 			draw_polyline(PackedVector2Array([center + Vector2(-sign_x * 4, -8), center + Vector2(sign_x * 4, 0), center + Vector2(-sign_x * 4, 8)]), colour, 2.5, true)
@@ -1164,11 +1207,9 @@ func draw_boss() -> void:
 
 
 func draw_fan(p: Vector2, radius: float, angle: float, colour: Color) -> void:
-	for i in range(3):
-		var a := angle + i * TAU / 3
-		var pts := PackedVector2Array([p, p + Vector2.from_angle(a) * radius, p + Vector2.from_angle(a + 0.65) * radius, p + Vector2.from_angle(a + 1.15) * radius * 0.35])
-		draw_colored_polygon(pts, colour)
-	draw_circle(p, radius * 0.22, colour.darkened(0.2))
+	draw_set_transform(p, angle)
+	draw_texture_rect(FAN_ICON, Rect2(-Vector2.ONE * radius, Vector2.ONE * radius * 2), false, colour)
+	draw_set_transform(Vector2.ZERO)
 
 
 func draw_bar(rect: Rect2, amount: float, colour: Color) -> void:
@@ -1188,17 +1229,70 @@ func write(content: String, p: Vector2, size_px: int, colour: Color, serif := fa
 	draw_string(TITLE_FONT if serif else BODY_FONT, p, content, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px, colour)
 
 
-func write_center(content: String, x: float, y: float, size_px: int, colour: Color) -> void:
-	var width := BODY_FONT.get_string_size(content, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x
-	write(content, Vector2(x - width / 2.0, y), size_px, colour)
+func write_center(content: String, x: float, y: float, size_px: int, colour: Color, serif := false) -> void:
+	var font: Font = TITLE_FONT if serif else BODY_FONT
+	var width := font.get_string_size(content, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x
+	write(content, Vector2(x - width / 2.0, y), size_px, colour, serif)
 
 
 func fill_audio() -> void:
 	if playback == null: return
 	var available := playback.get_frames_available()
-	var active: bool = sim.blowing and mode == "play" and not muted
+	var active: bool = (sim.blowing or sim.surge_left > 0) and mode == "play" and not muted
 	for i in range(available):
-		audio_phase += TAU * 105.0 / 22050.0
+		audio_phase += TAU * (145.0 if sim.surge_left > 0 else 105.0) / 22050.0
 		if audio_phase > TAU: audio_phase -= TAU
 		var sample := sin(audio_phase) * 0.12 + sin(audio_phase * 2.0) * 0.03
 		playback.push_frame(Vector2.ONE * sample * (1.0 if active else 0.0))
+
+
+func begin_intro() -> void:
+	clear_overlay()
+	clear_input()
+	mode = "intro"
+	story_time = 0
+
+
+func finish_story() -> void:
+	if mode == "intro":
+		clear_input()
+		mode = "play"
+	elif mode == "outro":
+		clear_input()
+		mode = "workshop"
+		show_workshop()
+
+
+func draw_story_card(kind: String) -> void:
+	var alpha := 1.0 if reduced_effects else smoothstep(0, 0.32, story_time) * (1.0 - smoothstep(StageStory.DURATION - 0.65, StageStory.DURATION, story_time))
+	if kind == "intro" and not reduced_effects:
+		draw_rect(Rect2(0, 0, 360, 640), Color(0.06, 0.12, 0.10, (1.0 - smoothstep(0, 0.85, story_time)) * 0.95))
+	var rect := Rect2(24, 222, 312, 168)
+	var style := panel_style(CREAM, 12)
+	style.bg_color = Color(CREAM, alpha * 0.98)
+	style.border_color = Color(GOLD, alpha)
+	style.shadow_color = Color(0.05, 0.09, 0.07, alpha * 0.3)
+	draw_style_box(style, rect)
+	var chapter: Array = StageStory.chapter(sim.week)
+	write_center(sim.stage_title() if kind == "intro" else "ANOTHER WEEK KEPT", 180, rect.position.y + 26, 10, Color(RUST, alpha))
+	write_center(chapter[0], 180, rect.position.y + 53, 16, Color(INK, alpha), true)
+	var lines: PackedStringArray = str(chapter[1 if kind == "intro" else 2]).split("\n")
+	for i in range(lines.size()):
+		write_center(lines[i], 180, rect.position.y + 87 + i * 23, 15, Color(INK, alpha), true)
+	write_center("Tap or Space to continue", 180, rect.position.y + 148, 8, Color(INK, alpha * 0.60))
+
+
+func draw_surge() -> void:
+	var phase: float = 1.0 - sim.surge_left / Loop.SURGE_DURATION
+	var alpha := sin(phase * PI)
+	var turn := cos(phase * TAU)
+	var tip: Vector2 = actor.nozzle()
+	tip.x *= turn
+	var start := Vector2(sim.x, Loop.GROUND) + tip
+	# Downward blast meets the ground and fans upward into a fountain of real leaves.
+	for side in [-1, 1]:
+		for lane in range(3):
+			var spread: float = side * (32 + lane * 25) * sin(phase * PI * 0.7)
+			var path := PackedVector2Array([start, Vector2(sim.x + side * 15, Loop.GROUND - 4), Vector2(sim.x + spread * 0.6, Loop.GROUND - 22), Vector2(sim.x + spread, Loop.GROUND - 50 - phase * 80)])
+			draw_polyline(path, Color(CREAM, alpha * 0.65), 1.5, true)
+	draw_arc(Vector2(sim.x, Loop.GROUND - 3), 15 + phase * float(sim.stats().surge_radius), PI, TAU, 96, Color(GOLD, alpha * 0.6), 2, true)

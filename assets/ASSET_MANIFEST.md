@@ -22,3 +22,5 @@ Large paper sprites generate mipmaps and use smooth linear filtering at runtime.
 The in-game License screen reads Godot’s full MIT text and bundled-library copyright/license terms from the running engine. `licenses/DEJAVU.txt` includes the font-specific Bitstream Vera terms and DejaVu public-domain notice; exports explicitly include this text and the original font package notice. These third-party terms do not assign a license to the project’s own code or artwork.
 
 `art/upgrade_icons.png` was generated with OpenAI image generation for this project (`exec-fc2d4fb0-083c-4bb5-ac97-8f63de8eb65f.png`): textured boots, electric fan and battery icons. Atlas regions in `scripts/main.gd` preserve each full silhouette; icons use fixed header bounds with smooth mipmapped filtering.
+
+`art/fan.svg` and `art/surge.svg` are original vector UI assets authored in this repository. Smooth curved fan blades and upward leaf jets use 256px sources with mipmaps; no external artwork or new runtime libraries were introduced.

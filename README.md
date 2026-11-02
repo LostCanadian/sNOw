@@ -9,6 +9,8 @@ The working title is **sNOw**, with **NO** emphasized. The selected paper-cut vi
 - [Game design](docs/GAME_DESIGN.md): concept, controls, rules, progression, scoring, UX, visual direction, and first-version scope.
 - [Development plan](docs/DEVELOPMENT_PLAN.md): staged implementation, technology evaluation, assets, validation, and release criteria.
 - [Campaign, saves, and art direction](docs/CAMPAIGN.md): 12 weeks plus the boss, clothing, pause, local checkpoints, and future environment polish.
+- [Ground leaves, surge and story](docs/ABILITIES_AND_STORY.md): persistent ground objects, slow recovery abilities, seasonal opening/closing lines.
+- [Future achievements](docs/ACHIEVEMENTS.md): deliberately deferred past the initial release.
 - [High scores and licenses](docs/SCORES_AND_LICENSES.md): local per-difficulty tables, initials entry, storage, and offline third-party notices.
 - [Decisions and open questions](docs/DECISIONS.md): recommendations, unresolved choices, and how to test them.
 
@@ -32,7 +34,7 @@ The browser opens at **http://localhost:8000** once the export finishes. Leave t
 
 To serve an existing build quickly, add `--serve-only`; to export without starting a server, use `--build-only`. Change the local port with `--port 8080`. Omit `--open` to open the printed address yourself. See [setup details](docs/PROTOTYPE.md#run-and-export) for the existing-Godot workflow.
 
-Move with **A/D** or **Left/Right**. Hold **Space** to blow and release to recharge. **Escape** or the pause button pauses any screen. Switching away pauses automatically; returning requires Resume. Completed levels and workshop choices autosave locally in three named Save Slots; a failed or exited level restarts from its checkpoint. Phones use the on-screen direction and fan buttons simultaneously. The character turns with movement; the blower aims upright at rest and leans into movement, steering the airflow. Choose **Explore the seasons** from the menu to preview warning snow, winter defeat, and flowering victory.
+Move with **A/D** or **Left/Right**. Hold **Space** to blow and release to recharge. **E** activates Leaflift Surge after unlocking Blower rank 2. **Escape** or the pause button pauses any screen. Switching away pauses automatically; returning requires Resume. Completed levels and workshop choices autosave locally in three named Save Slots; a failed or exited level restarts from its checkpoint. Phones use the on-screen direction and fan buttons simultaneously. Brief opening/closing panels tell the story; tap or Space skips them. Fallen leaves stay intact, scuff underfoot and can be lifted again with the surge. The character turns with movement; the blower aims upright at rest and leans into movement, steering the airflow. Choose **Explore the seasons** from the menu to preview warning snow, winter defeat, and flowering victory.
 
 To build the browser version, install the matching Godot web export templates, then:
 

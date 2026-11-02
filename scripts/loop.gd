@@ -4,7 +4,8 @@ extends RefCounted
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
-const RULES := 2
+const RULES := 3
+const SURGE_DURATION := 0.85
 const RECOVERY_FLOOR := 96
 const GRAVITY := 48.0
 const GROUND := 502.0
@@ -47,6 +48,10 @@ var week_time := 0.0
 var spawn_timer := 0.5
 var status := "playing"
 var leaves: Array[Dictionary] = []
+var ground_leaves: Array[Dictionary] = []
+var surge_charge := 1.0
+var surge_left := 0.0
+var surge_held := false
 var slots: Array[Dictionary] = []
 var shedding_order: Array[int] = []
 var piles: Array[int] = []
@@ -75,6 +80,8 @@ func stats(build: Array = tiers) -> Dictionary:
 		"burst": 6.0 * (1.0 + 0.10 * build[2]) / ((1.0 + 0.075 * build[1]) * (1.0 - 0.045 * build[2])),
 		"recharge": 3.0 * (1.0 - 0.045 * build[2]),
 		"pile_penalty": 0.32 - 0.025 * build[0],
+		"surge_cooldown": 36.0 - (5.0 if build[2] >= 3 else 0.0) - (5.0 if build[2] >= 5 else 0.0),
+		"surge_radius": 76.0 + build[1] * 6.0,
 	}
 
 
@@ -161,18 +168,23 @@ func air_axis() -> Vector2:
 	return BlowerPose.axis(aim)
 
 
-func step(dt: float, move_axis: float, wants_blow: bool) -> void:
+func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -> void:
 	events.clear()
 	if status != "playing":
 		blowing = false
 		return
 	var s := stats()
+	surge_left = maxf(0, surge_left - dt)
+	surge_charge = minf(1.0, surge_charge + dt / float(s.surge_cooldown))
+	if wants_surge and not surge_held: activate_surge()
+	surge_held = wants_surge
 	direction = clampf(move_axis, -1.0, 1.0)
 	var drag: float = minf(float(pile_at(x)) / 5.0, 1.0) * s.pile_penalty
 	var previous_x := x
-	x = clampf(x + direction * s.speed * (1.0 - drag) * dt, 29.0, 331.0)
+	x = clampf(x + direction * s.speed * (1.0 - drag) * (0.65 if surge_left > 0 else 1.0) * dt, 29.0, 331.0)
 	if absf(direction) > 0.01: facing = signf(direction)
 	var target_aim := facing * BlowerPose.MOVING_TILT if absf(x - previous_x) > 0.001 else 0.0
+	if surge_left > 0: target_aim = facing * PI * 2.0 / 3.0
 	aim = move_toward(aim, target_aim, dt * BlowerPose.TURN_SPEED)
 	if not wants_blow:
 		energy_locked = false
@@ -181,12 +193,13 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 			charge = minf(1.0, charge + dt / s.recharge)
 	else:
 		idle_charge_time = 0.0
-	blowing = wants_blow and not energy_locked and charge > 0.0
+	blowing = wants_blow and not energy_locked and charge > 0.0 and surge_left <= 0 and absf(aim) <= BlowerPose.MOVING_TILT + 0.01
 	if blowing:
 		charge = maxf(0.0, charge - dt / s.burst)
 		if charge <= 0.0:
 			energy_locked = true
 			blowing = false
+	step_ground(dt, x - previous_x)
 	week_time += dt
 	spawn_timer -= dt
 	if spawn_timer <= 0.0 and spawned < week_leaf_count() and leaves.size() < MAX_ACTIVE:
@@ -222,7 +235,8 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 			if force.x > 0: force.x *= (1.0 - smoothstep(312, 368, p.x))
 			v += (force + lateral * (-across * 0.55 + sin(flutter) * 12.0)) * dt
 		v.x += BlowerPose.edge_force(p.x) * dt
-		v.y = clampf(v.y, -158.0, (45.0 + week * 1.5) * float(DIFFICULTIES[difficulty].fall))
+		leaf.surge_lift = maxf(0, float(leaf.get("surge_lift", 0)) - dt)
+		v.y = clampf(v.y, -238.0 if leaf.surge_lift > 0 else -158.0, (45.0 + week * 1.5) * float(DIFFICULTIES[difficulty].fall))
 		v.x = clampf(v.x, -125.0, 125.0)
 		p += v * dt
 		# A short overshoot is allowed; the spring continuously draws leaves back in.
@@ -239,7 +253,7 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 		var target := capture_slot(previous, p) if leaf.lifted and v.y < 0.0 else -1
 		if target >= 0:
 			resolve_leaf(leaf, true, target)
-		elif p.y >= GROUND - minf(14.0, pile_at(p.x) * 2.0):
+		elif p.y >= GROUND - 2.0 - minf(20, float(pile_at(p.x) / 2) * 2.2):
 			resolve_leaf(leaf, false)
 		elif p.y < 75.0:
 			# Missing a real gap never scores. Let the leaf fall back into reach.
@@ -251,6 +265,7 @@ func step(dt: float, move_axis: float, wants_blow: bool) -> void:
 	if status == "playing" and spawned >= week_leaf_count() and leaves.is_empty():
 		score += 500 + 50 * (capacity() - week_missed)
 		blowing = false
+		surge_left = 0
 		if is_boss():
 			score += 5000
 			status = "won"
@@ -296,6 +311,11 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 		slots[slot_index].attached_at = week_time
 		leaf.position = slots[slot_index].position
 	leaf.state = "rescued" if saved else "grounded"
+	if not saved:
+		leaf.position.y = GROUND - 2.0 - minf(20, float(pile_at(leaf.position.x) / 2) * 2.2)
+		leaf.velocity = Vector2(leaf.velocity.x * 0.25, 0)
+		leaf.scuff_cooldown = 0.0
+		ground_leaves.append(leaf)
 	if saved:
 		combo += 1
 		rescued += 1
@@ -306,8 +326,7 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 		missed += 1
 		week_missed += 1
 		combo = 0
-		var segment := clampi(int(leaf.position.x / 30.0), 0, 11)
-		piles[segment] += 1
+		rebuild_piles()
 		if week_missed >= capacity():
 			status = "lost"
 			blowing = false
@@ -352,6 +371,10 @@ func next_week() -> bool:
 	spawn_timer = 0.5
 	piles.fill(0)
 	leaves.clear()
+	ground_leaves.clear()
+	surge_charge = 1.0
+	surge_left = 0
+	surge_held = false
 	prepare_shedding()
 	status = "playing"
 	return true
@@ -375,3 +398,70 @@ func restore_playable_canopy() -> int:
 		if filled >= count: break
 	regrown += filled
 	return filled
+
+
+func surge_unlocked() -> bool:
+	return tiers[1] >= 2
+
+
+func activate_surge() -> bool:
+	if status != "playing" or not surge_unlocked() or surge_charge < 1.0 or surge_left > 0: return false
+	var radius: float = stats().surge_radius
+	var lifted: Array[Dictionary] = []
+	for leaf in ground_leaves:
+		if absf(leaf.position.x - x) > radius or leaves.size() >= MAX_ACTIVE: continue
+		var delta: float = leaf.position.x - x
+		var outward: float = signf(delta) if absf(delta) > 8 else (-1.0 if int(leaf.id) % 2 == 0 else 1.0)
+		leaf.state = "air"
+		leaf.lifted = true
+		leaf.position.y -= 5
+		leaf.velocity = Vector2(outward * (35.0 + minf(absf(delta), 80) * 0.75), -220.0 - int(leaf.id) % 5 * 3)
+		leaf.surge_lift = 1.0
+		if not leaves.has(leaf): leaves.append(leaf)
+		lifted.append(leaf)
+	if lifted.is_empty(): return false
+	ground_leaves = ground_leaves.filter(func(leaf): return leaf.state == "grounded")
+	# These leaves are in play again; they cannot occupy both the floor and the miss ledger.
+	missed -= lifted.size()
+	week_missed -= lifted.size()
+	surge_charge = 0
+	surge_left = SURGE_DURATION
+	rebuild_piles()
+	return true
+
+
+func rebuild_piles() -> void:
+	piles.fill(0)
+	for leaf in ground_leaves:
+		piles[clampi(int(leaf.position.x / 30.0), 0, 11)] += 1
+
+
+func step_ground(dt: float, displacement: float) -> void:
+	var layers := {}
+	for leaf in ground_leaves:
+		var p: Vector2 = leaf.position
+		var v: Vector2 = leaf.velocity
+		leaf.scuff_cooldown = maxf(0, float(leaf.get("scuff_cooldown", 0)) - dt)
+		var distance := absf(p.x - x)
+		if absf(displacement) > 0.001 and distance < 24 and leaf.scuff_cooldown <= 0:
+			v.x += signf(displacement) * (24 - distance) * 1.8
+			v.y = -22 - minf(25, absf(displacement) / maxf(dt, 0.001) * 0.15)
+			leaf.scuff_cooldown = 0.28
+		v.x *= exp(-4.5 * dt)
+		v.x += BlowerPose.edge_force(p.x) * dt * 0.35
+		v.x = clampf(v.x, -60, 60)
+		v.y += 120 * dt
+		p += v * dt
+		p.x = clampf(p.x, 5, 355)
+		var segment := clampi(int(p.x / 30), 0, 11)
+		var layer: int = layers.get(segment, 0)
+		layers[segment] = layer + 1
+		var floor_y := GROUND - 2.0 - minf(20, float(layer / 2) * 2.2)
+		if p.y >= floor_y:
+			p.y = floor_y
+			v.y = 0
+		leaf.position = p
+		leaf.velocity = v
+		leaf.angle += v.x * dt * 0.045
+		leaf.roll = 0.85 + 0.15 * absf(cos(week_time * 3 + leaf.id)) if absf(v.x) > 2 else 1.0
+	rebuild_piles()

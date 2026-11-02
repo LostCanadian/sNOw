@@ -12,7 +12,7 @@ Campaign saves and high scores are separate. A level retry rolls gameplay back t
 
 Browser scores use localStorage `snow.highscores.v1` with `.backup` recovery; native scores use `user://highscores.json` and `.bak`. Version/field/order validation rejects malformed records. Writes preserve a good backup and damaged primary data. A storage failure displays a notice and keeps scores only for the current session. Browser data belongs to that hostname/port/origin; clearing site data removes it. Campaign slot storage remains `snow.campaigns.v1` / `user://campaigns.json`.
 
-New-save difficulty is selected above the name field and stays fixed for that campaign. Existing checkpoints without these fields migrate to **Blustery** with a stable identity, retaining their difficulty and progress while migrating the new rules. The current profiles, weekly miss limits, 288-leaf persistent canopy, 96-leaf recovery floor and eighteen-node workshop are documented in [Campaign rules](CAMPAIGN.md). Rules version 2 separates the new scores from earlier balance/steering rules. Previous scores remain stored under the same key and can be viewed using the **Previous scores** button; they are not overwritten or ranked against current results. Each rules version retains ten entries per difficulty.
+New-save difficulty is selected above the name field and stays fixed for that campaign. Existing checkpoints without these fields migrate to **Blustery** with a stable identity, retaining their difficulty and progress while migrating the new rules. The current profiles, weekly miss limits, 288-leaf persistent canopy, 96-leaf recovery floor and eighteen-node workshop are documented in [Campaign rules](CAMPAIGN.md). Rules version 3 separates ground-recovery scores from earlier balance/steering rules. Previous scores remain stored under the same key and can be viewed using the **Previous scores** button; they are not overwritten or ranked against current results. Each rules version retains ten entries per difficulty.
 
 ## License screen
 
@@ -28,3 +28,5 @@ The export preset explicitly includes the font license text, which is otherwise 
 ## Verification
 
 `tests/test_scores.gd` covers sorting, table limits, ties, replacement/deduplication, malformed records, native reopen/backup/failure paths, all difficulty thresholds and legacy checkpoint migration. `tests/test_menus.gd` covers actual menu screens, full notice content, pause restoration and initials-form submission. `tests/browser_menus.py` checks exported notices offline and new-save difficulty selection; the main browser suite submits the actual lost-run score through the initials UI and reloads it from storage.
+
+Scoring versions 1 and 2 remain separately accessible through Previous Scores. Current recovery removes a miss while its leaf is back in play; it earns nothing until actual reattachment. No streak or achievement announcement appears during play.

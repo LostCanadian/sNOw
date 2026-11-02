@@ -12,7 +12,9 @@ A new campaign begins with **288 individually attached leaves** on the supplied 
 
 **If every leaf is rescued in week one, week two still starts with all 288.** Nothing removes leaves simply because another week has begun. Seasonal colour advances and the next shedding schedule is harder. Misses leave persistent gaps; successful play preserves a fuller tree.
 
-Danger is **weekly**. Reaching that week's miss allowance loses the level. Its completed checkpoint remains safe, and Retry restores that level's starting canopy, score, loadout, random state, clean path, full battery and zero weekly misses. Lifetime rescued/missed totals are tracked separately and do not consume the next week's allowance.
+Landing now keeps the original leaf in a physical ground pile. Walking disturbs it; the unlocked Leaflift Surge can return it to the air and remove its frost penalty while it is in play. Points still require actual reattachment. See [abilities and story](ABILITIES_AND_STORY.md).
+
+Danger is **weekly**. Reaching that week's miss allowance loses the level. Its completed checkpoint remains safe, and Retry restores that level's starting canopy, score, loadout, random state, clean path, full battery and zero weekly misses. Campaign rescue/unrecovered-miss totals are tracked separately and do not consume the next week's allowance.
 
 Before the next week begins, the tree regrows only enough missing leaves to reach a **96-leaf recovery floor**. It never refills a healthier crown. Regrowth restores missing identities into vacant slots and grants no rescue score, combo or upgrade points. A short start-of-week notice explains any regrowth. The workshop forecasts it. With the current profiles, 96 leaves exceed the largest scheduled final-encounter batch (84), guaranteeing a usable leaf supply without rewarding poor play.
 
@@ -44,12 +46,14 @@ Boot ranks improve speed and reduce pile drag. Fan ranks add lift/reach but add 
 
 The menu calls them **Save Slots**, with three editable names. New defaults are Save 1–3; existing custom names are preserved. Difficulty stays fixed for a campaign. Autosaves occur at completed-week/workshop boundaries, next-week starts and victory, never mid-attempt. Exiting warns that current-level progress will be lost.
 
-Native files are `user://campaigns.json`; browser checkpoints use `snow.campaigns.v1` plus backup. Container version stays compatible; checkpoint rules version 2 identifies the new canopy/weekly danger/upgrade economy. Previous 48-slot checkpoints keep their original positions, identities, campaign ID, completed weeks, score and earned point budget, with 240 additional canopy positions. An old two-rank purchase costing four points maps to rank four in its branch. Browser storage keys are unchanged. Native saves can still be read from the former application-data directory after the title change.
+Native files are `user://campaigns.json`; browser checkpoints use `snow.campaigns.v1` plus backup. Container version stays compatible. Checkpoint rules version 2 introduced the canopy/weekly danger/upgrade economy; version 3 adds grounded-leaf recovery and slow abilities. Previous 48-slot checkpoints keep their original positions, identities, campaign ID, completed weeks, score and earned point budget, with 240 additional canopy positions. An old two-rank purchase costing four points maps to rank four in its branch. Browser storage keys are unchanged. Native saves can still be read from the former application-data directory after the title change.
 
-High scores are separate from campaign slots. Earlier rules' tables remain accessible under **Previous scores**; current rules do not overwrite or rank against them. A campaign contributes one best terminal result per rules version.
+High scores are separate from campaign slots. Earlier rules' tables (versions 1 and 2) remain accessible under **Previous scores**; current rules do not overwrite or rank against them. A campaign contributes one best terminal result per rules version.
 
 ## Pause and later polish
 
 Pause freezes physics, poses, weather, previews and endings. Switching away pauses automatically; returning requires Resume. All-screen pause and confirmed exit remain available.
 
 Later scenery polish: slow clouds, squirrels on the ground/trunk, and a restrained night storm/lightning week. Dynamic lighting depth, artist-separated limbs, richer turns and authored ending performances remain later work. The textured whole-tree illustration stays authoritative; do not rebuild it from little line segments.
+
+Brief unique openings and congratulations frame every week, with gameplay clocks frozen while the panel is readable. The role of the tree is suggested rather than explained in player-facing text. Achievements are [future work](ACHIEVEMENTS.md); rescue-streak callouts are removed.

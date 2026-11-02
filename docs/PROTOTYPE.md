@@ -7,9 +7,11 @@
 - Fixed-camera, fixed **360 × 640** logical playfield, uniformly fitted inside browser safe-area padding. Screen shape changes decorative margins, not gameplay geometry.
 - Keyboard and independent multi-touch movement/blowing, input release on touch cancellation, pause on application focus loss, and explicit pause/resume.
 - A basic procedural cutout rig with hip/knee/ankle chains, distance-driven forward/backward strides, subtle torso motion and weighted electric-blower vibration. Feet stop cycling against boundaries and follow actual slowed/upgraded movement. Wind streaks travel away from the visual nozzle; physics uses its shared rest position.
-- Seeded per-leaf flutter phase/frequency, aerodynamic drag, gravity, lateral wind, tumble and foreshortening, with upward blower force, once-only rescue/miss outcomes, pile slowdown, battery depletion/release-to-recharge, score/combo, 12 main weeks and a final North Wind encounter, and weekly winter pressure.
+- Seeded per-leaf flutter phase/frequency, aerodynamic drag, gravity, lateral wind, tumble and foreshortening, with upward blower force, once-only scoring, intact scuffable ground leaves, layered pile slowdown, battery depletion/release-to-recharge, score/combo, 12 main weeks and a final North Wind encounter, and weekly winter pressure.
 - A conserved canopy of 288 individually occupied branch positions, with a 96-leaf between-week recovery floor. Shedding opens a gap; an upward-blown leaf reattaches only near a real empty position, including one other than its original spot. Missed leaves leave the tree barer across weeks; overnight regrowth occurs only below the recovery floor and awards no points. Weekly schedules only use the remaining attached leaves. Late-week colours turn orange/red independently of canopy occupancy.
 - Between-week workshop with boots, blower and battery branches; prerequisites, one point per completed week 1–12, weight/energy tradeoffs, reallocation, and carryover within a run.
+- Blower rank 2 unlocks Leaflift Surge: a brief downward spin lifts nearby original ground leaves, with a 36-second recharge reduced to 31/26 seconds by Battery ranks 3/5. Tap the leaf-lifting button or press E.
+- Unique short opening/closing paper panels frame all twelve weeks and the finale. Physics and recharge clocks wait for the panel to fade; tap or Space/Enter can skip it. Achievements are deferred; rescue-streak announcements are removed.
 - Small warning flakes near defeat; clouds, cut-paper snowflakes and ground snow on loss; flowers on victory. Main-menu season previews allow immediate art review.
 - Soft-effects and mute options; a quiet synthesized electric whirr after starting a run. No microphone input or external audio service.
 
@@ -56,6 +58,8 @@ The shell fits a constant portrait rectangle within the viewport's safe-area pad
 | Move | A/D or Left/Right | Hold a direction button; slide between directions |
 | Blow | Hold Space | Hold the fan button alongside a direction touch |
 | Recharge | Release Space | Release the fan; wait briefly |
+| Leaflift Surge (Blower rank 2) | Press E | Tap the leaf-lifting button |
+| Skip story panel | Space / Enter | Tap after the short minimum |
 | Pause/resume | Escape | Tap pause, then Resume |
 | Workshop/menu | Tab, arrows where supported, Enter/Space | Tap/click buttons |
 
@@ -63,7 +67,7 @@ Leaving the blower held at zero charge will not refill it: release first. Upgrad
 
 ## Reproducible validation
 
-Current-instance validation: **604 headless checks passed** (424 simulation/build mobility, 38 scene/input, 31 campaign-save, 14 cutout-animation/flutter, 29 score/difficulty, 16 menu/layout/license and 52 airflow/recovery/migration checks). All **ten browser integration scenarios passed without runtime errors**, alongside exported offline-notice and difficulty-selection checks, with denied-storage and corrupt-primary/backup recovery separately verified in the preceding save-system pass. The headless suites cover simulation, weekly/boss progression, artwork/pausing, and local campaign persistence. Browser checks include real multi-touch, reattachment, five aspect ratios, automatic pause/explicit resume, validated workshop-fixture upgrades, named-save reload, retry, exit confirmation and ending previews. The latest run outcome is recorded in ignored `test-results/browser-results.json`; native phone performance is not established by these checks.
+Current-instance validation: **634 headless checks passed** (424 simulation/build mobility, 38 scene/input, 31 campaign-save, 14 cutout-animation/flutter, 29 score/difficulty, 16 menu/layout/license, 52 airflow/recovery/migration and 30 ground-leaf/ability/story/archive checks). All **ten browser integration scenarios passed without runtime errors**, alongside three ground-leaf/ability/story browser scenarios and exported offline-notice and difficulty-selection checks, with denied-storage and corrupt-primary/backup recovery separately verified in the preceding save-system pass. The headless suites cover simulation, weekly/boss progression, artwork/pausing, and local campaign persistence. Browser checks include real multi-touch, reattachment, five aspect ratios, automatic pause/explicit resume, validated workshop-fixture upgrades, named-save reload, retry, exit confirmation and ending previews. The latest run outcome is recorded in ignored `test-results/browser-results.json`; native phone performance is not established by these checks.
 
 Actual screenshots of [gameplay](images/prototype-gameplay.png), [save slots](images/prototype-save-slots.png), [week 12](images/prototype-week-12.png), [the boss study](images/prototype-boss.png), [victory](images/prototype-victory.png), the [sparse late-autumn warning preview](images/prototype-warning.png), and the [bare-tree winter preview](images/prototype-winter.png) are included in the repository. The generated release is under ignored `build/web/`; a portable browser bundle is `build/snow-web-prototype.zip`. The bundle must still be served over HTTP/HTTPS, not opened directly from disk.
 
@@ -77,15 +81,19 @@ bash tools/godot.sh --headless --script tests/test_actor.gd
 bash tools/godot.sh --headless --script tests/test_scores.gd
 bash tools/godot.sh --headless --script tests/test_menus.gd
 bash tools/godot.sh --headless --script tests/test_progression.gd
+bash tools/godot.sh --headless --script tests/test_ground_story.gd
 ```
 
-Browser integration uses **Python Playwright 1.62.0** and an installed Chromium. Those are test tools, not game/runtime dependencies. To reproduce in a machine that lacks them, install that Playwright version in a development virtual environment and install its Chromium browser or supply your system Chromium path. Build a separate debug export, leave the server above running, then:
+Browser integration uses **Python Playwright 1.62.0** and an installed Chromium. Those are test tools, not game/runtime dependencies. The ground/story check records video using Playwright’s ffmpeg and requires system ffmpeg for candidate-frame extraction. To reproduce in a machine that lacks them, install that Playwright version in a development virtual environment and install its Chromium browser or supply your system Chromium path. Build a separate debug export, leave the server above running, then:
 
 ```sh
 mkdir -p build/web/test
 bash tools/godot.sh --headless --export-debug Web build/web/test/index.html
 python3 tests/browser_smoke.py --chromium /usr/bin/chromium
 python3 tests/browser_menus.py
+# Generate validated study checkpoints, then exercise the new ability/story flow:
+bash tools/godot.sh --headless --script tests/visual_fixture.gd
+python3 tests/browser_ground_story.py
 ```
 
 The debug browser check enables a read-only `window.snowSnapshot` only in debug builds with the explicit `?test=1` flag. Release builds do not expose it. The test drives actual keyboard and browser multi-touch input; it does not use a cheat API to advance weeks or award upgrades. It writes screenshots and a JSON report to ignored `test-results/`. Do not publish the nested debug export as part of a release.
@@ -123,3 +131,5 @@ Launcher verification: `python3 tests/test_launcher.py` checks platform selectio
 Current menu captures: [main menu](images/prototype-menu.png), [High Scores](images/prototype-high-scores.png), and [License](images/prototype-license.png). Score screenshots use an actual browser-played terminal result.
 
 Updated campaign rules are in [CAMPAIGN.md](CAMPAIGN.md). The illustrated [workshop](images/prototype-workshop.png) has eighteen inspectable nodes and separate descriptions; [detail view](images/prototype-workshop-detail.png). Native layout tests check non-overlapping hit areas and bounded images/text. Title, Save Slots labels and browser branding now use sNOw only; native legacy save paths and archived old scores remain supported. All winning-build and pacing claims still require human full-campaign testing.
+
+The [opening panel](images/prototype-story-intro.png), [closing panel](images/prototype-story-outro.png), [intact ground leaves](images/prototype-ground-leaves.png), and [Leaflift Surge study](images/prototype-surge.png) are actual browser frames. The [surge motion clip](images/prototype-surge.mp4) shows the first cutout spin and leaf fountain. See [abilities and chapter text](ABILITIES_AND_STORY.md) for cooldowns, recovery accounting, score-version migration and capture-fixture boundaries. The spin is a procedural cutout turn, still awaiting artist-authored poses.

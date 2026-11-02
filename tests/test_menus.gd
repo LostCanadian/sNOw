@@ -33,8 +33,10 @@ func run() -> void:
 	main.return_from_scores()
 	check(main.mode == "title", "score screen returns to menu")
 	main.start_run()
+	main.finish_story()
 	main.sim.spawned = main.sim.week_leaf_count()
 	main._physics_process(1.0 / 60)
+	main.finish_story()
 	await process_frame
 	var nodes = main.overlay.find_children("*", "Button", true, false)
 	var overlaps := false
@@ -52,6 +54,7 @@ func run() -> void:
 	check(card_text.size() == 1 and card_text[0].size.x <= 300, "full upgrade descriptions wrap inside a separate bounded card")
 	main.selected_difficulty = 2
 	main.start_run()
+	main.finish_story()
 	check(main.sim.difficulty == 2, "new campaign uses the chosen difficulty")
 	main.sim.score = 4500
 	main.sim.status = "lost"
