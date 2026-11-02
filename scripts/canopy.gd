@@ -59,6 +59,7 @@ const DENSITY := 7
 const OLD_DENSE_COUNT := 2880
 const CENTER_COUNT := 144
 const RADIUS := 7.8
+const BranchFill = preload("res://scripts/canopy_branch_fill.gd")
 const Center = preload("res://scripts/canopy_center.gd")
 const SLOT_COUNT := PREVIOUS_COUNT * DENSITY + CENTER_COUNT
 const LEGACY_COUNT := 48
@@ -343,6 +344,12 @@ static func slot_layout() -> Array[Dictionary]:
 	for i in range(CENTER_COUNT):
 		var p: Vector4=Center.POINTS[i]
 		result.append({"position":Vector2(p.x,p.y),"stem":Vector2(p.z,p.w),"angle":Center.ANGLES[i],"leaf_id":result.size(),"attached_at":-10.0})
+	# Move crowded outer sprays onto the illustrated fine middle-right twigs.
+	# Stable slot IDs and the total leaf count stay unchanged for saved games.
+	for item: Vector4 in BranchFill.REPLACEMENTS:
+		var stem := TREE_RECT.position+Vector2(item.y,item.z)/IMAGE_SIZE*TREE_RECT.size
+		var point := stem+Vector2.UP.rotated(item.w)*8.0
+		result[int(item.x)]={"position":point,"stem":stem,"angle":item.w,"leaf_id":int(item.x),"attached_at":-10.0}
 	return result
 
 

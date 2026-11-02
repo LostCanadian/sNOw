@@ -51,7 +51,7 @@ func _initialize() -> void:
 	game.step(1.0 / 60, 0, false)
 	check(game.status == "workshop" and game.attached_count() == Loop.Canopy.SLOT_COUNT, "a perfect week retains the entire canopy")
 	game.next_week()
-	check(game.attached_count() == Loop.Canopy.SLOT_COUNT and game.week_leaf_count() > initial_count and game.regrown == 0, "the next week increases shedding without arbitrarily deleting rescued leaves")
+	check(game.attached_count() == game.crown_ceiling() and game.week_leaf_count() > initial_count and game.regrown == 0 and game.seasonal_fallen == 80, "the next week thins healthy twig clusters without counting seasonal loss as player misses")
 	# A plausible sparse end-of-campaign checkpoint: 1,500 losses over twelve Breezy weeks.
 	game = Loop.new(55, 0)
 	game.week = 12
@@ -88,7 +88,7 @@ func _initialize() -> void:
 				if a + b + c == 12:
 					builds += 1
 					var stats: Dictionary = game.stats([a,b,c])
-					check(stats.speed * (1-stats.pile_penalty) > 60 and stats.burst > 3, "each full-budget build retains mobility and usable battery time")
+					check(stats.speed * (1-stats.pile_penalty) > 50 and stats.burst > 3, "each full-budget build retains mobility and usable battery time")
 	check(builds == 28 and Loop.Upgrades.MAX_RANK * 3 == 30, "thirty nodes support the prior kit comparisons alongside branching builds")
 	var legacy: Dictionary = Campaign.snapshot(Loop.new())
 	legacy.erase("rules")
@@ -101,7 +101,7 @@ func _initialize() -> void:
 	legacy.points = 0
 	legacy.tiers = [2,2,2]
 	loaded = Campaign.restore(legacy)
-	check(loaded != null and loaded.tiers == [4,4,4] and loaded.attached_count() == Loop.Canopy.SLOT_COUNT, "old slots keep their budget and progress when migrating to the larger canopy and tree")
+	check(loaded != null and loaded.tiers == [4,4,4] and loaded.attached_count() == loaded.crown_ceiling(), "old slots keep their budget and progress when migrating to the larger canopy and tree")
 	check(Campaign.valid_checkpoint(Campaign.snapshot(loaded)), "a migrated slot can immediately save under the new rules")
 	var path := "user://archive-score-test-%d.json" % Time.get_ticks_usec()
 	var scores = Scores.new(path)

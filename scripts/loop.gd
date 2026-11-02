@@ -4,7 +4,9 @@ extends RefCounted
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
-const RULES := 7
+const RULES := 8
+const NorthWind = preload("res://scripts/north_wind.gd")
+const CROWN_CEILINGS := [2160,2080,2000,1900,1800,1680,1560,1440,1320,1200,1080,960,960]
 const SURGE_DURATION := 1.15
 const RECOVERY_FLOOR := 720
 const GRAVITY := 48.0
@@ -13,7 +15,7 @@ const Canopy = preload("res://scripts/canopy.gd")
 const CAPTURE_RADIUS := 15.0
 const MAX_ACTIVE := 1500
 const SHED_BATCH := 10
-const BASE_SPEED := 122.0
+const BASE_SPEED := 100.0
 const CAPACITY := 105 # Default weekly allowance. Cumulative loss remains in missed.
 const DIFFICULTIES := [
 	{"name": "Breezy", "capacity": 135, "leaves": 180, "increment": 15, "cadence": 1.15, "wind": 0.70, "fall": 0.88},
@@ -57,6 +59,10 @@ var rescued := 0
 var missed := 0
 var regrown := 0
 var week_regrown := 0
+var seasonal_fallen := 0
+var wind_cycle := -1
+var wind_lane := 220.0
+var wind_released := 0
 var spawned := 0
 var week_rescued := 0
 var week_missed := 0
@@ -166,7 +172,7 @@ func shed_batch_size() -> int:
 
 
 func shedding_interval() -> float:
-	return (0.38 if boss_phase() == "blast" else maxf(0.65, 1.30 - week * 0.045)) * DIFFICULTIES[difficulty].cadence * lerpf(1.15, 1.0, seasonal_risk())
+	return maxf(0.65, 1.30 - week * 0.045) * DIFFICULTIES[difficulty].cadence * lerpf(1.15, 1.0, seasonal_risk())
 
 
 func prepare_shedding() -> void:
@@ -213,9 +219,61 @@ func stage_title() -> String:
 
 
 func boss_phase() -> String:
-	if not is_boss(): return ""
-	var t := fmod(week_time, 7.5)
-	return "warning" if t < 1.5 else ("blast" if t < 4.0 else "rest")
+	return NorthWind.phase(week_time) if is_boss() else ""
+
+
+func step_north_wind(previous_time: float) -> void:
+	if spawned >= week_leaf_count() or leaves.size() >= MAX_ACTIVE: return
+	var cycle := NorthWind.cycle(week_time)
+	if cycle != wind_cycle:
+		wind_cycle = cycle
+		wind_released = 0
+		var next := find_attached_leaf(shedding_order[spawned])
+		if next >= 0: wind_lane = clampf(slots[next].position.y, 110, 335)
+	if boss_phase() != "blast": return
+	var quota: int = [44,52,60][difficulty]
+	if wind_released >= quota: return
+	var path := NorthWind.segment(previous_time, week_time, wind_lane)
+	var candidates: Array[int] = []
+	for pending in range(spawned, shedding_order.size()):
+		var id := shedding_order[pending]
+		var index := find_attached_leaf(id)
+		if index < 0: continue
+		var point: Vector2 = slots[index].position
+		if point.distance_to(Geometry2D.get_closest_point_to_segment(point,path[0],path[1])) <= NorthWind.RADIUS:
+			candidates.append(id)
+	candidates.sort_custom(func(a,b):return Canopy.depth(a)>Canopy.depth(b))
+	for id in candidates.slice(0,mini(6,quota-wind_released)):
+		var pending := shedding_order.find(id,spawned)
+		shedding_order[pending] = shedding_order[spawned]
+		shedding_order[spawned] = id
+		if not spawn_leaf(): break
+		leaves[-1].velocity += Vector2(NorthWind.direction(week_time)*24,8)
+		wind_released += 1
+
+
+func crown_ceiling() -> int:
+	return CROWN_CEILINGS[clampi(week-1,0,CROWN_CEILINGS.size()-1)]
+
+
+func retire_seasonal_foliage() -> int:
+	var count := maxi(0,attached_count()-crown_ceiling())
+	if count == 0: return 0
+	# Whole twig clusters thin out, leaving readable bare patches rather than
+	# removing a uniform dusting from a still-solid-looking crown.
+	var occupied: Array[int] = []
+	for index in range(slots.size()):
+		if slots[index].leaf_id >= 0: occupied.append(index)
+	occupied.sort_custom(func(a,b):
+		var ca := Vector2i(slots[a].stem/28.0)
+		var cb := Vector2i(slots[b].stem/28.0)
+		var pa := fposmod(ca.x*0.438579+ca.y*0.754877,1.0)
+		var pb := fposmod(cb.x*0.438579+cb.y*0.754877,1.0)
+		return a<b if is_equal_approx(pa,pb) else pa<pb)
+	for index in occupied.slice(0,count):slots[index].leaf_id=-1
+	seasonal_fallen += count
+	index_canopy()
+	return count
 
 
 func capture_slot(from: Vector2, to: Vector2) -> int:
@@ -332,12 +390,16 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 			energy_locked=true
 			low_power=true
 	step_ground(dt, x - previous_x)
+	var previous_time := week_time
 	week_time += dt
-	spawn_timer -= dt
-	if spawn_timer <= 0.0 and spawned < week_leaf_count() and leaves.size() < MAX_ACTIVE:
-		for i in range(shed_batch_size()):
-			if not spawn_leaf(): break
-		spawn_timer += shedding_interval()
+	if is_boss():
+		step_north_wind(previous_time)
+	else:
+		spawn_timer -= dt
+		if spawn_timer <= 0.0 and spawned < week_leaf_count() and leaves.size() < MAX_ACTIVE:
+			for i in range(shed_batch_size()):
+				if not spawn_leaf(): break
+			spawn_timer += shedding_interval()
 	var origin := nozzle()
 	var airflow := air_axis()
 	var lateral := airflow.orthogonal()
@@ -359,7 +421,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		v.x += (wind + flutter_x - v.x) * 1.8 * dt
 		var drag_coefficient: float = leaf.get("drag", 0.65) * (0.75 + 0.25 * cos(flutter * 2))
 		v.y += (GRAVITY * float(DIFFICULTIES[difficulty].fall) - v.y * drag_coefficient + sin(flutter * 2) * 8.0) * dt
-		if boss_phase() == "blast": v.y += 32.0 * dt
+		if is_boss(): v += NorthWind.force(p,week_time,wind_lane)*dt
 		if in_gust:
 			if not low_power:leaf.lifted=true
 			var spread: float = s.width * (0.7 + height / 340.0)
@@ -562,6 +624,7 @@ func next_week() -> bool:
 	facing = 1
 	aim = 0
 	blowing = false
+	retire_seasonal_foliage()
 	week_regrown = restore_playable_canopy()
 	charge = 1.0
 	energy_locked = false
@@ -580,6 +643,8 @@ func next_week() -> bool:
 	surge_charge = 1.0
 	surge_left = 0
 	surge_held = false
+	wind_cycle = -1
+	wind_released = 0
 	prepare_shedding()
 	status = "playing"
 	return true

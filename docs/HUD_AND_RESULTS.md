@@ -20,7 +20,7 @@ Completion autosaves before the closing text and tally. The saved `week_start_sc
 
 ## Initials and score persistence
 
-Before this change, only loss or full-campaign victory could enter the score tables; successful intermediate weeks had no initials action. Qualifying positive completed-week scores can now be saved immediately, as well as loss/victory results. Type three A–Z letters or use the touch-friendly plus/minus controls; Not Now returns to results. Once this campaign has an entry, later improvements update it automatically after tallying and retain its initials. Each campaign still occupies one best row per rules version and difficulty.
+Before this change, only loss or full-campaign victory could enter the score tables; successful intermediate weeks had no initials action. Qualifying positive completed-week scores can now be saved immediately, as well as loss/victory results. Type three A–Z letters or use the touch-friendly plus/minus controls; Not Now returns to results. Once this campaign has an entry, later improvements update it automatically after tallying and retain its initials. Each campaign occupies one best row per difficulty, with historical scores in the same table.
 
 Completed-week rows say CLEARED, distinct from LOSS and final WIN. Earlier records without this metadata remain readable. The High Scores page omits the requested explanatory footer lines; real storage errors remain visible. See [scores and licenses](SCORES_AND_LICENSES.md) for storage troubleshooting and archive compatibility.
 

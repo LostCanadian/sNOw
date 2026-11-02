@@ -73,7 +73,7 @@ static func snapshot(game) -> Dictionary:
 	if game.status == "playing" and game.week_time > 0.0: return {}
 	var ids: Array = []
 	for slot in game.slots: ids.append(slot.leaf_id)
-	return {"rules": Loop.RULES, "regrown": game.regrown, "week_regrown": game.week_regrown, "difficulty": game.difficulty, "run_id": game.run_id, "week": game.week, "phase": game.status, "score": game.score,
+	return {"rules": Loop.RULES, "seasonal_fallen": game.seasonal_fallen, "regrown": game.regrown, "week_regrown": game.week_regrown, "difficulty": game.difficulty, "run_id": game.run_id, "week": game.week, "phase": game.status, "score": game.score,
 		"week_start_score": game.week_start_score,
 		"combo": game.combo, "week_rescued": game.week_rescued, "week_missed": game.week_missed,
 		"rescued": game.rescued, "missed": game.missed, "points": game.points,
@@ -136,7 +136,9 @@ static func valid_checkpoint(data) -> bool:
 		if id == -1: missing += 1
 		elif seen.has(int(id)): return false
 		else: seen[int(id)] = true
-	if missing != data.missed - data.get("regrown", 0): return false
+	if not whole(data.get("seasonal_fallen",0),0,Loop.Canopy.SLOT_COUNT): return false
+	if data.get("rules",1)<8 and data.get("seasonal_fallen",0)!=0:return false
+	if missing != data.missed - data.get("regrown", 0) + data.get("seasonal_fallen",0): return false
 	if not legacy and data.phase == "playing" and count - missing < (recovery): return false
 	if not data.order is Array or data.order.size() > count: return false
 	var ordered := {}
@@ -167,6 +169,7 @@ static func restore(data):
 	game.rescued = int(data.rescued)
 	game.missed = int(data.missed)
 	game.regrown = int(data.get("regrown", 0))
+	game.seasonal_fallen = int(data.get("seasonal_fallen",0))
 	game.week_regrown = int(data.get("week_regrown", 0))
 	game.points = int(data.points)
 	game.earned_points = int(data.earned_points)
@@ -204,7 +207,9 @@ static func restore(data):
 	game.index_canopy()
 	game.rng.seed = data.rng_seed.to_int()
 	game.rng.state = data.rng_state.to_int()
-	if data.get("rules", 1) < 7: game.prepare_shedding()
+	if data.get("rules",1)<8:
+		if data.phase=="playing":game.retire_seasonal_foliage()
+		game.prepare_shedding()
 	return game
 
 

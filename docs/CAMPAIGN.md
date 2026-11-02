@@ -10,7 +10,7 @@ Play twelve main weeks, followed by the separately named North Wind final encoun
 
 A new campaign begins with **2,160 individually attached leaves** on the supplied textured ancient tree. Leaves originate at occupied twig positions, drift under gravity, and reattach only when lifted into a real vacant position. Any empty position may accept a leaf. The exact identities and occupancy of every position are saved.
 
-**If every leaf is rescued in week one, week two still starts with all 2,160.** Nothing removes leaves simply because another week has begun. Seasonal colour advances and the next shedding schedule is harder. Misses leave persistent gaps; successful play preserves a fuller tree.
+Healthy crowns now thin in twig clusters between weeks, from 2,160 leaves initially to a ceiling of 960 by week twelve and the finale. The ceilings are 2,160 / 2,080 / 2,000 / 1,900 / 1,800 / 1,680 / 1,560 / 1,440 / 1,320 / 1,200 / 1,080 / 960 / 960. Player misses can leave a sparser tree. Seasonal losses have their own saved counter, do not count toward weekly frost or award points, and do not repeat on Retry.
 
 Landing now keeps the original leaf in a physical ground pile. Walking disturbs it; the unlocked Whirlwind can return it to the air and remove its frost penalty while it is in play. Points still require actual reattachment. See [abilities and story](ABILITIES_AND_STORY.md).
 
@@ -18,7 +18,7 @@ Danger is **weekly**. Reaching that week's miss allowance loses the level. Its c
 
 Before the next week begins, the tree regrows only enough missing leaves to reach a **720-leaf recovery floor**. It never refills a healthier crown. Regrowth restores missing identities into vacant slots and grants no rescue score, combo or upgrade points. A short start-of-week notice explains any regrowth. The workshop forecasts it. With the current profiles, 720 leaves exceed the largest scheduled final-encounter batch (636), guaranteeing a usable leaf supply without rewarding poor play.
 
-Example: finish a week with 1,700 attached leaves → start the next with the same 1,700. Finish with 660 → sixty leaves regrow, starting the next with 720. A retry uses that saved 720-leaf state; it does not repeatedly grow more leaves. This prevents resource depletion from making a campaign unrecoverable while preserving visible consequences.
+Example: a healthy crown above the coming week’s ceiling sheds to that ceiling. Finish below that ceiling with 800 → keep those 800. Finish with 660 → sixty leaves regrow, starting the next with 720. A retry uses that saved 720-leaf state; it does not repeatedly grow more leaves. This prevents resource depletion from making a campaign unrecoverable while preserving visible consequences.
 
 | Difficulty | Weekly miss limit | First-week shedding | Added each week | Shedding interval | Wind | Fall factor |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -26,7 +26,7 @@ Example: finish a week with 1,700 attached leaves → start the next with the sa
 | Blustery | 105 | 225 | 15 | ×1.00 | ×1.00 | ×1.00 |
 | Gale | 75 | 270 | 23 | ×0.85 | ×1.30 | ×1.12 |
 
-The final encounter adds 90 scheduled leaves. All schedules are finite and bounded by attached leaves. The pressure-driven warning snow and loss condition use **weekly misses**, shown by the growing, pulsing snowflake. No account or permanent stat grind is required. Numbers need human playtesting; the floor prevents a supply soft lock, not every possible player failure.
+The final encounter adds 90 scheduled leaves. The North Wind crosses the crown every 4.8 seconds: a 0.8-second approach, 1.5-second sweep, and 2.5-second recovery window. It strips only scheduled real leaves inside its swept path, up to 44 / 52 / 60 per pass by difficulty, and curls nearby airborne leaves through the same local force field. Passes alternate direction and target a height with pending leaves. There is no face character or text panel behind the tree. All schedules are finite and bounded by attached leaves. The pressure-driven warning snow and loss condition use **weekly misses**, shown by the growing, pulsing snowflake. No account or permanent stat grind is required. Numbers need human playtesting; the floor prevents a supply soft lock, not every possible player failure.
 
 ## Direction and airflow
 
@@ -40,7 +40,7 @@ Boots, Blower and Battery each have a ten-node branching tree. Two Gold Leaves a
 
 Tap any node to inspect it, including locked/owned ones. Its full description and prerequisite appear in a separate fixed card. Buying is a separate explicit action. Equipment icons identify the three lanes, connectors show prerequisites, and node hit areas do not overlap. The reset icon asks Reset all upgrades or Cancel; confirmation refunds the earned budget.
 
-Boot ranks improve speed and reduce pile drag. Fan ranks add lift/reach but add weight and drain. Battery ranks add capacity/efficiency and reduce recharge time, with a small weight cost. All modeled builds retain movement above 60 logical units/second under maximum pile drag and useful burst time; actual winning strategy balance still needs human testing.
+Boot ranks improve speed and reduce pile drag. Fan ranks add lift/reach but add weight and drain. Battery ranks add capacity/efficiency and reduce recharge time, with a small weight cost. All modeled builds retain movement above 50 logical units/second under maximum pile drag and useful burst time; actual winning strategy balance still needs human testing.
 
 ## Save Slots and compatibility
 
@@ -62,10 +62,14 @@ Completed weeks lead to [animated results](HUD_AND_RESULTS.md) with exact week/t
 
 The [future ambient-world plan](AMBIENT_WORLD.md) covers a rabbit changing coat, night owl reactions, full-moon wolf/bat variants, varied daylight/night skies and a darker cloudy daytime finale. These remain deferred art and animation work.
 
-Checkpoint rules 7 uses 2,160 leaves, including additional central attachments, at 30% larger size. Older 48-, 288- and 2,880-leaf checkpoints retain the proportion of gaps and scale leaf counters to the new density. Score, campaign identity, week and purchased upgrades remain; playing schedules regenerate deterministically from saved randomness. Saving writes the new density so conversion cannot repeat.
+Checkpoint rules 8 uses 2,160 leaves, including additional central attachments, at 30% larger size. Older 48-, 288- and 2,880-leaf checkpoints retain the proportion of gaps and scale leaf counters to the new density. Score, campaign identity, week and purchased upgrades remain; playing schedules regenerate deterministically from saved randomness. Saving writes the new density so conversion cannot repeat.
 
 To change difficulty in an occupied slot: Save Slots → Edit → Start fresh… → choose a difficulty/name → Review fresh start → confirm. Cancellation preserves the original campaign. Confirmation resets that slot to week 1 with a new campaign identity and chosen difficulty; other saves and score tables remain intact. Difficulty stays fixed during an existing campaign.
 
 Rules 5 change the seasonal colour mix, weighted selection and cadence; week-one events contain four leaves and late events ten. [Motion/season rules](MOTION_AND_SEASONS.md) cover exact colour weights, rigid limb animation, the airborne Surge, knee-height scuffs, leaf-first winter and score conversion. Earlier campaign totals and score-table values divide by ten once during import. One-use upgrade items such as coffee remain [future work](CONSUMABLES.md).
 
 Beta checkpoint UX: loading a playing checkpoint offers Continue, which begins the saved level from the start. Resume/Restart remain live-pause actions, where they refer to genuinely different choices. Results and menus never auto-pause on focus loss. See [beta polish](BETA_POLISH.md).
+
+Starting speed is 100 logical units/second (previously 122). Trail soles adds 10%; Quick stride adds another 12%, returning two early boot purchases to 122 before load weight. Later speed branches add 12%, 6%, 16% and 10%, alongside the existing grip and weight-management choices.
+
+The first crown relocates 160 redundant outer sprays onto fine middle-right branches. The tree artwork and total of 2,160 leaf identities are unchanged. Rules-7-and-earlier playing checkpoints adopt the current seasonal ceiling once and regenerate a deterministic schedule; score, campaign identity and purchased upgrades are retained.

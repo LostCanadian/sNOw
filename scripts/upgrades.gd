@@ -15,12 +15,12 @@ const ICONS := [
 	["cell", "pack", "charge", "pack", "efficient", "charge", "tornado_cell", "cell", "hybrid", "tornado_cell"],
 ]
 const DETAILS := [
-	["Lighter soles increase walking speed by 6%.", "Stride speed +9%.", "Pile slowdown reduced by 5 percentage points.", "Stride speed +10%.", "Carry blower and battery weight 20% more easily.", "Pile slowdown reduced by 7 percentage points.", "Stride speed +5%; pile slowdown reduced by 3 percentage points.", "Stride speed +14%.", "Stride speed +8%; pile slowdown reduced by 5 percentage points. Requires both inner paths.", "Pile slowdown reduced by 8 percentage points."],
+	["Lighter soles increase walking speed by 10%.", "Stride speed +12%.", "Pile slowdown reduced by 5 percentage points.", "Stride speed +12%.", "Carry blower and battery weight 20% more easily.", "Pile slowdown reduced by 7 percentage points.", "Stride speed +6%; pile slowdown reduced by 3 percentage points.", "Stride speed +16%.", "Stride speed +10%; pile slowdown reduced by 5 percentage points. Requires both inner paths.", "Pile slowdown reduced by 8 percentage points."],
 	["Lift force +12%.", "Wind cone width +10.", "E: leap into a Whirlwind, lifting nearby ground and airborne leaves. Recharges in 36 seconds.", "Outward steering +25%.", "Wind reach +35.", "Whirlwind radius +22.", "Lift force +15%.", "Wind cone width +16.", "Lift force +12%; steering +15%. Requires both inner paths.", "Whirlwind lift +25%; radius +20."],
 	["Burst duration +10%.", "Burst duration +16%.", "Battery recharge 12% faster.", "Burst duration +22%.", "Burst duration +12%; carry weight reduced.", "Battery recharge 15% faster.", "Whirlwind recharges 5 seconds sooner.", "Burst duration +25%.", "Burst duration +14%; recharge 10% faster. Requires both inner paths.", "Whirlwind recharges 7 seconds sooner."],
 ]
 const EFFECTS := [
-	[{"speed":0.06},{"speed":0.09},{"grip":0.05},{"speed":0.10},{"weight_relief":0.2},{"grip":0.07},{"speed":0.05,"grip":0.03},{"speed":0.14},{"speed":0.08,"grip":0.05},{"grip":0.08}],
+	[{"speed":0.10},{"speed":0.12},{"grip":0.05},{"speed":0.12},{"weight_relief":0.2},{"grip":0.07},{"speed":0.06,"grip":0.03},{"speed":0.16},{"speed":0.10,"grip":0.05},{"grip":0.08}],
 	[{"force":0.12},{"width":10.0},{"whirlwind":1.0},{"steering":0.25},{"reach":35.0},{"radius":22.0},{"force":0.15},{"width":16.0},{"force":0.12,"steering":0.15},{"surge_force":0.25,"radius":20.0}],
 	[{"burst":0.10},{"burst":0.16},{"recharge":0.12},{"burst":0.22},{"burst":0.12,"weight_relief":0.1},{"recharge":0.15},{"cooldown":5.0},{"burst":0.25},{"burst":0.14,"recharge":0.1},{"cooldown":7.0}],
 ]

@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Sixteen headless regression scripts pass 805 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter and audio routing. All 21 Python launcher/mobile-export checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Seventeen headless regression scripts pass 840 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter and audio routing. All 21 Python launcher/mobile-export checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -70,3 +70,13 @@ The [winter preview](images/paper-cloud-winter.png) uses an original textured pa
 ## Finale timing and attachment cues
 
 Victory now lets the 3.5-second flower animation finish and holds the finished scene for another 2.5 seconds. Its closing sentence then uses a separate story card before Results, with pause/skip behavior matching the other interludes. The sentence is removed from the Results action grid. Attachment twinkles are slightly larger and brighter, with a stronger warm halo.
+
+## North Wind and seasonal balance
+
+The North Wind is now a fast ribbon of curls drawn over the tree, with its visible path shared by branch stripping and local airborne forces. Each 4.8-second pass has a telegraphed approach, a 1.5-second sweep, and a recovery window. Only real pending identities in the swept capsule detach; packets are bounded and each identity is scheduled once. Later passes target remaining foliage so the encounter finishes.
+
+Seasonal twig clusters thin a healthy crown from 2,160 to 960 leaves, with a separate saved seasonal-loss counter. The 720-leaf recovery floor remains above the largest 636-leaf finale schedule, preventing a nearly empty tree from making the boss trivial. Initial middle-right coverage improves through 160 relocated sprays on verified painted bark, without increasing total density. Starting speed falls from 122 to 100; stronger early boots restore 122 after two speed purchases. All these values still need human balance playtesting.
+
+The browser finale study covers the completed flower hold, the separate closing card with pause/resume, clean Results, visible gusts in both directions, and a fresh first-week crown. Completed-save loading also replays the victory scene without awarding points again. Perfect-response scheduling studies finish the three boss profiles in about 54–59 seconds; idle depleted-crown studies still lose at their normal miss limits. These are simulation/flow checks, not claims of a human full-campaign win.
+
+Browser review stills: [North Wind sweep](images/north-wind-sweep.png), [victory closing card](images/finale-closing-card.png), and [initial branch coverage](images/filled-middle-right-crown.png). The first two use validated study checkpoints; the crown capture starts a fresh campaign.

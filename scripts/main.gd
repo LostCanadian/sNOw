@@ -245,7 +245,7 @@ func _physics_process(dt: float) -> void:
 				"ending_phase": winter_fall.phase, "ending_attached": winter_fall.attached, "ending_air": winter_fall.airborne, "ending_ground": winter_fall.grounded, "snow_cover": winter_fall.cover(),
 				"mode": mode, "score": sim.score, "week": sim.week, "x": sim.x, "charge": sim.charge,
 				"ground_positions": sim.ground_leaves.map(func(leaf): return [leaf.id, leaf.position.x, leaf.position.y, leaf.velocity.x]),
-				"story_time": story_time, "grounded": sim.ground_leaves.size(), "surge_charge": sim.surge_charge, "surge_active": sim.surge_left > 0, "surge_unlocked": sim.surge_unlocked(),
+				"ending_time": ending_time, "flower_progress":clampf(ending_time/FLOWER_DURATION,0,1), "story_time": story_time, "grounded": sim.ground_leaves.size(), "surge_charge": sim.surge_charge, "surge_active": sim.surge_left > 0, "surge_unlocked": sim.surge_unlocked(),
 				"result_time": result_time, "result_tallied": result_tallied, "result_new_high": result_new_high,
 				"week_rescued": sim.week_rescued, "week_points": sim.score - sim.week_start_score if sim.week_start_score >= 0 else -1,
 				"result_display": result_numbers.map(func(label): return label.text if is_instance_valid(label) else ""),
@@ -259,7 +259,7 @@ func _physics_process(dt: float) -> void:
 				"time": sim.week_time, "weather": weather(), "victory": preview_victory,
 				"attached": sim.attached_count(), "slots": sim.slots.size(), "air": sim.leaves.size(),
 				"result_visible": mode in ["lost", "won"] and overlay != null,
-				"active_slot": active_slot, "phase": sim.status, "temperature": sim.temperature(), "boss_phase": sim.boss_phase(),
+				"active_slot": active_slot, "phase": sim.status, "temperature": sim.temperature(), "boss_phase": sim.boss_phase(), "wind_center": [Loop.NorthWind.center(sim.week_time,sim.wind_lane).x,Loop.NorthWind.center(sim.week_time,sim.wind_lane).y], "wind_released":sim.wind_released, "seasonal_fallen":sim.seasonal_fallen,
 				"difficulty": sim.difficulty, "capacity": sim.capacity(),
 				"score_rows": [high_scores.entries(0).size(), high_scores.entries(1).size(), high_scores.entries(2).size()],
 				"license_section": license_section, "license_characters": license_characters,
@@ -615,8 +615,7 @@ func load_slot(index: int) -> void:
 		show_result()
 	elif sim.status == "won":
 		mode = "won"
-		ending_time = 6.0
-		show_result()
+		ending_time = 0.0
 	else:
 		show_continue()
 
@@ -1223,7 +1222,6 @@ func _draw() -> void:
 		draw_rect(Rect2(0, 0, 360, 640), Color(0.25, 0.38, 0.52, (mini(sim.week, 12) - 1) * 0.012))
 	draw_light(victory)
 	draw_fog(cold)
-	if sim.is_boss() and scene_mode == "play": draw_boss()
 	draw_trees()
 	draw_canopy(winter, ending, victory)
 	if winter:
@@ -1235,6 +1233,7 @@ func _draw() -> void:
 	draw_snow(cold, winter and winter_fall.phase in ["snow", "done"])
 	if victory:
 		draw_flowers(ending)
+	if sim.is_boss() and scene_mode == "play": draw_boss()
 	if sim.blowing and mode == "play": draw_gust()
 	if sim.surge_left > 0: draw_surge()
 	draw_character(winter, victory)
@@ -1585,19 +1584,36 @@ func draw_pause_button() -> void:
 
 
 func draw_boss() -> void:
+	var wind = Loop.NorthWind
 	var phase: String = sim.boss_phase()
-	var position := Vector2(180 + sin(elapsed * 0.7) * 35, 120)
-	for i in range(5):
-		draw_circle(position + Vector2((i - 2) * 11, sin(i) * 5), 15, Color("8aabbb"))
-	draw_circle(position + Vector2(-8, -1), 2, INK)
-	draw_circle(position + Vector2(8, -1), 2, INK)
-	draw_arc(position + Vector2(0, 5), 5, 0, PI, 12, INK, 1.4, true)
-	var message := "THE NORTH WIND · Catch your breath"
-	if phase == "warning": message = "THE NORTH WIND · Gust incoming!"
-	elif phase == "blast": message = "THE NORTH WIND · Hold those leaves!"
-	paper_box(Rect2(40, 150, 280, 23), Color(0.13, 0.23, 0.25, 0.9), 6)
-	write_center(message, 180, 165, 9, CREAM)
-	if phase == "blast": draw_snow(0.9, false)
+	if phase == "rest": return
+	var direction: float = wind.direction(sim.week_time)
+	var center: Vector2 = wind.center(sim.week_time,sim.wind_lane)
+	var strength := 1.0
+	if phase == "warning":
+		center.x = -18 if direction>0 else 378
+		strength = 0.4 + wind.progress(sim.week_time)*0.2
+	# Forward streaks and rolling curls share the physical sweep's center.
+	var trails := 8 if not reduced_effects else 4
+	for trail in range(trails):
+		var radius := 9.0 + trail*1.6
+		var lane := (trail-(trails-1)*0.5)*8.5
+		var length := 135.0 + trail*7.0
+		var path := PackedVector2Array()
+		for sample in range(42):
+			var t := sample/41.0
+			var local: Vector2
+			if t<0.68:
+				var u := t/0.68
+				local=Vector2(lerpf(-length,-18,u),lane+sin(u*TAU+sim.week_time*13+trail)*5*sin(u*PI))
+			else:
+				var u := (t-0.68)/0.32
+				var curl := u*TAU*1.15
+				local=Vector2(-18+u*48+sin(curl)*radius*u,lane+(1-cos(curl))*radius*(1-u*0.35))
+			path.append(center+Vector2(local.x*direction,local.y))
+		draw_polyline(path,Color(0.47,0.66,0.73,strength*0.25),3.4,true)
+		draw_polyline(path,Color(1,0.97,0.85,strength*0.78),1.15,true)
+
 
 
 func draw_fan(p: Vector2, radius: float, angle: float, colour: Color) -> void:

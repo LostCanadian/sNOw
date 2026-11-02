@@ -15,7 +15,7 @@ func check(ok: bool, message: String) -> void:
 func _initialize() -> void:
 	var game = Loop.new()
 	for i in range(60): game.step(1.0 / 60.0, 1.0, false)
-	check(is_equal_approx(game.x, 302.0), "one second of movement uses logical units")
+	check(is_equal_approx(game.x, 280.0), "one second of movement uses logical units")
 	for i in range(60): game.step(1.0 / 60.0, 1.0, false)
 	check(game.x == 331.0, "movement remains inside the shared playfield")
 	game = Loop.new()
@@ -78,7 +78,7 @@ func _initialize() -> void:
 		for b in range(7):
 			for c in range(7):
 				var s: Dictionary = game.stats([a, b, c])
-				check(s.speed * (1.0 - s.pile_penalty) > 60.0, "all build combinations retain usable movement")
+				check(s.speed * (1.0 - s.pile_penalty) > 50.0, "all build combinations retain usable movement")
 	var first = Loop.new(922)
 	var second = Loop.new(922)
 	for i in range(1200):
@@ -132,8 +132,8 @@ func test_canopy() -> void:
 	var remaining: int = game.attached_count()
 	var gap: int = second.home_slot
 	game.next_week()
-	check(game.attached_count() == remaining and game.slots[gap].leaf_id == -1, "missed-leaf gaps remain bare after the overnight workshop")
-	check(game.attached_count() + game.missed - game.regrown == Loop.Canopy.SLOT_COUNT, "canopy conservation survives a miss, cross-slot rescue, and week transition")
+	check(game.attached_count() <= remaining and game.slots[gap].leaf_id == -1, "missed-leaf gaps stay bare while the next week also thins healthy clusters")
+	check(game.attached_count() + game.missed - game.regrown + game.seasonal_fallen == Loop.Canopy.SLOT_COUNT, "canopy conservation survives a miss, cross-slot rescue, and week transition")
 	check(game.week_leaf_count() <= game.attached_count(), "later shedding schedules never invent leaves to refill a depleted canopy")
 	var id: int = game.slots[empty].leaf_id
 	game.week = Loop.MAIN_WEEKS
@@ -161,11 +161,17 @@ func test_weeks() -> void:
 	normal.spawn_leaf()
 	boss.spawn_leaf()
 	boss.week = Loop.BOSS_STAGE
-	boss.week_time = 2.0
+	boss.week_time = 1.4
+	boss.wind_cycle = 0
+	boss.wind_lane = 220
+	var wind_position:Vector2 = Loop.NorthWind.center(boss.week_time+1.0/60,220)
+	for sample in [normal,boss]:
+		sample.leaves[0].position = wind_position+Vector2(0,20)
+		sample.leaves[0].velocity = Vector2.ZERO
 	normal.step(1.0 / 60, 0, false)
 	boss.step(1.0 / 60, 0, false)
 	check(boss.leaves[0].velocity.y > normal.leaves[0].velocity.y, "the boss gust actually accelerates leaves downward")
-	game.week_time = 6.0
+	game.week_time = 3.5
 	check(game.boss_phase() == "rest", "boss gives a predictable recovery window")
 	game.spawned = game.week_leaf_count()
 	game.step(1.0 / 60, 0, false)

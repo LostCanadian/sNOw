@@ -22,7 +22,7 @@ func _initialize() -> void:
 	game.points = game.earned_points - Loop.Upgrades.spent(game.owned)
 	var removed := 0
 	for i in range(game.slots.size()):
-		if i % 2 == 0 and removed < 1320:
+		if i % 2 == 0 and game.slots[i].leaf_id>=0 and removed < 180:
 			game.slots[i].leaf_id = -1
 			removed += 1
 	game.missed = removed
@@ -121,5 +121,21 @@ func _initialize() -> void:
 	file=FileAccess.open("res://test-results/attachment-fixture.json",FileAccess.WRITE)
 	file.store_string(JSON.stringify({"saves":attachment_study,"target":[returning.slots[nearest].position.x,returning.slots[nearest].position.y]}))
 	file.close()
+	var north=Loop.new(55,1)
+	for completed in range(12):
+		north.spawned=north.week_leaf_count();north.step(1.0/60,0,false);north.next_week()
+	north.owned.assign([0,1,10,11,12,20,21]);north.tiers=Loop.Upgrades.counts(north.owned)
+	north.points=north.earned_points-Loop.Upgrades.spent(north.owned)
+	var normal_north:Dictionary=Campaign.snapshot(north)
+	var one_target:=-1
+	for index in range(north.slots.size()):
+		if north.slots[index].leaf_id<0:continue
+		if one_target<0 or north.slots[index].position.distance_squared_to(Vector2(192,280))<north.slots[one_target].position.distance_squared_to(Vector2(192,280)):one_target=index
+	north.shedding_order.assign([north.slots[one_target].leaf_id])
+	var finale_studies:={"version":1,"slots":[{"name":"Victory study","checkpoint":Campaign.snapshot(north)}, {"name":"North Wind study","checkpoint":normal_north},null]}
+	if not Campaign.valid_document(finale_studies):
+		push_error("Invalid finale studies");quit(1);return
+	file=FileAccess.open("res://test-results/finale-fixture.json",FileAccess.WRITE)
+	file.store_string(JSON.stringify(finale_studies));file.close()
 	print("Created validated late-week, boss and workshop UI fixtures.")
 	quit()
