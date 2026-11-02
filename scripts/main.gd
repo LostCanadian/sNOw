@@ -2,6 +2,7 @@ extends Node2D
 ## A small paper theatre: simulation stays separate from cutout presentation and UI.
 
 const WinterFall = preload("res://scripts/winter_fall.gd")
+const GOLD_LEAF = preload("res://assets/art/gold_leaf.svg")
 const PLAY_ICON = preload("res://assets/art/play.svg")
 const PAUSE_ICON = preload("res://assets/art/pause.svg")
 const TWINKLE = preload("res://assets/art/twinkle.svg")
@@ -131,7 +132,7 @@ func _ready() -> void:
 	ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(ui)
 	if OS.has_feature("web"):
-		lifecycle_callback = JavaScriptBridge.create_callback(func(_args): pause_game())
+		lifecycle_callback = JavaScriptBridge.create_callback(func(_args): pause_for_focus())
 		JavaScriptBridge.get_interface("window").snowPauseRequested = lifecycle_callback
 	var stream := AudioStreamGenerator.new()
 	stream.mix_rate = 22050
@@ -332,7 +333,7 @@ func clear_input() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
 		clear_input()
-		if is_instance_valid(ui) and mode != "paused": pause_game()
+		pause_for_focus()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and is_instance_valid(ui):
 		if mode != "paused": pause_game()
 		confirm_discard(func(): get_tree().quit())
@@ -367,8 +368,17 @@ func _exit_tree() -> void:
 	playback = null
 
 
+func pause_for_focus() -> void:
+	clear_input()
+	# Menus and completed results have no live level to protect.
+	if mode in ["play", "intro", "outro"] or (mode in ["lost", "won"] and overlay == null):
+		pause_game()
+
+
 func pause_game() -> void:
 	if mode == "paused" or not is_instance_valid(ui): return
+	if mode not in ["play", "intro", "outro", "preview", "lost", "won"]: return
+	if mode in ["lost", "won"] and overlay != null: return
 	paused_mode = mode
 	paused_overlay = overlay
 	if is_instance_valid(paused_overlay): paused_overlay.hide()
@@ -548,8 +558,12 @@ func load_slot(index: int) -> void:
 		ending_time = 6.0
 		show_result()
 	else:
-		begin_intro()
-		pause_game()
+		mode = "continue"
+		var panel := new_panel(Rect2(28, 214, 304, 212))
+		text_label(panel, "Week %d" % sim.week, Rect2(16, 18, 272, 36), 24, INK, true)
+		text_label(panel, "Continue from the start of this level.", Rect2(12, 61, 280, 28), 11, INK)
+		button(panel, "Continue", Rect2(24, 105, 256, 38), begin_intro)
+		button(panel, "Save Slots", Rect2(24, 155, 256, 38), show_slots, true)
 	if DisplayServer.get_name() != "headless" and not audio.playing:
 		audio.play()
 		playback = audio.get_stream_playback()
@@ -932,6 +946,20 @@ func continue_week() -> void:
 		begin_intro()
 
 
+func gold_leaf_badge(parent: Node, amount: int, rect: Rect2) -> void:
+	var icon := TextureRect.new()
+	icon.texture = GOLD_LEAF
+	icon.position = rect.position
+	icon.size = rect.size
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.tooltip_text = "%d Gold Leaves · spend in the workshop" % amount
+	parent.add_child(icon)
+	var number := text_label(parent, str(amount), rect, 13, INK)
+	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
 func show_result() -> void:
 	if sim.status not in ["workshop", "lost", "won"]: return
 	clear_input()
@@ -945,7 +973,7 @@ func show_result() -> void:
 	result_bars.clear()
 	result_numbers.clear()
 	result_actions.clear()
-	var panel := new_panel(Rect2(24, 99, 312, 475))
+	var panel := new_panel(Rect2(24, 114, 312, 418))
 	var title := "Week %d complete" % sim.week
 	if sim.status == "lost": title = "Winter found a way."
 	if sim.status == "won": title = "Winter can wait!"
@@ -979,17 +1007,18 @@ func show_result() -> void:
 		result_bars.append(bar)
 	result_total = text_label(panel, "", Rect2(12, 231, 288, 28), 18, INK, true)
 	result_badge = text_label(panel, "Counting the leaves…", Rect2(10, 263, 292, 23), 14, RUST, true)
-	result_score_action = button(panel, "Enter initials", Rect2(46, 294, 220, 34), show_initials, true)
+	result_score_action = button(panel, "Enter initials", Rect2(16, 294, 136, 38), show_initials, true)
 	if sim.status == "workshop":
-		result_actions.append(button(panel, "Upgrades · %d point%s available" % [sim.points, "" if sim.points == 1 else "s"], Rect2(16, 338, 280, 38), show_workshop, true))
-		result_actions.append(button(panel, "Face the North Wind →" if sim.week == Loop.MAIN_WEEKS else "Start week %d →" % (sim.week + 1), Rect2(16, 385, 280, 38), continue_week))
+		result_actions.append(button(panel, "Upgrades", Rect2(160, 294, 136, 38), show_workshop, true))
+		result_actions[-1].alignment = HORIZONTAL_ALIGNMENT_LEFT
+		gold_leaf_badge(panel, sim.points, Rect2(248, 296, 42, 34))
+		result_actions.append(button(panel, "North Wind →" if sim.week == Loop.MAIN_WEEKS else "Week %d →" % (sim.week + 1), Rect2(160, 344, 136, 38), continue_week))
 	elif sim.status == "lost":
-		text_label(panel, "Your checkpoint is safe.", Rect2(16, 338, 280, 30), 11, INK)
-		result_actions.append(button(panel, "Retry this level", Rect2(16, 385, 280, 38), restart_level))
+		result_actions.append(button(panel, "Retry this level", Rect2(160, 344, 136, 38), restart_level))
 	else:
-		text_label(panel, StageStory.chapter(Loop.BOSS_STAGE)[2].replace("\n", " "), Rect2(10, 335, 292, 38), 11, INK, true)
-		result_actions.append(button(panel, "Save Slots", Rect2(16, 385, 280, 38), show_slots))
-	result_actions.append(button(panel, "Main menu", Rect2(16, 430, 280, 30), show_title, true))
+		text_label(panel, StageStory.chapter(Loop.BOSS_STAGE)[2].replace("\n", " "), Rect2(160, 292, 136, 42), 11, INK, true)
+		result_actions.append(button(panel, "Save Slots", Rect2(160, 344, 136, 38), show_slots))
+	result_actions.append(button(panel, "Main menu", Rect2(16, 344, 136, 38), show_title, true))
 	update_result_tally()
 
 
@@ -1380,6 +1409,7 @@ func draw_controls() -> void:
 
 
 func draw_pause_button() -> void:
+	if mode not in ["play", "paused", "intro", "outro", "preview"]: return
 	paper_box(PAUSE, INK, 9)
 	var icon: Texture2D = PLAY_ICON if mode == "paused" else PAUSE_ICON
 	draw_texture_rect(icon, Rect2(PAUSE.get_center() - Vector2(10,10),Vector2(20,20)),false,CREAM)
