@@ -115,7 +115,7 @@ func _ready() -> void:
 	character_region = Rect2(CARETAKER.get_image().get_used_rect())
 	leaf_region = Rect2(PAPER_LEAF.get_image().get_used_rect())
 	var canopy_order: Array = range(Canopy.SLOT_COUNT)
-	canopy_order.sort_custom(func(a, b): return fmod(a * 0.754877666, 1.0) > fmod(b * 0.754877666, 1.0))
+	canopy_order.sort_custom(func(a, b): return Canopy.depth(a) < Canopy.depth(b))
 	canopy_rank.resize(Canopy.SLOT_COUNT)
 	for i in range(canopy_order.size()): canopy_rank[canopy_order[i]] = i
 	canopy_batch = make_canopy_batch()

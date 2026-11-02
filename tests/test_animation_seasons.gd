@@ -35,14 +35,14 @@ func run() -> void:
 	check(colours[2] == 0 and colours[3] == 0 and colours[0] > 2200 and colours[1] > 400,"week one is predominantly green with yellow and no orange/red")
 	check(monotonic,"each identity progresses through seasonal colours without turning green again")
 	var initial_yellow: int = game.shedding_order.filter(func(id): return game.leaf_category(id) == 1).size()
-	check(float(initial_yellow) / game.week_leaf_count() > float(colours[1]) / 2880 * 2,"yellow foliage is more likely to shed than the much larger green population")
+	check(float(initial_yellow) / game.week_leaf_count() > float(colours[1]) / 2880 * 1.4,"yellow foliage is more likely to shed than the much larger green population")
 	var first_rate: float = game.shed_batch_size() / game.shedding_interval()
 	check(game.shed_batch_size() == 4,"the opening event is a small four-leaf group")
 	game.week = 12
 	game.prepare_shedding()
 	var shedding := [0,0,0,0]
 	for id in game.shedding_order: shedding[game.leaf_category(id)] += 1
-	check(float(shedding[3]) / game.week_leaf_count() > 0.75 and shedding[2] > 20 and shedding[1] > 0 and shedding[0] < 10,"late shedding is mostly red, mixed with orange/yellow and occasional green")
+	check(float(shedding[3]) / game.week_leaf_count() > 0.65 and shedding[2] > 20 and shedding[1] > 0 and shedding[0] < 10,"late shedding is mostly red, mixed with orange/yellow and occasional green")
 	check(game.shed_batch_size() == 10 and first_rate < game.shed_batch_size() / game.shedding_interval() * 0.4,"the gentle opening rate advances to the previous late-game intensity")
 	var again = Loop.new(55)
 	check(again.shedding_order == Loop.new(55).shedding_order,"weighted selection is repeatable from a seed")

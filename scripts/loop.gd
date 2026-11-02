@@ -160,15 +160,32 @@ func shedding_interval() -> float:
 func prepare_shedding() -> void:
 	# A weighted permutation without replacement: each scheduled identity is real.
 	var candidates: Array = []
-	for slot in slots:
+	var remaining := {}
+	var coverers := Canopy.foreground_coverers(slots)
+	for index in range(slots.size()):
+		var slot: Dictionary = slots[index]
 		slot.attached_at = -10.0
 		if slot.leaf_id >= 0:
 			var weight: float = COLOUR_WEIGHTS[leaf_category(slot.leaf_id)]
-			candidates.append([slot.leaf_id, -log(maxf(0.000001, rng.randf())) / weight])
+			candidates.append([index, -log(maxf(0.000001, rng.randf())) / weight])
+			remaining[index] = true
 	candidates.sort_custom(func(a, b): return a[1] < b[1])
 	shedding_order.clear()
 	var count := mini(candidates.size(), int(DIFFICULTIES[difficulty].leaves) + int(DIFFICULTIES[difficulty].increment) * (week - 1) + (120 if is_boss() else 0))
-	for i in range(count): shedding_order.append(int(candidates[i][0]))
+	for i in range(count):
+		# Peel visible leaves off each spray before releasing the leaves behind them.
+		for j in range(candidates.size()):
+			var index: int = candidates[j][0]
+			var blocked := false
+			for front in coverers[index]:
+				if remaining.has(front):
+					blocked = true
+					break
+			if blocked: continue
+			shedding_order.append(int(slots[index].leaf_id))
+			remaining.erase(index)
+			candidates.remove_at(j)
+			break
 
 
 func temperature() -> int:
@@ -326,11 +343,16 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		if boss_phase() == "blast": v.y += 32.0 * dt
 		if in_gust:
 			leaf.lifted = true
-			var force: Vector2 = airflow * float(s.force)
+			var spread: float = s.width * (0.7 + height / 340.0)
+			var normalized_across := clampf(across / spread, -1, 1)
+			# Fan out from the nozzle: standing to one side now steers a leaf that way.
+			# Each leaf carries independent, smooth turbulence rather than sharing lanes.
+			var turbulence: float = sin(flutter * 1.31 + leaf.id * 2.399) * 23.0 + sin(flutter * 2.17) * 9.0
+			var force: Vector2 = airflow * float(s.force) + lateral * (normalized_across * 155.0 + turbulence)
 			# At the borders a return breeze wins over outward-directed blower force.
 			if force.x < 0: force.x *= smoothstep(-8, 48, p.x)
 			if force.x > 0: force.x *= (1.0 - smoothstep(312, 368, p.x))
-			v += (force + lateral * (-across * 0.55 + sin(flutter) * 12.0)) * dt
+			v += force * dt
 		if surge_left > 0:
 			var center := Vector2(x, GROUND - 35) + surge_offset()
 			var radial: Vector2 = p - center

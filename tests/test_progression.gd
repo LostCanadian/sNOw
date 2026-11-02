@@ -24,9 +24,10 @@ func _initialize() -> void:
 	var velocities := []
 	for axis in [-1, 0, 1]:
 		var sample = Loop.new(77)
+		for frame in range(12): sample.step(1.0 / 60, axis, false)
 		sample.spawn_leaf()
 		sample.spawn_timer = 999
-		sample.leaves[0].position = sample.nozzle() + Vector2(0, -100)
+		sample.leaves[0].position = sample.nozzle() + sample.air_axis() * 100
 		sample.leaves[0].velocity = Vector2.ZERO
 		sample.step(1.0 / 60, axis, true)
 		velocities.append(sample.leaves[0].velocity.x)

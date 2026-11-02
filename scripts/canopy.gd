@@ -337,3 +337,28 @@ static func slot_layout() -> Array[Dictionary]:
 			angle = (point - stem).angle() + PI / 2.0
 			result.append({"position": point, "stem": stem, "angle": angle, "leaf_id": result.size(), "attached_at": -10.0})
 	return result
+
+
+static func depth(index: int) -> float:
+	# Larger depth is drawn last, so detachment uses the same front-to-back order.
+	return 1.0 - fposmod(index * 0.754877666, 1.0)
+
+
+static func foreground_coverers(layout: Array[Dictionary]) -> Array:
+	var grid := {}
+	for i in range(layout.size()):
+		if layout[i].leaf_id < 0: continue
+		var cell := Vector2i(layout[i].position / 12.0)
+		if not grid.has(cell): grid[cell] = []
+		grid[cell].append(i)
+	var result := []
+	for i in range(layout.size()):
+		var coverers := PackedInt32Array()
+		var cell := Vector2i(layout[i].position / 12.0)
+		for dx in range(-1, 2):
+			for dy in range(-1, 2):
+				for j in grid.get(cell + Vector2i(dx, dy), []):
+					if depth(j) > depth(i) and layout[i].position.distance_squared_to(layout[j].position) < 49.0:
+						coverers.append(j)
+		result.append(coverers)
+	return result

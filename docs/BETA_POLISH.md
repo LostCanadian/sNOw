@@ -6,3 +6,5 @@
 4. Presentation: separated leg parts with joint animation; original synthesized retro music and effects for the scenes and actions.
 
 Each stage is committed and pushed separately on `beta-polish` after its relevant checks. Browser and headless coverage validate the complete flow at the end.
+
+Leaf control uses smooth per-leaf turbulence and an outward force proportional to distance across the cone. The screen-edge return breeze remains active. Shedding peels overlapping leaves in the same order as the renderer while using seasonal colour weights among visible candidates. This makes the seasonal mix slightly broader than an unrestricted weighted draw, in exchange for visible detachment.
