@@ -42,7 +42,7 @@ func run() -> void:
 	main.finish_story()
 	complete_week(main, 4, 1)
 	var final_score: int = main.sim.score
-	check(main.mode == "results" and main.sim.points == 1, "a successful week opens results before optional upgrades")
+	check(main.mode == "results" and main.sim.points == 2, "a successful week opens results before optional upgrades")
 	check(main.campaign.slots[0].checkpoint.phase == "workshop", "results are already autosaved before choosing any action")
 	check(main.result_numbers[0].text == "0" and not main.result_tallied, "the results begin with an untallied display")
 	check(main.high_scores.entries(0).is_empty(), "no anonymous score is silently submitted before initials")
@@ -80,7 +80,7 @@ func run() -> void:
 	check(main.mode == "workshop", "upgrades are an explicit optional destination")
 	main.purchase(0)
 	press(main, "Back to results")
-	check(main.mode == "results" and main.sim.points == 0 and main.sim.tiers == [1,0,0], "closing upgrades returns to results and refreshes the point preview")
+	check(main.mode == "results" and main.sim.points == 1 and main.sim.tiers == [1,0,0], "closing upgrades returns to results and refreshes the point preview")
 	check(main.sim.score == final_score and main.result_tallied, "revisiting results cannot repeat rewards or tally points twice")
 	main.show_title()
 	main.selected_difficulty = 2

@@ -48,7 +48,8 @@ func run() -> void:
 	var heights: Array = game.ground_leaves.map(func(leaf): return leaf.position.y)
 	check(heights.max() - heights.min() > 2, "individual leaves form layers rather than one floating row")
 	check(not game.activate_surge(), "surge must first be unlocked in the upgrade tree")
-	game.tiers[1] = 2
+	game.owned.assign([10,12])
+	game.tiers = [0,2,0]
 	check(game.activate_surge(), "the unlocked charged ability lifts a nearby pile")
 	check(game.ground_leaves.is_empty() and game.leaves.size() == 8 and game.piles.max() == 0, "surge transfers each actual ground leaf into the air exactly once")
 	check(game.week_missed == 0 and game.missed == 0 and game.score == 0, "lifting restores its frost budget but awards no unearned points")
@@ -61,14 +62,16 @@ func run() -> void:
 	game.leaves = game.leaves.filter(func(item): return item.state == "air")
 	check(game.attached_count() + game.leaves.size() + game.missed - game.regrown == Loop.Canopy.SLOT_COUNT, "surge and reattachment conserve leaf identities and the loss ledger")
 	game = Loop.new()
-	game.tiers[1] = 2
+	game.owned.assign([10,12])
+	game.tiers = [0,2,0]
 	land(game, 3)
 	game.step(1.0 / 60, 0, false, true)
 	for frame in range(180): game.step(1.0 / 60, 0, false, true)
 	check(game.surge_charge > 0.07 and game.surge_charge < 0.10, "three seconds restores only a small part of the thirty-six-second cooldown")
 	for frame in range(2020): game.step(1.0 / 60, 0, false, true)
 	check(game.surge_charge > 0.999 and game.surge_left == 0, "holding the ability key never automatically fires a recharged surge")
-	check(game.stats([0,2,0]).surge_cooldown == 36 and game.stats([0,2,3]).surge_cooldown == 31 and game.stats([0,2,5]).surge_cooldown == 26, "two Battery recovery nodes shorten the special ability cooldown")
+	game.owned.assign([10,12,20,22,26])
+	check(game.stats().surge_cooldown == 31, "two Battery recovery nodes shorten the special ability cooldown")
 	game.status = "workshop"
 	var charge: float = game.surge_charge
 	game.step(20, 0, false)
@@ -105,16 +108,17 @@ func run() -> void:
 	check(main.mode == "play" and main.keys.is_empty() and main.sim.week_time == 0, "Space dismisses the panel without accidentally starting the blower")
 	main.sim.spawned = main.sim.week_leaf_count()
 	main._physics_process(1.0 / 60)
-	check(main.mode == "outro" and main.sim.points == 1, "a completed week presents its congratulations before the workshop")
+	check(main.mode == "outro" and main.sim.points == 2, "a completed week presents its congratulations before the workshop")
 	var saved_time: float = main.sim.week_time
 	main._physics_process(1)
-	check(main.sim.week_time == saved_time and main.sim.points == 1, "closing narration cannot advance gameplay or repeat rewards")
+	check(main.sim.week_time == saved_time and main.sim.points == 2, "closing narration cannot advance gameplay or repeat rewards")
 	main._physics_process(Story.DURATION)
 	check(main.mode == "results", "closing text fades into weekly results before the workshop")
 	check(main.FAN_ICON.get_image().get_used_rect().size.x > 150 and main.FAN_ICON.get_image().get_mipmap_count() > 0, "the rotating fan uses a high-resolution mipmapped vector-source icon")
 	main.start_run()
 	main.finish_story()
-	main.sim.tiers[1] = 2
+	main.sim.owned.assign([10,12])
+	main.sim.tiers = [0,2,0]
 	land(main.sim, 4)
 	var press := InputEventKey.new()
 	press.physical_keycode = KEY_E
@@ -137,14 +141,14 @@ func run() -> void:
 	game.score = 100
 	game.status = "lost"
 	scores.submit(game, "NEW")
-	for version in [4,3,2,1]:
+	for version in [5,4,3,2,1]:
 		var old: Dictionary = scores.entries(1)[0].duplicate(true)
 		old.rules = version
 		old.initials = "OLD"
 		scores.tables[1].append(old)
 	check(scores.flush(), "both older scoring versions remain preserved alongside the new ability rules")
 	scores = Scores.new(path)
-	check(scores.available_rules(1) == [5,4,3,2,1] and scores.entries(1,2).size() == 1 and scores.entries(1,1).size() == 1, "score archives can cycle through each prior rules version separately")
+	check(scores.available_rules(1) == [6,5,4,3,2,1] and scores.entries(1,2).size() == 1 and scores.entries(1,1).size() == 1, "score archives can cycle through each prior rules version separately")
 	for extension in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(path + extension): DirAccess.remove_absolute(path + extension)
 	main.queue_free()

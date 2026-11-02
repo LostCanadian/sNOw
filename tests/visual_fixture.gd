@@ -18,7 +18,8 @@ func _initialize() -> void:
 		game.step(1.0 / 60, 0, false)
 	game.next_week()
 	game.tiers = [4, 4, 3]
-	game.points = 0
+	game.owned = Loop.Upgrades.legacy_nodes(game.tiers)
+	game.points = game.earned_points - Loop.Upgrades.spent(game.owned)
 	var removed := 0
 	for i in range(game.slots.size()):
 		if i % 2 == 0 and removed < 1320:
@@ -48,11 +49,12 @@ func _initialize() -> void:
 		ability.step(1.0 / 60, 0, false)
 		ability.next_week()
 	ability.tiers = [0,2,3]
-	ability.points = 0
+	ability.owned = Loop.Upgrades.legacy_nodes(ability.tiers)
+	ability.points = ability.earned_points - Loop.Upgrades.spent(ability.owned)
 	var story = Loop.new()
 	story.week = 7
-	story.earned_points = 6
-	story.points = 6
+	story.earned_points = 12
+	story.points = 12
 	story.prepare_shedding()
 	# A short saved schedule isolates the closing interlude for a UI review.
 	story.shedding_order.resize(1)
@@ -72,7 +74,8 @@ func _initialize() -> void:
 		results.step(1.0 / 60, 0, false)
 		results.next_week()
 	results.tiers = [3,3,2]
-	results.points = 0
+	results.owned = Loop.Upgrades.legacy_nodes(results.tiers)
+	results.points = results.earned_points - Loop.Upgrades.spent(results.owned)
 	for i in range(120):
 		results.spawn_leaf()
 		var leaf: Dictionary = results.leaves[-1]
@@ -94,7 +97,8 @@ func _initialize() -> void:
 		finale.step(1.0 / 60,0,false)
 		finale.next_week()
 	finale.tiers = [4,4,3]
-	finale.points = 0
+	finale.owned = Loop.Upgrades.legacy_nodes(finale.tiers)
+	finale.points = finale.earned_points - Loop.Upgrades.spent(finale.owned)
 	var endings := {"version":1,"slots":[{"name":"Full canopy ending","checkpoint":Campaign.snapshot(finale)},null,null]}
 	if not Campaign.valid_document(endings):
 		push_error("Invalid ending fixture")

@@ -48,7 +48,7 @@ func _initialize() -> void:
 	game.buy(1)
 	check(store.store(0, "My Autumn", Campaign.snapshot(game)), "workshop upgrade purchases are saved")
 	loaded = Campaign.restore(Campaign.new(path).slots[0].checkpoint)
-	check(loaded.status == "workshop" and loaded.earned_points == 1 and loaded.points == 0 and loaded.tiers[1] == 1, "workshop reload does not duplicate score or upgrade rewards")
+	check(loaded.status == "workshop" and loaded.earned_points == 2 and loaded.points == 1 and loaded.tiers[1] == 1, "workshop reload does not duplicate score or upgrade rewards")
 	check(loaded.missed == 1 and loaded.attached_count() == Loop.Canopy.SLOT_COUNT - 1, "persistent canopy gaps survive a local save")
 	loaded.next_week()
 	var week_two: Dictionary = Campaign.snapshot(loaded)
@@ -80,7 +80,7 @@ func _initialize() -> void:
 		var branch := (stage - 1) / 4
 		game.buy(branch)
 		game.next_week()
-	check(game.tiers == [4, 4, 4] and game.points == 0 and game.earned_points == 12, "twelve points fund a balanced rank-four kit while leaving upgrades unbought")
+	check(game.tiers == [4, 4, 4] and game.points == 10 and game.earned_points == 24, "twenty-four Gold Leaves retain a balanced kit plus unspent currency")
 	check(store.store(2, "Finale", Campaign.snapshot(game)) and Campaign.restore(store.slots[2].checkpoint).is_boss(), "final encounter checkpoints retain the full campaign build")
 	game.spawned = game.week_leaf_count()
 	game.step(1.0 / 60, 0, false)

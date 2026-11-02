@@ -77,7 +77,7 @@ static func snapshot(game) -> Dictionary:
 		"week_start_score": game.week_start_score,
 		"combo": game.combo, "week_rescued": game.week_rescued, "week_missed": game.week_missed,
 		"rescued": game.rescued, "missed": game.missed, "points": game.points,
-		"earned_points": game.earned_points, "tiers": game.tiers.duplicate(),
+		"earned_points": game.earned_points, "tiers": game.tiers.duplicate(), "owned": game.owned.duplicate(),
 		"leaf_ids": ids, "order": game.shedding_order.duplicate(),
 		"rng_state": str(game.rng.state), "rng_seed": str(game.rng.seed)}
 
@@ -106,14 +106,19 @@ static func valid_checkpoint(data) -> bool:
 	if not whole(data.get("combo", 0), 0, int(data.rescued)): return false
 	if not whole(data.get("week_rescued", 0), 0, count) or not whole(data.get("week_missed", 0), 0, mini(count, int(data.missed))): return false
 	if data.phase == "playing" and (data.get("week_missed", 0) != 0 or data.get("week_rescued", 0) != 0): return false
-	if not whole(data.earned_points, 0, Loop.MAIN_WEEKS) or not whole(data.points, 0, Loop.MAIN_WEEKS): return false
+	var branching: bool = data.get("rules", 1) >= 6
+	var budget: int = Loop.MAIN_WEEKS * (2 if branching else 1)
+	if not whole(data.earned_points, 0, budget) or not whole(data.points, 0, budget): return false
 	var expected: int = int(data.week) if data.phase == "workshop" else mini(int(data.week) - 1, Loop.MAIN_WEEKS)
-	if data.earned_points != expected: return false
+	if data.earned_points != expected * (2 if branching else 1): return false
 	if not data.tiers is Array or data.tiers.size() != 3: return false
 	var spent := 0
 	for tier in data.tiers:
-		if not whole(tier, 0, 2 if legacy else Loop.Upgrades.MAX_RANK): return false
+		if not whole(tier, 0, 2 if legacy else (Loop.Upgrades.MAX_RANK if branching else 6)): return false
 		spent += (0 if tier == 0 else (1 if tier == 1 else 4)) if legacy else int(tier)
+	if branching:
+		if not Loop.Upgrades.valid(data.get("owned"), data.tiers): return false
+		spent = Loop.Upgrades.spent(data.owned)
 	if data.points + spent != data.earned_points: return false
 	if not data.leaf_ids is Array or data.leaf_ids.size() != count: return false
 	var seen := {}
@@ -159,6 +164,13 @@ static func restore(data):
 	game.earned_points = int(data.earned_points)
 	var legacy: bool = data.get("rules", 1) == 1
 	game.tiers = data.tiers.map(func(t): return (4 if t == 2 else int(t)) if legacy else int(t))
+	if data.get("rules", 1) >= 6:
+		game.owned.assign(data.owned.map(func(id): return int(id)))
+	else:
+		game.owned = Loop.Upgrades.legacy_nodes(game.tiers)
+		game.tiers = Loop.Upgrades.counts(game.owned)
+		game.earned_points *= 2
+		game.points = game.earned_points - Loop.Upgrades.spent(game.owned)
 	for i in range(data.leaf_ids.size()): game.slots[i].leaf_id = int(data.leaf_ids[i])
 	game.shedding_order.assign(data.order.map(func(id): return int(id)))
 	if data.get("rules", 1) <= 3:

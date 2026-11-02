@@ -85,7 +85,7 @@ var canopy_stamp := ""
 var canopy_gap_markers: Array[Vector2] = []
 var canopy_rank := PackedInt32Array()
 var wardrobe_regions: Array[Rect2] = []
-var selected_upgrade := Vector2i(0, 1)
+var selected_upgrade := Vector2i(0, 0)
 var upgrade_regions := [Rect2(35, 35, 710, 655), Rect2(755, 20, 810, 640), Rect2(1640, 35, 485, 640)]
 var ending_regions: Array[Rect2] = []
 var campaign = Campaign.new()
@@ -847,91 +847,108 @@ func set_preview(index: int) -> void:
 		update_winter_batch()
 
 
-func show_workshop() -> void:
+func upgrade_icon(branch: int, node: int) -> Texture2D:
+	return load("res://assets/art/upgrades/%s.svg" % Upgrades.ICONS[branch][node])
+
+
+func show_workshop(animate := false) -> void:
 	if sim.status != "workshop": return
 	mode = "workshop"
 	clear_input()
-	var panel := new_panel(Rect2(12, 78, 336, 492))
-	text_label(panel, "Upgrade workshop", Rect2(8, 10, 320, 31), 23, INK, true)
-	text_label(panel, "WEEK %d COMPLETE · %d POINT%s" % [sim.week, sim.points, "" if sim.points == 1 else "S"], Rect2(8, 45, 226, 23), 10, INK)
-	button(panel, "Reset kit", Rect2(244, 44, 80, 27), func():
-		sim.refund_build()
-		selected_upgrade = Vector2i(0, 1)
-		save_boundary()
-		show_workshop(), true)
+	var panel := new_panel(Rect2(12, 76, 336, 500))
+	text_label(panel, "The workshop", Rect2(8, 10, 242, 31), 23, INK, true)
+	gold_leaf_badge(panel, sim.points, Rect2(272, 6, 48, 43))
+	text_label(panel, "Two Gold Leaves each week. Choose your path.", Rect2(8, 44, 320, 22), 11, INK)
 	for branch in range(3):
-		var x := 10 + branch * 108
-		var icon := TextureRect.new()
-		var atlas := AtlasTexture.new()
-		atlas.atlas = UPGRADE_ICONS
-		atlas.region = upgrade_regions[branch]
-		icon.texture = atlas
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.position = Vector2(x + 27, 73)
-		icon.size = Vector2(44, 35)
-		panel.add_child(icon)
-		text_label(panel, Upgrades.TITLES[branch], Rect2(x, 109, 100, 17), 10, INK)
-		var connector := Line2D.new()
-		connector.points = PackedVector2Array([Vector2(x + 49, 143), Vector2(x + 49, 285)])
-		connector.width = 2
-		connector.default_color = Color("b7a17c")
-		panel.add_child(connector)
-		for rank in range(1, Upgrades.MAX_RANK + 1):
-			var owned: bool = sim.tiers[branch] >= rank
-			var available: bool = sim.tiers[branch] == rank - 1
-			var chosen := selected_upgrade == Vector2i(branch, rank)
-			var label: String = ("✓ " if owned else "%d " % rank) + Upgrades.NAMES[branch][rank - 1]
-			var node := button(panel, label, Rect2(x, 132 + (rank - 1) * 28, 100, 25), func():
-				selected_upgrade = Vector2i(branch, rank)
-				show_workshop(), true)
-			node.add_theme_font_size_override("font_size", 9)
-			var colour := INK if owned else (GOLD if available else Color("e5dcc6"))
-			for state in ["normal", "hover", "pressed", "focus"]:
-				var style := panel_style(colour.lightened(0.08) if state == "hover" else colour, 5)
-				style.shadow_size = 0
-				style.shadow_offset = Vector2.ZERO
-				style.set_border_width_all(2 if chosen else 1)
-				style.border_color = RUST if chosen else Color("b6a17a")
-				node.add_theme_stylebox_override(state, style)
-			for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-				node.add_theme_color_override(state, CREAM if owned else INK)
-			node.size = Vector2(100, 25)
+		var tab := button(panel, Upgrades.TITLES[branch].capitalize(), Rect2(10 + branch * 108, 75, 100, 43), func():
+			selected_upgrade = Vector2i(branch, 0)
+			show_workshop(true), branch != selected_upgrade.x)
+		tab.icon = upgrade_icon(branch, 0)
+		tab.expand_icon = true
+		tab.add_theme_constant_override("icon_max_width", 25)
+		tab.add_theme_font_size_override("font_size", 10)
 	var branch := selected_upgrade.x
-	var rank := selected_upgrade.y
-	var owned: bool = sim.tiers[branch] >= rank
-	var available: bool = sim.tiers[branch] == rank - 1
-	var status := "Owned" if owned else ("Costs 1 point" if available else "Requires rank %d in this branch" % (rank - 1))
-	var card := Panel.new()
-	card.position = Vector2(10, 310)
-	card.size = Vector2(316, 86)
-	var style := panel_style(Color("eee3c9"), 6)
-	style.shadow_size = 0
-	card.add_theme_stylebox_override("panel", style)
-	panel.add_child(card)
-	text_label(card, "%s · %s" % [Upgrades.NAMES[branch][rank - 1], status], Rect2(8, 3, 300, 22), 11, INK, true)
+	var node := selected_upgrade.y
+	var tree := Control.new()
+	tree.position = Vector2(0, 143)
+	tree.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(tree)
+	for child in range(Upgrades.MAX_RANK):
+		for parent in Upgrades.PARENTS[child]:
+			var connector := Line2D.new()
+			var a: Vector2 = Upgrades.POSITIONS[parent]
+			var b: Vector2 = Upgrades.POSITIONS[child]
+			connector.points = PackedVector2Array([a, Vector2(a.x, (a.y+b.y)*0.5), Vector2(b.x, (a.y+b.y)*0.5), b])
+			connector.width = 2.5
+			connector.default_color = GOLD if sim.owned.has(branch * 10 + parent) else Color("b6aa8a")
+			tree.add_child(connector)
+	for index in range(Upgrades.MAX_RANK):
+		var owned: bool = sim.owned.has(branch * 10 + index)
+		var available := Upgrades.available(sim.owned, branch, index)
+		var chosen := node == index
+		var rect := Rect2(Upgrades.POSITIONS[index] - Vector2(21, 21), Vector2(42, 42))
+		var choice := button(tree, "", rect, func():
+			selected_upgrade = Vector2i(branch, index)
+			show_workshop(), true)
+		choice.name = "Upgrade%d" % index
+		choice.icon = upgrade_icon(branch, index)
+		choice.expand_icon = true
+		choice.add_theme_constant_override("icon_max_width", 29)
+		choice.tooltip_text = Upgrades.NAMES[branch][index] + "\n" + Upgrades.description(branch, index)
+		var colour := INK if owned else (Color("947139") if available else Color("a7a697"))
+		for state in ["normal", "hover", "pressed", "focus"]:
+			var style := panel_style(colour.lightened(0.12) if state == "hover" else colour, 13)
+			style.shadow_size = 0
+			style.set_border_width_all(3 if chosen else 1)
+			style.border_color = RUST if chosen else GOLD
+			choice.add_theme_stylebox_override(state, style)
+		if owned:
+			text_label(tree, "✓", Rect2(rect.position + Vector2(28,-6), Vector2(18,18)), 12, INK).mouse_filter = Control.MOUSE_FILTER_IGNORE
+		elif not available:
+			var lock := TextureRect.new()
+			lock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			lock.texture = load("res://assets/art/upgrades/lock.svg")
+			lock.position = rect.position + Vector2(30,27)
+			lock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			lock.size = Vector2(13,13)
+			lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			tree.add_child(lock)
+		if animate and not reduced_effects and DisplayServer.get_name() != "headless":
+			choice.pivot_offset = Vector2(21,21)
+			choice.scale = Vector2.ONE * 0.7
+			choice.modulate.a = 0.0
+			var tween := choice.create_tween().set_parallel(true)
+			tween.tween_property(choice, "scale", Vector2.ONE, 0.24).set_delay(index * 0.025).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tween.tween_property(choice, "modulate:a", 1.0, 0.18).set_delay(index * 0.025)
+	var owned: bool = sim.owned.has(branch * 10 + node)
+	var available := Upgrades.available(sim.owned, branch, node)
+	text_label(panel, Upgrades.NAMES[branch][node], Rect2(12, 340, 312, 27), 17, INK, true)
 	var detail := RichTextLabel.new()
-	detail.position = Vector2(9, 26)
-	detail.size = Vector2(298, 54)
+	detail.position = Vector2(18, 371)
+	detail.size = Vector2(300, 49)
 	detail.add_theme_font_override("normal_font", BODY_FONT)
-	detail.add_theme_font_size_override("normal_font_size", 10)
+	detail.add_theme_font_size_override("normal_font_size", 11)
 	detail.add_theme_color_override("default_color", INK)
-	detail.text = Upgrades.description(branch, rank)
-	card.add_child(detail)
-	var s: Dictionary = sim.stats()
-	var ability_stat := "Surge %.0fs" % s.surge_cooldown if sim.surge_unlocked() else "Surge locked"
-	text_label(panel, "Speed %d%% · Force %d%% · Burst %.1fs\nRecharge %.1fs · Max pile drag %d%% · %s" % [roundi(s.speed / Loop.BASE_SPEED * 100), roundi(s.force / 410 * 100), s.burst, s.recharge, roundi(s.pile_penalty * 100), ability_stat], Rect2(8, 400, 320, 29), 9, INK)
-	var buy := button(panel, "Owned" if owned else "Buy · 1 point", Rect2(12, 439, 144, 38), func(): purchase(branch))
-	buy.disabled = owned or not available or sim.points < 1
-	button(panel, "Back to results", Rect2(174, 439, 150, 38), show_result, true)
-	var regrowth: int = maxi(0, Loop.RECOVERY_FLOOR - sim.attached_count())
-	var forecast := "Saved · Same canopy next week · New miss allowance" if regrowth == 0 else "Saved · %d leaves regrow next week · New miss allowance" % regrowth
-	text_label(panel, forecast if save_notice.is_empty() else save_notice, Rect2(8, 480, 320, 13), 8, INK)
+	detail.text = Upgrades.description(branch, node)
+	if not owned and not available:
+		var required: Array[String] = []
+		for parent in Upgrades.PARENTS[node]: required.append(Upgrades.NAMES[branch][parent])
+		detail.text += "\nRequires " + ", ".join(required) + "."
+	panel.add_child(detail)
+	var buy := button(panel, "Owned" if owned else "Upgrade", Rect2(12, 431, 148, 38), func(): purchase(branch, node))
+	buy.disabled = owned or not available or sim.points < Upgrades.cost(branch, node)
+	buy.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	if not owned: gold_leaf_badge(panel, Upgrades.cost(branch, node), Rect2(115, 433, 39, 34))
+	button(panel, "Back to results", Rect2(176, 431, 148, 38), show_result, true)
+	button(panel, "Reset kit", Rect2(12, 478, 72, 20), func():
+		sim.refund_build()
+		save_boundary()
+		show_workshop(true), true).add_theme_font_size_override("font_size", 9)
+	text_label(panel, "Saved" if save_notice.is_empty() else save_notice, Rect2(94, 478, 228, 18), 8, INK)
 
 
-func purchase(branch: int) -> void:
-	if sim.buy(branch):
-		selected_upgrade = Vector2i(branch, mini(Upgrades.MAX_RANK, sim.tiers[branch] + 1))
+func purchase(branch: int, node := -1) -> void:
+	if sim.buy(branch, node):
 		save_boundary()
 		show_workshop()
 
@@ -948,10 +965,11 @@ func continue_week() -> void:
 
 func gold_leaf_badge(parent: Node, amount: int, rect: Rect2) -> void:
 	var icon := TextureRect.new()
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.texture = GOLD_LEAF
 	icon.position = rect.position
-	icon.size = rect.size
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.size = rect.size
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.tooltip_text = "%d Gold Leaves · spend in the workshop" % amount
@@ -1011,6 +1029,7 @@ func show_result() -> void:
 	if sim.status == "workshop":
 		result_actions.append(button(panel, "Upgrades", Rect2(160, 294, 136, 38), show_workshop, true))
 		result_actions[-1].alignment = HORIZONTAL_ALIGNMENT_LEFT
+		result_actions[-1].tooltip_text = "Spend Gold Leaves in the workshop"
 		gold_leaf_badge(panel, sim.points, Rect2(248, 296, 42, 34))
 		result_actions.append(button(panel, "North Wind →" if sim.week == Loop.MAIN_WEEKS else "Week %d →" % (sim.week + 1), Rect2(160, 344, 136, 38), continue_week))
 	elif sim.status == "lost":

@@ -1,7 +1,7 @@
 extends RefCounted
 ## Top ten per difficulty, one best result per campaign. No accounts or network API.
 const Campaign = preload("res://scripts/campaign.gd")
-const RULES := 5
+const RULES := 6
 const StoragePaths = preload("res://scripts/storage_paths.gd")
 const WEB_KEY := "snow.highscores.v1"
 const LIMIT := 10
@@ -46,7 +46,7 @@ static func valid_record(record) -> bool:
 		if (record.outcome == "won") != record.won or (record.outcome == "workshop" and record.week > 12): return false
 	if not record.get("tiers") is Array or record.tiers.size() != 3: return false
 	for tier in record.tiers:
-		if not Campaign.whole(tier, 0, 2 if record.rules == 1 else 6): return false
+		if not Campaign.whole(tier, 0, 2 if record.rules == 1 else (10 if record.rules >= 6 else 6)): return false
 	return true
 
 static func better(a: Dictionary, b: Dictionary) -> bool:

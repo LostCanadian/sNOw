@@ -4,7 +4,7 @@ extends RefCounted
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
-const RULES := 5
+const RULES := 6
 const SURGE_DURATION := 1.15
 const RECOVERY_FLOOR := 960
 const GRAVITY := 48.0
@@ -74,6 +74,7 @@ var piles: Array[int] = []
 var points := 0
 var earned_points := 0
 var tiers := [0, 0, 0]
+var owned: Array[int] = []
 var events: Array[Dictionary] = []
 
 
@@ -88,17 +89,23 @@ func _init(seed_value: int = 641023, difficulty_value := 1) -> void:
 	prepare_shedding()
 
 
-func stats(build: Array = tiers) -> Dictionary:
-	var load_factor: float = 1.0 + 0.05 * build[1] + 0.005 * build[2]
+func stats(build: Array = []) -> Dictionary:
+	var nodes: Array = owned if build.is_empty() else Upgrades.legacy_nodes(build)
+	var effects := Upgrades.effects(nodes)
+	var ranks := Upgrades.counts(nodes)
+	var load_factor: float = 1.0 + (0.025 * ranks[1] + 0.005 * ranks[2]) * (1.0 - effects.weight_relief)
 	return {
-		"speed": BASE_SPEED * (1.0 + 0.05 * build[0]) / load_factor,
-		"force": 410.0 * (1.0 + 0.15 * build[1]),
-		"width": 48.0 + 4.0 * build[1],
-		"burst": 6.0 * (1.0 + 0.10 * build[2]) / ((1.0 + 0.075 * build[1]) * (1.0 - 0.045 * build[2])),
-		"recharge": 3.0 * (1.0 - 0.045 * build[2]),
-		"pile_penalty": 0.32 - 0.025 * build[0],
-		"surge_cooldown": 36.0 - (5.0 if build[2] >= 3 else 0.0) - (5.0 if build[2] >= 5 else 0.0),
-		"surge_radius": 76.0 + build[1] * 6.0,
+		"speed": BASE_SPEED * (1.0 + effects.speed) / load_factor,
+		"force": 410.0 * (1.0 + effects.force),
+		"width": 48.0 + effects.width,
+		"reach": 335.0 + effects.reach,
+		"steering": 1.0 + effects.steering,
+		"burst": 6.0 * (1.0 + effects.burst) / (1.0 + 0.035 * ranks[1]),
+		"recharge": 3.0 * (1.0 - effects.recharge),
+		"pile_penalty": maxf(0.04, 0.32 - effects.grip),
+		"surge_cooldown": 36.0 - effects.cooldown,
+		"surge_radius": 88.0 + effects.radius,
+		"surge_force": 1.0 + effects.surge_force,
 	}
 
 
@@ -332,7 +339,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		var offset := p - origin
 		var height := offset.dot(airflow)
 		var across := offset.dot(lateral)
-		var in_gust: bool = blowing and height > -8.0 and height < 335.0 and absf(across) < s.width * (0.7 + height / 340.0)
+		var in_gust: bool = blowing and height > -8.0 and height < s.reach and absf(across) < s.width * (0.7 + height / 340.0)
 		var wind := sin(week_time * 0.9 + week) * (5.0 + week * 1.6) * float(DIFFICULTIES[difficulty].wind)
 		# Smooth, seeded aerodynamic variation: broad drifting arcs, never frame noise.
 		var flutter: float = leaf.age * leaf.get("flutter_rate", 2.8) + leaf.get("flutter_phase", float(leaf.id))
@@ -348,7 +355,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 			# Fan out from the nozzle: standing to one side now steers a leaf that way.
 			# Each leaf carries independent, smooth turbulence rather than sharing lanes.
 			var turbulence: float = sin(flutter * 1.31 + leaf.id * 2.399) * 23.0 + sin(flutter * 2.17) * 9.0
-			var force: Vector2 = airflow * float(s.force) + lateral * (normalized_across * 155.0 + turbulence)
+			var force: Vector2 = airflow * float(s.force) + lateral * (normalized_across * 155.0 * float(s.steering) + turbulence)
 			# At the borders a return breeze wins over outward-directed blower force.
 			if force.x < 0: force.x *= smoothstep(-8, 48, p.x)
 			if force.x > 0: force.x *= (1.0 - smoothstep(312, 368, p.x))
@@ -356,11 +363,11 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		if surge_left > 0:
 			var center := Vector2(x, GROUND - 35) + surge_offset()
 			var radial: Vector2 = p - center
-			var reach: float = 175.0 + tiers[1] * 8.0
+			var reach: float = 175.0 + float(s.surge_radius) - 88.0
 			if radial.length() < reach:
 				var strength: float = 1.0 - radial.length() / reach
 				var cone: float = 1.0 if height > -18 and height < 225 and absf(across) < 45 + maxf(0, height) * 0.48 else 0.0
-				v += (airflow * float(s.force) * cone * 1.25 + radial.orthogonal().normalized() * facing * 95 * strength + Vector2(0, -110) * strength) * dt
+				v += (airflow * float(s.force) * cone * 1.25 * float(s.surge_force) + radial.orthogonal().normalized() * facing * 95 * strength + Vector2(0, -110) * strength) * dt
 				leaf.lifted = true
 				leaf.surge_lift = 0.8
 		v.x += BlowerPose.edge_force(p.x) * dt
@@ -400,8 +407,8 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 			score += 500
 			status = "won"
 		else:
-			points += 1
-			earned_points += 1
+			points += 2
+			earned_points += 2
 			status = "workshop"
 
 
@@ -464,21 +471,26 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 	events.append({"position": leaf.position, "saved": saved})
 
 
-func buy(branch: int) -> bool:
-	if status != "workshop" or branch < 0 or branch > 2 or tiers[branch] >= Upgrades.MAX_RANK:
-		return false
-	var cost := 1
-	if points < cost:
-		return false
+func buy(branch: int, node := -1) -> bool:
+	if status != "workshop" or branch < 0 or branch > 2: return false
+	if node < 0:
+		for candidate in range(Upgrades.MAX_RANK):
+			if Upgrades.available(owned, branch, candidate):
+				node = candidate
+				break
+	if not Upgrades.available(owned, branch, node): return false
+	var cost := Upgrades.cost(branch, node)
+	if points < cost: return false
 	points -= cost
-	tiers[branch] += 1
+	owned.append(branch * Upgrades.MAX_RANK + node)
+	tiers = Upgrades.counts(owned)
 	return true
 
 
 func refund_build() -> void:
-	if status != "workshop":
-		return
-	tiers = [0, 0, 0]
+	if status != "workshop": return
+	owned.clear()
+	tiers = [0,0,0]
 	points = earned_points
 
 
@@ -534,14 +546,14 @@ func restore_playable_canopy() -> int:
 
 
 func surge_unlocked() -> bool:
-	return tiers[1] >= 2
+	return owned.has(12)
 
 
 func activate_surge() -> bool:
 	if status != "playing" or not surge_unlocked() or surge_charge < 1.0 or surge_left > 0: return false
 	var radius: float = stats().surge_radius
 	var center := Vector2(x, GROUND - 35)
-	var nearby := leaves.any(func(leaf): return leaf.state == "air" and leaf.position.distance_to(center) < 175 + tiers[1] * 8)
+	var nearby := leaves.any(func(leaf): return leaf.state == "air" and leaf.position.distance_to(center) < 175 + stats().surge_radius - 88)
 	var lifted: Array[Dictionary] = []
 	for leaf in ground_leaves:
 		if absf(leaf.position.x - x) > radius or leaves.size() >= MAX_ACTIVE: continue

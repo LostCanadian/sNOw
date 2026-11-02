@@ -30,3 +30,5 @@ The in-game License screen reads Godot’s full MIT text and bundled-library cop
 `scripts/canopy_sprays.gd` contains 2,592 baked branch attachment coordinates derived from the existing Season Tree alpha mask, extending the original 288 positions to 2,880 leaves. `tools/build_canopy_sprays.py` regenerates that geometry with Pillow, NumPy and SciPy (authoring dependencies only). It reads the image and writes coordinates; it does not modify the tree artwork. All added stems meet painted bark, and leaf pairs follow their twig directions.
 
 `art/play.svg`, `art/pause.svg` and `art/twinkle.svg` are original vector interface assets authored here, with mipmaps. The walking rig now samples rigid thigh/shin/shoe cutouts from the existing wardrobe atlas using UV regions; the artwork itself is unchanged. No new runtime library was introduced.
+
+`art/gold_leaf.svg` and `art/upgrades/*.svg` are original vector UI artwork authored in this repository. Each upgrade has a thematic line icon; the tornado icon replaces the previous Leaflift Surge symbol. No additional library or external asset license is required.

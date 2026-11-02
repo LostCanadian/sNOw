@@ -44,10 +44,10 @@ func run() -> void:
 	for i in range(nodes.size()):
 		for j in range(i + 1, nodes.size()):
 			overlaps = overlaps or nodes[i].get_global_rect().intersects(nodes[j].get_global_rect())
-	check(not overlaps and nodes.size() == 21, "all eighteen upgrade nodes and workshop actions have non-overlapping hit areas")
+	check(not overlaps and nodes.size() == 16, "the active tab, ten icon nodes and workshop actions have non-overlapping hit areas")
 	var bounded := true
 	for icon in main.overlay.find_children("*", "TextureRect", true, false):
-		bounded = bounded and icon.size.x <= 44 and icon.size.y <= 35
+		bounded = bounded and icon.size.x <= 48 and icon.size.y <= 43
 	check(bounded, "equipment textures stay inside their header slots")
 	main.selected_upgrade = Vector2i(2, 6)
 	main.show_workshop()

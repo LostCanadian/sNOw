@@ -56,8 +56,8 @@ func _initialize() -> void:
 	game = Loop.new(55, 0)
 	game.week = 12
 	game.status = "workshop"
-	game.earned_points = 12
-	game.points = 12
+	game.earned_points = 24
+	game.points = 24
 	for i in range(2000): game.slots[i].leaf_id = -1
 	game.missed = 2000
 	game.week_missed = 160
@@ -67,7 +67,7 @@ func _initialize() -> void:
 	game.next_week()
 	check(game.attached_count() == Loop.RECOVERY_FLOOR and game.week_regrown == 80 and game.regrown == 80, "overnight recovery adds only the leaves needed for the safety floor")
 	check(game.week_missed == 0 and game.pressure() == 0 and game.missed == 2000, "weekly danger resets while lifetime history remains accurate")
-	check(game.score == score and game.earned_points == 12, "regrowth never awards points, rescues or extra upgrades")
+	check(game.score == score and game.earned_points == 24, "regrowth never awards points, rescues or extra upgrades")
 	check(game.charge == 1 and game.pile_at(180) == 0 and game.x == 180, "the next week starts with a clean path, full battery and repeatable position")
 	var checkpoint: Dictionary = Campaign.snapshot(game)
 	check(Campaign.valid_checkpoint(checkpoint), "sparse recovered canopies are valid saved checkpoints")
@@ -89,7 +89,7 @@ func _initialize() -> void:
 					builds += 1
 					var stats: Dictionary = game.stats([a,b,c])
 					check(stats.speed * (1-stats.pile_penalty) > 60 and stats.burst > 3, "each full-budget build retains mobility and usable battery time")
-	check(builds == 28 and Loop.Upgrades.MAX_RANK * 3 == 18, "eighteen nodes provide 28 distinct twelve-point final builds")
+	check(builds == 28 and Loop.Upgrades.MAX_RANK * 3 == 30, "thirty nodes support the prior kit comparisons alongside branching builds")
 	var legacy: Dictionary = Campaign.snapshot(Loop.new())
 	legacy.erase("rules")
 	legacy.erase("regrown")

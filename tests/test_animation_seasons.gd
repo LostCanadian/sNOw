@@ -89,7 +89,8 @@ func run() -> void:
 	game = Loop.new(88)
 	var baseline = Loop.new(88)
 	for sample in [game,baseline]:
-		sample.tiers[1] = 2
+		sample.owned.assign([10,12])
+		sample.tiers = [0,2,0]
 		sample.spawn_leaf()
 		sample.spawn_timer = 999
 		sample.leaves[0].position = Vector2(180,390)
@@ -111,7 +112,8 @@ func run() -> void:
 	check(boosted.lifted and boosted.position.distance_to(unboosted.position) > 15,"rotating airflow changes the actual airborne leaf trajectory")
 	check(game.surge_left == 0 and game.surge_offset() == Vector2.ZERO and game.surge_transform().is_equal_approx(Transform2D.IDENTITY),"the tumble lands back in the normal pose without a retained offset")
 	game = Loop.new()
-	game.tiers[1] = 2
+	game.owned.assign([10,12])
+	game.tiers = [0,2,0]
 	land(game,25)
 	var lifted_leaf: Dictionary = game.ground_leaves[0]
 	lifted_leaf.angle += 1.4
@@ -131,6 +133,8 @@ func run() -> void:
 	check(game.score == 10 + 50 + 5 * game.capacity(),"completion bonuses use the same tenfold score reduction")
 	var old: Dictionary = Campaign.snapshot(game)
 	old.rules = 4
+	old.earned_points = 1
+	old.points = 1
 	old.score = 12340
 	old.week_start_score = 9000
 	var migrated = Campaign.restore(old)

@@ -72,7 +72,7 @@ func run() -> void:
 	var restored = Campaign.restore(old)
 	check(restored != null and restored.attached_count() == 2860 and restored.missed == 30 and restored.regrown == 10, "migration preserves the visible proportion of canopy gaps and recovery history")
 	check(restored.slots[288].leaf_id == 289 and restored.slots[293].leaf_id == -1, "migration preserves relocated leaf identities and matching empty sprays")
-	check(restored.score == 900 and restored.week == 4 and restored.points == 3 and restored.shedding_order.size() == 360, "migration rescales score, retains week/budget and schedules the new colour-weighted week")
+	check(restored.score == 900 and restored.week == 4 and restored.points == 6 and restored.shedding_order.size() == 360, "migration rescales score, retains week/budget and schedules the new colour-weighted week")
 	check(Campaign.valid_checkpoint(Campaign.snapshot(restored)), "a migrated campaign can immediately save under the new rules")
 	check(restored.rng.state == Campaign.restore(old).rng.state and restored.shedding_order == Campaign.restore(old).shedding_order, "migrated schedules and random state are repeatable from the saved boundary")
 	old.phase = "workshop"
