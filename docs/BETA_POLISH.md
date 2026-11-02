@@ -66,3 +66,7 @@ A caught leaf now follows a 0.34-second curve from its incoming position, rotati
 Ground impacts are silent, including batches of fallen leaves. Rescue cues remain rate-limited independently. The Upgrades results button has no hover tooltip.
 
 The [winter preview](images/paper-cloud-winter.png) uses an original textured paper cloud bank with rounded alpha edges, smooth mipmapped filtering and restrained drift, replacing the polygon silhouettes. The sprite extends beyond both sides and the top throughout its entrance. `tests/browser_leaf_settle.py` exercises a real blower capture from a validated one-leaf study, then reviews the Upgrades hover state and warning/winter cloud scenes.
+
+## Finale timing and attachment cues
+
+Victory now lets the 3.5-second flower animation finish and holds the finished scene for another 2.5 seconds. Its closing sentence then uses a separate story card before Results, with pause/skip behavior matching the other interludes. The sentence is removed from the Results action grid. Attachment twinkles are slightly larger and brighter, with a stronger warm halo.

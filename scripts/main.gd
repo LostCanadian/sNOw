@@ -47,6 +47,8 @@ const SCORE_BADGE := Rect2(12, 14, 146, 40)
 const FROST_BADGE := Rect2(184, 14, 48, 40)
 const BATTERY_BADGE := Rect2(242, 14, 56, 40)
 const TALLY_DURATION := 2.1
+const FLOWER_DURATION := 3.5
+const VICTORY_HOLD := 2.5
 
 var sim = Loop.new()
 var mode := "title"
@@ -167,7 +169,7 @@ func _ready() -> void:
 
 func _physics_process(dt: float) -> void:
 	last_frame_ms = dt * 1000.0
-	var was_story := mode in ["intro", "outro"]
+	var was_story := mode in ["intro", "outro", "victory_outro"]
 	var stepped := false
 	if was_story:
 		story_time += dt
@@ -212,8 +214,12 @@ func _physics_process(dt: float) -> void:
 		ending_time += dt
 		if mode == "lost":
 			winter_fall.step(dt)
-		if (winter_fall.finished() if mode == "lost" else ending_time >= 4.0) and overlay == null:
-			show_result()
+		if overlay == null:
+			if mode == "lost" and winter_fall.finished(): show_result()
+			elif mode == "won" and ending_time >= FLOWER_DURATION + VICTORY_HOLD:
+				mode = "victory_outro"
+				story_time = 0
+				clear_input()
 	if mode in ["results", "lost", "won"] and is_instance_valid(overlay):
 		result_time = minf(TALLY_DURATION, result_time + dt)
 		if result_time >= TALLY_DURATION and not result_tallied: finish_tally()
@@ -287,7 +293,7 @@ func _input(event: InputEvent) -> void:
 		else: pause_game()
 		get_viewport().set_input_as_handled()
 		return
-	if mode in ["intro", "outro"]:
+	if mode in ["intro", "outro", "victory_outro"]:
 		var skip_key: bool = event is InputEventKey and event.pressed and event.physical_keycode in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]
 		if pressed or skip_key:
 			if story_time >= 0.65: finish_story()
@@ -405,13 +411,13 @@ func start_run(slot_index := -1, slot_name := "", difficulty := -1) -> void:
 func pause_for_focus() -> void:
 	clear_input()
 	# Menus and completed results have no live level to protect.
-	if mode in ["play", "intro", "outro"] or (mode in ["lost", "won"] and overlay == null):
+	if mode in ["play", "intro", "outro", "victory_outro"] or (mode in ["lost", "won"] and overlay == null):
 		pause_game()
 
 
 func pause_game() -> void:
 	if mode == "paused" or not is_instance_valid(ui): return
-	if mode not in ["play", "intro", "outro", "preview", "lost", "won"]: return
+	if mode not in ["play", "intro", "outro", "victory_outro", "preview", "lost", "won"]: return
 	if mode in ["lost", "won"] and overlay != null: return
 	paused_mode = mode
 	paused_overlay = overlay
@@ -1154,7 +1160,6 @@ func show_result() -> void:
 			gold_leaf_badge(panel,int(level_checkpoint.get("points",0)),Rect2(247,300,42,26))
 		result_actions.append(button(panel, "Retry this level", Rect2(160, 344, 136, 38), restart_level))
 	else:
-		text_label(panel, StageStory.chapter(Loop.BOSS_STAGE)[2].replace("\n", " "), Rect2(160, 292, 136, 42), 11, INK, true)
 		result_actions.append(button(panel, "Save Slots", Rect2(160, 344, 136, 38), show_slots))
 	result_actions.append(button(panel, "Main menu", Rect2(16, 344, 136, 38), show_title, true))
 	update_result_tally()
@@ -1199,6 +1204,7 @@ func weather() -> float:
 func visual_mode() -> String:
 	var current := paused_mode if mode == "paused" else mode
 	if current == "intro": return "play"
+	if current == "victory_outro": return "won"
 	if current in ["outro", "results"]: return "workshop"
 	if current in ["initials","workshop","reset_upgrades"] or (current == "scores" and scores_return_to_result): return sim.status
 	return current
@@ -1210,7 +1216,7 @@ func _draw() -> void:
 	var scene_mode := visual_mode()
 	var winter := scene_mode == "lost" or (preview_mode and preview_weather >= 1.0)
 	var victory := scene_mode == "won" or preview_victory
-	var ending := clampf(ending_time / 3.5, 0.0, 1.0)
+	var ending := clampf(ending_time / FLOWER_DURATION, 0.0, 1.0)
 	if cold > 0.45:
 		draw_rect(Rect2(0, 0, 360, 640), Color(0.12, 0.24, 0.38, (cold - 0.45) * 0.65))
 	if sim.week > 1 and mode != "title" and not victory:
@@ -1259,7 +1265,7 @@ func _draw() -> void:
 		paper_box(Rect2(10, 521, 340, 27), INK, 5)
 		write_center(save_notice, 180, 538, 8, CREAM)
 	var story_mode := paused_mode if mode == "paused" else mode
-	if story_mode in ["intro", "outro"]: draw_story_card(story_mode)
+	if story_mode in ["intro", "outro", "victory_outro"]: draw_story_card(story_mode)
 	draw_pause_button()
 
 
@@ -1359,9 +1365,9 @@ func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 	if mode == "play":
 		for i in range(mini(64, canopy_gap_markers.size())):
 			var point: Vector2 = canopy_gap_markers[i]
-			var glow := 0.6 if reduced_effects else 0.52 + sin(elapsed * 2 + point.x * 0.21 + point.y * 0.17) * 0.22
-			draw_circle(point, 3.3, Color(1.0,0.87,0.5,glow * 0.13))
-			draw_texture_rect(TWINKLE, Rect2(point - Vector2.ONE * 2.6, Vector2.ONE * 5.2), false, Color(1.0,0.93,0.70,glow))
+			var glow := 0.88 if reduced_effects else 0.80 + sin(elapsed * 2 + point.x * 0.21 + point.y * 0.17) * 0.16
+			draw_circle(point, 4.6, Color(1.0,0.87,0.5,glow * 0.20))
+			draw_texture_rect(TWINKLE, Rect2(point - Vector2.ONE * 3.4, Vector2.ONE * 6.8), false, Color(1.0,0.93,0.70,glow))
 
 
 func cloud_rect(progress: float) -> Rect2:
@@ -1572,7 +1578,7 @@ func draw_controls() -> void:
 
 
 func draw_pause_button() -> void:
-	if mode not in ["play", "paused", "intro", "outro", "preview"]: return
+	if mode not in ["play", "paused", "intro", "outro", "victory_outro", "preview"]: return
 	paper_box(PAUSE, INK, 9)
 	var icon: Texture2D = PLAY_ICON if mode == "paused" else PAUSE_ICON
 	draw_texture_rect(icon, Rect2(PAUSE.get_center() - Vector2(10,10),Vector2(20,20)),false,CREAM)
@@ -1628,6 +1634,7 @@ func fill_audio(dt: float) -> void:
 	sounds.muted = muted
 	var audio_mode := mode
 	if mode == "scores" and scores_return_to_result: audio_mode = sim.status if sim.status in ["lost","won"] else "results"
+	if mode == "victory_outro": audio_mode = "won"
 	if mode == "initials": audio_mode = sim.status if sim.status in ["lost","won"] else "results"
 	sounds.update(audio_mode, sim.week, sim.blowing, sim.charge, actor.gait_distance, actor.movement > 0.05, sim.surge_left > 0, dt, sim.low_power)
 
@@ -1678,7 +1685,7 @@ func finish_story() -> void:
 	if mode == "intro":
 		clear_input()
 		mode = "play"
-	elif mode == "outro":
+	elif mode in ["outro", "victory_outro"]:
 		show_result()
 
 
@@ -1693,7 +1700,7 @@ func draw_story_card(kind: String) -> void:
 	style.shadow_color = Color(0.05, 0.09, 0.07, alpha * 0.3)
 	draw_style_box(style, rect)
 	var chapter: Array = StageStory.chapter(sim.week)
-	write_center(sim.stage_title() if kind == "intro" else "ANOTHER WEEK KEPT", 180, rect.position.y + 26, 10, Color(RUST, alpha))
+	write_center("WINTER CAN WAIT" if kind == "victory_outro" else (sim.stage_title() if kind == "intro" else "ANOTHER WEEK KEPT"), 180, rect.position.y + 26, 10, Color(RUST, alpha))
 	write_center(chapter[0], 180, rect.position.y + 53, 16, Color(INK, alpha), true)
 	var lines: PackedStringArray = str(chapter[1 if kind == "intro" else 2]).split("\n")
 	for i in range(lines.size()):
