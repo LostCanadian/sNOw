@@ -68,7 +68,6 @@ var elapsed := 0.0
 var world: Node2D
 var scenery_layers: Array[Node2D] = []
 var world_preview_week := 1
-var rustle_tick := -1
 var ending_time := 0.0
 var defeat_hold_time := 0.0
 var winter_fall = WinterFall.new()
@@ -1351,7 +1350,7 @@ func make_canopy_batch() -> MultiMesh:
 
 func update_canopy_batches(victory := false) -> void:
 	var stamp := "%s:%d:%d:%s:%.3f" % [sim.run_id, sim.canopy_revision, sim.week, victory, preview_weather if preview_mode else -1.0]
-	if victory:stamp+=":%d"%floori(ending_time*30)
+	if victory and not preview_victory:stamp+=":%d"%floori(minf(ending_time,5.5)*30)
 	var changed:=stamp!=canopy_stamp
 	if changed:
 		canopy_stamp = stamp
@@ -1375,7 +1374,7 @@ func update_canopy_batches(victory := false) -> void:
 						var pose:Dictionary=sim.attachment_pose(i)
 						leaf_renderer.leaf(i,pose.position,pose.angle,colour,pose.roll)
 					else:leaf_renderer.leaf(i,slot.stem.lerp(slot.position,growth),slot.angle+(1-growth)*0.5,colour,1,false,growth)
-				else:leaf_renderer.leaf(slot.leaf_id,slot.position,slot.angle,colour)
+				else:leaf_renderer.leaf(slot.leaf_id,slot.position,slot.angle,colour,1,false,1,true)
 			if not keep:
 				var cell := Vector2i(slot.position / 16.0)
 				if not marked.has(cell):
@@ -1383,20 +1382,8 @@ func update_canopy_batches(victory := false) -> void:
 					canopy_gap_markers.append(slot.position)
 		leaf_renderer.cache()
 	var dynamic:bool=not victory and mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty() or not sim.attachment_motions.is_empty())
-	var tick:=floori(world.clock*15)
-	var moving:=not reduced_effects and tick!=rustle_tick
-	if changed or dynamic or moving:
-		rustle_tick=tick
+	if changed or dynamic:
 		leaf_renderer.restore()
-		if not reduced_effects and not victory:
-			for index in range(sim.slots.size()):
-				var slot:Dictionary=sim.slots[index]
-				if slot.leaf_id<0 or sim.attachment_motions.has(index):continue
-				if preview_mode and not victory and fmod(index*0.61803398875,1.0)<preview_weather*0.80:continue
-				var bend:Vector3=world.rustle(index,slot.position)
-				var colour_week:int=11 if preview_mode and preview_weather>0.5 else sim.week
-				var colour:Color=sim.leaf_colour(slot.leaf_id,1 if victory else colour_week)
-				leaf_renderer.leaf(slot.leaf_id,slot.position+Vector2(bend.x,bend.y),slot.angle+bend.z,colour)
 		if dynamic:
 			for leaf in sim.ground_leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0),true)
 			for leaf in sim.leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0))

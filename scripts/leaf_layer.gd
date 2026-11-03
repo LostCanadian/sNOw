@@ -14,4 +14,7 @@ func _draw() -> void:
 	if current_palette!=renderer.palette_texture:
 		current_palette=renderer.palette_texture
 		paper.set_shader_parameter("palette",current_palette)
+	paper.set_shader_parameter("breeze_time",game.world.clock)
+	var wind:float=game.world.profile.wind*(2.6 if game.world.profile.week==13 else 1.5)
+	paper.set_shader_parameter("breeze_strength",0.0 if lane>=2 or game.reduced_effects or game.world.winter or game.world.victory else wind)
 	draw_multimesh(renderer.batches[lane],game.PAPER_LEAF)

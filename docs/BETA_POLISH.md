@@ -102,7 +102,7 @@ Explore the seasons uses the same current-week outfit selection. Its weather set
 
 Browser checks cover all thirteen atmosphere/score pairs, textured canopy colors, moving paper animals, actual WebAudio output and silence while paused. The native suite adds persistence, isolated cosmetic randomness, rare full-moon wildlife, coat blending and scene pause checks. These are functional/rendering checks; native phone frame rate and subjective listening still need playtesting.
 
-Release Web validation also uses `tests/browser_release_atmospheres.py`, since the optimized Compatibility template exposed a packed instance-colour problem absent from some debug captures. Leaf passes now use an explicit 128×17 RGBA palette lookup by stable depth index, retaining four bulk uploads, the existing identity ordering and independent front/rear piles. The renderer samples that small palette instead of relying on the packed instance tint. Scene layers keep rear foliage, caretaker, foreground piles, snow cover and UI in order.
+Release Web validation also uses `tests/browser_release_atmospheres.py`, since the optimized Compatibility template exposed a packed instance-colour problem absent from some debug captures. Leaf passes now use an explicit 128×34 RGBA lookup by stable depth index (17 rows of colours plus 17 rows of branch-motion flags), retaining four bulk uploads, the existing identity ordering and independent front/rear piles. The renderer samples that small palette instead of relying on the packed instance tint. Scene layers keep rear foliage, caretaker, foreground piles, snow cover and UI in order.
 
 
 ## Planted tree base and smooth moon
@@ -142,3 +142,12 @@ Regenerate just the music with `python3 tools/generate_audio.py --music-only`; t
 
 
 The final snow contour uses a cached, smooth blanket over both actual pile lanes, so tall stacks create rounded drifts rather than polygon teeth. A sampled paper grain, a soft rim shadow and shallow folds define the snow. Four geometry checks verify coverage, smooth curvature, determinism and unchanged pile supports. Victory also preserves the final leaf's unfinished attachment and the caretaker's facing through the outfit dissolve; the growth suite covers that terminal capture.
+
+
+### Canopy performance regression fix
+
+The November rustle change accidentally rewrote all 2,160 leaf transforms and colours on every active frame, rather than only updating the small moving population. The victory cache key also kept changing after all growth had finished. Rustle now runs in the vertex shader, with a separate attached-leaf mask in the lower half of the colour texture. Airborne/ground leaves keep their physical transforms, front ground passes skip breeze work, and completed victory/preview canopies stop rebuilding. The explicit Compatibility colour lookup and front/rear ordering are preserved.
+
+`bash tools/godot.sh --headless --script tools/profile_canopy.gd` measures CPU presentation work, excluding GPU rendering. On this executor, 50 airborne leaves fell from 6.66 to 0.10 ms per update, 100 grounded leaves from 6.75 to 0.19 ms, and completed victory from 3.82 to 0.002 ms. These are component timings, not whole-game FPS. `tools/benchmark_browser.py` uses real menu/game input and CDP thread CPU timing: Chromium gameplay main-thread work fell from 120.88 to 20.38 ms per sampled frame. SwiftShader remained GPU-bound near 5 FPS in both versions, so this does not establish physical-device frame rates. The same 360×640 viewport, release template and input sequence were used.
+
+Six native regressions cover stationary-canopy uploads, attached/detached breeze masks, unchanged palette colours and completed victory/preview caching. Browser release checks retain the thirteen-scene colour regression and ending previews.
