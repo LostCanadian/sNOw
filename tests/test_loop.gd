@@ -15,8 +15,8 @@ func check(ok: bool, message: String) -> void:
 func _initialize() -> void:
 	var game = Loop.new()
 	for i in range(60): game.step(1.0 / 60.0, 1.0, false)
-	check(is_equal_approx(game.x, 280.0), "one second of movement uses logical units")
-	for i in range(60): game.step(1.0 / 60.0, 1.0, false)
+	check(is_equal_approx(game.x, 230.0), "one second of movement uses logical units")
+	for i in range(180): game.step(1.0 / 60.0, 1.0, false)
 	check(game.x == 331.0, "movement remains inside the shared playfield")
 	game = Loop.new()
 	for i in range(370): game.step(1.0 / 60.0, 0.0, true)
@@ -78,7 +78,7 @@ func _initialize() -> void:
 		for b in range(7):
 			for c in range(7):
 				var s: Dictionary = game.stats([a, b, c])
-				check(s.speed * (1.0 - s.pile_penalty) > 50.0, "all build combinations retain usable movement")
+				check(s.speed * (1.0 - s.pile_penalty) > 25.0, "all build combinations retain usable movement")
 	var first = Loop.new(922)
 	var second = Loop.new(922)
 	for i in range(1200):

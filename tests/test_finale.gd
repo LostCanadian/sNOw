@@ -40,10 +40,10 @@ func run() -> void:
 	for item:Vector4 in Loop.Canopy.BranchFill.REPLACEMENTS:
 		branches=branches and image.get_pixel(int(item.y),int(item.z)).a>0.86 and not moved.has(int(item.x))
 		moved[int(item.x)]=true
-	check(branches and moved.size()==160,"middle-right sprays attach to actual painted bark with stable unique slot IDs")
+	check(branches and moved.size()==280,"middle-right sprays attach to actual painted bark with stable unique slot IDs")
 	var baseline=Loop.new()
 	var boots=Loop.new();boots.owned.assign([0,1]);boots.tiers=Loop.Upgrades.counts(boots.owned)
-	check(baseline.stats().speed==100 and boots.stats().speed>=122,"slower starting movement makes two early speed upgrades materially useful")
+	check(baseline.stats().speed==50 and is_equal_approx(boots.stats().speed,61),"slower starting movement makes two early speed upgrades materially useful")
 	for difficulty in range(3):
 		var game=Loop.new(55,difficulty)
 		var valid:=true

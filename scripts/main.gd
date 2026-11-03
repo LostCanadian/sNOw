@@ -30,6 +30,7 @@ const TREE = preload("res://assets/art/season_tree.png")
 const UPGRADE_ICONS = preload("res://assets/art/upgrade_icons.png")
 const Upgrades = preload("res://scripts/upgrades.gd")
 const WARDROBE = preload("res://assets/art/wardrobe.png")
+const DEFEAT_WARDROBE = preload("res://assets/art/defeat_wardrobe.png")
 const ENDINGS = preload("res://assets/art/endings.png")
 const SNOWFLAKE = preload("res://assets/art/snowflake.svg")
 const BODY_FONT = preload("res://assets/fonts/DejaVuSans.ttf")
@@ -48,7 +49,9 @@ const FROST_BADGE := Rect2(184, 14, 48, 40)
 const BATTERY_BADGE := Rect2(242, 14, 56, 40)
 const TALLY_DURATION := 2.1
 const FLOWER_DURATION := 3.5
-const VICTORY_HOLD := 2.5
+const VICTORY_HOLD := 5.5
+const DEFEAT_HOLD := 3.0
+const DEFEAT_POSE_DURATION := 0.55
 
 var sim = Loop.new()
 var mode := "title"
@@ -59,6 +62,7 @@ var keys: Dictionary = {}
 var pointer_positions: Dictionary = {}
 var elapsed := 0.0
 var ending_time := 0.0
+var defeat_hold_time := 0.0
 var winter_fall = WinterFall.new()
 var winter_batch: MultiMesh
 var winter_shadows: MultiMesh
@@ -107,6 +111,7 @@ var restart_draft: Dictionary = {}
 var selected_upgrade := Vector2i(0, 0)
 var upgrade_regions := [Rect2(35, 35, 710, 655), Rect2(755, 20, 810, 640), Rect2(1640, 35, 485, 640)]
 var ending_regions: Array[Rect2] = []
+var defeat_regions: Array[Rect2] = []
 var campaign = Campaign.new()
 var high_scores = HighScores.new()
 var selected_difficulty := 1
@@ -148,6 +153,7 @@ func _ready() -> void:
 	winter_renderer=LeafBatch.new([winter_batch,winter_shadows,winter_front,winter_front_shadows])
 	wardrobe_regions = atlas_regions(WARDROBE, 4, 3)
 	ending_regions = atlas_regions(ENDINGS, 2, 1)
+	defeat_regions.assign(preload("res://scripts/defeat_regions.gd").RECTS)
 	update_actor_mesh()
 	for i in range(65):
 		snow.append({"x": ambient_rng.randf_range(0, 360), "y": -20.0, "active": false, "size": ambient_rng.randf_range(1.0, 3.6), "phase": ambient_rng.randf_range(0, TAU)})
@@ -214,8 +220,9 @@ func _physics_process(dt: float) -> void:
 		ending_time += dt
 		if mode == "lost":
 			winter_fall.step(dt)
+			if winter_fall.finished(): defeat_hold_time += dt
 		if overlay == null:
-			if mode == "lost" and winter_fall.finished(): show_result()
+			if mode == "lost" and winter_fall.finished() and defeat_hold_time >= DEFEAT_HOLD: show_result()
 			elif mode == "won" and ending_time >= FLOWER_DURATION + VICTORY_HOLD:
 				mode = "victory_outro"
 				story_time = 0
@@ -245,7 +252,7 @@ func _physics_process(dt: float) -> void:
 				"ending_phase": winter_fall.phase, "ending_attached": winter_fall.attached, "ending_air": winter_fall.airborne, "ending_ground": winter_fall.grounded, "snow_cover": winter_fall.cover(),
 				"mode": mode, "score": sim.score, "week": sim.week, "x": sim.x, "charge": sim.charge,
 				"ground_positions": sim.ground_leaves.map(func(leaf): return [leaf.id, leaf.position.x, leaf.position.y, leaf.velocity.x]),
-				"ending_time": ending_time, "flower_progress":clampf(ending_time/FLOWER_DURATION,0,1), "story_time": story_time, "grounded": sim.ground_leaves.size(), "surge_charge": sim.surge_charge, "surge_active": sim.surge_left > 0, "surge_unlocked": sim.surge_unlocked(),
+				"defeat_hold_time":defeat_hold_time,"outfit_index":outfit_index(),"snow_active":snow.filter(func(f):return f.active).size(),"ending_time": ending_time, "flower_progress":clampf(ending_time/FLOWER_DURATION,0,1), "story_time": story_time, "grounded": sim.ground_leaves.size(), "surge_charge": sim.surge_charge, "surge_active": sim.surge_left > 0, "surge_unlocked": sim.surge_unlocked(),
 				"result_time": result_time, "result_tallied": result_tallied, "result_new_high": result_new_high,
 				"week_rescued": sim.week_rescued, "week_points": sim.score - sim.week_start_score if sim.week_start_score >= 0 else -1,
 				"result_display": result_numbers.map(func(label): return label.text if is_instance_valid(label) else ""),
@@ -1388,6 +1395,9 @@ func reset_weather() -> void:
 
 func advance_snow(dt: float) -> void:
 	var cold:=weather()
+	if cold<=0.55:
+		reset_weather()
+		return
 	var target:=0 if cold<=0.55 else (12 if cold<0.8 else (28 if cold<0.95 else 45))
 	if visual_mode()=="lost" and winter_fall.phase in ["snow","done"]:target=65
 	if reduced_effects:target=mini(target,4)
@@ -1408,6 +1418,7 @@ func advance_snow(dt: float) -> void:
 
 
 func draw_snow(cold: float, winter: bool) -> void:
+	if cold<=0.55:return
 	for i in range(snow.size()):
 		var f: Dictionary = snow[i]
 		if not f.active:continue
@@ -1462,8 +1473,7 @@ func draw_flowers(amount: float) -> void:
 
 func update_actor_mesh(force := false) -> void:
 	if wardrobe_regions.is_empty(): return
-	var stage: int = clampi(sim.week - 1, 0, 11)
-	if preview_mode: stage = 10 if preview_weather > 0.5 else 0
+	var stage := outfit_index()
 	var region: Rect2 = wardrobe_regions[stage]
 	if not force and region == actor_region:
 		if actor.movement == 0 and not actor.motor and not actor_mesh_active: return
@@ -1473,25 +1483,44 @@ func update_actor_mesh(force := false) -> void:
 	actor_mesh_active = actor.movement > 0 or actor.motor
 
 
+func outfit_index() -> int:
+	if preview_mode: return 10 if preview_weather>0.5 else 0
+	return clampi(sim.week-1,0,11)
+
+
+func draw_playing_character(px: float, opacity := 1.0) -> void:
+	var mirror := Transform2D(0,Vector2(actor.direction,1),0,Vector2.ZERO)
+	var transform: Transform2D=Transform2D(0,Vector2(px,Loop.GROUND))*sim.surge_transform()*mirror
+	draw_set_transform_matrix(transform)
+	var tint:=Color(1,1,1,opacity)
+	draw_mesh(actor.limb_mesh,actor.LIMBS,Transform2D.IDENTITY,tint)
+	draw_mesh(actor.mesh,WARDROBE,Transform2D.IDENTITY,tint)
+	draw_set_transform(Vector2.ZERO)
+
+
 func draw_character(winter: bool, victory: bool) -> void:
 	var px: float = 180.0 if visual_mode() in ["title", "preview"] else sim.x
-	draw_set_transform(Vector2(px, Loop.GROUND + 1), 0, Vector2(1, 0.22))
-	draw_circle(Vector2.ZERO, 22, Color(0.12, 0.16, 0.1, 0.24))
+	draw_set_transform(Vector2(px,Loop.GROUND+1),0,Vector2(1,0.22))
+	draw_circle(Vector2.ZERO,22,Color(0.12,0.16,0.1,0.24))
 	draw_set_transform(Vector2.ZERO)
-	if not winter and not victory:
-		var mirror := Transform2D(0, Vector2(actor.direction,1), 0, Vector2.ZERO)
-		var transform: Transform2D = Transform2D(0, Vector2(px,Loop.GROUND)) * sim.surge_transform() * mirror
-		draw_set_transform_matrix(transform)
-		draw_mesh(actor.limb_mesh, actor.LIMBS)
-		draw_mesh(actor.mesh, WARDROBE)
+	if winter:
+		var blend:=smoothstep(0,DEFEAT_POSE_DURATION,ending_time)
+		if blend<1:draw_playing_character(px,1-blend)
+		var region:Rect2=defeat_regions[outfit_index()]
+		var height:=76.0
+		var width:=height*region.size.x/region.size.y
+		draw_set_transform(Vector2(px,Loop.GROUND),0,Vector2(actor.direction,1))
+		draw_texture_rect_region(DEFEAT_WARDROBE,Rect2(-width*PaperActor.ANCHOR.x,-height,width,height),region,Color(1,1,1,blend))
 		draw_set_transform(Vector2.ZERO)
 		return
-	var region: Rect2 = ending_regions[0 if victory else 1]
-	var bob := sin(elapsed * 4.0) * 1.5 if victory and not reduced_effects else 0.0
-	var height := 76.0
-	var width := height * region.size.x / region.size.y
-	var rect := Rect2(px - width * 0.48, Loop.GROUND - height + bob, width, height)
-	draw_texture_rect_region(ENDINGS, rect, region, Color("d8e4eb") if winter else Color.WHITE)
+	if not victory:
+		draw_playing_character(px)
+		return
+	var region:Rect2=ending_regions[0]
+	var bob:=sin(elapsed*4.0)*1.5 if not reduced_effects else 0.0
+	var height:=76.0
+	var width:=height*region.size.x/region.size.y
+	draw_texture_rect_region(ENDINGS,Rect2(px-width*0.48,Loop.GROUND-height+bob,width,height),region)
 
 
 func draw_gust() -> void:
@@ -1691,6 +1720,7 @@ func show_audio_options() -> void:
 
 
 func begin_intro() -> void:
+	reset_weather()
 	clear_overlay()
 	clear_input()
 	mode = "intro"
@@ -1739,6 +1769,7 @@ func draw_surge() -> void:
 
 
 func begin_winter_fall() -> void:
+	defeat_hold_time=0
 	winter_fall.begin(sim)
 	winter_renderer.clear()
 	winter_upload_revision=-1

@@ -40,7 +40,7 @@ Boots, Blower and Battery each have a ten-node branching tree. Two Gold Leaves a
 
 Tap any node to inspect it, including locked/owned ones. Its full description and prerequisite appear in a separate fixed card. Buying is a separate explicit action. Equipment icons identify the three lanes, connectors show prerequisites, and node hit areas do not overlap. The reset icon asks Reset all upgrades or Cancel; confirmation refunds the earned budget.
 
-Boot ranks improve speed and reduce pile drag. Fan ranks add lift/reach but add weight and drain. Battery ranks add capacity/efficiency and reduce recharge time, with a small weight cost. All modeled builds retain movement above 50 logical units/second under maximum pile drag and useful burst time; actual winning strategy balance still needs human testing.
+Boot ranks improve speed and reduce pile drag. Fan ranks add lift/reach but add weight and drain. Battery ranks add capacity/efficiency and reduce recharge time, with a small weight cost. All modeled builds retain movement above 25 logical units/second under maximum pile drag and useful burst time; actual winning strategy balance still needs human testing.
 
 ## Save Slots and compatibility
 
@@ -70,6 +70,6 @@ Rules 5 change the seasonal colour mix, weighted selection and cadence; week-one
 
 Beta checkpoint UX: loading a playing checkpoint offers Continue, which begins the saved level from the start. Resume/Restart remain live-pause actions, where they refer to genuinely different choices. Results and menus never auto-pause on focus loss. See [beta polish](BETA_POLISH.md).
 
-Starting speed is 100 logical units/second (previously 122). Trail soles adds 10%; Quick stride adds another 12%, returning two early boot purchases to 122 before load weight. Later speed branches add 12%, 6%, 16% and 10%, alongside the existing grip and weight-management choices.
+Starting speed is 50 logical units/second (previously 100). Trail soles adds 10%; Quick stride adds another 12%, raising two early boot purchases to 61 before load weight. Later speed branches add 12%, 6%, 16% and 10%, alongside the existing grip and weight-management choices.
 
-The first crown relocates 160 redundant outer sprays onto fine middle-right branches. The tree artwork and total of 2,160 leaf identities are unchanged. Rules-7-and-earlier playing checkpoints adopt the current seasonal ceiling once and regenerate a deterministic schedule; score, campaign identity and purchased upgrades are retained.
+The first crown relocates 280 redundant outer sprays onto middle-right branches and the central fork. The tree artwork and total of 2,160 leaf identities are unchanged. Rules-7-and-earlier playing checkpoints adopt the current seasonal ceiling once and regenerate a deterministic schedule; score, campaign identity and purchased upgrades are retained.

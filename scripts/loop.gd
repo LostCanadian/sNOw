@@ -15,7 +15,7 @@ const Canopy = preload("res://scripts/canopy.gd")
 const CAPTURE_RADIUS := 15.0
 const MAX_ACTIVE := 1500
 const SHED_BATCH := 10
-const BASE_SPEED := 100.0
+const BASE_SPEED := 50.0
 const CAPACITY := 105 # Default weekly allowance. Cumulative loss remains in missed.
 const DIFFICULTIES := [
 	{"name": "Breezy", "capacity": 135, "leaves": 180, "increment": 15, "cadence": 1.15, "wind": 0.70, "fall": 0.88},

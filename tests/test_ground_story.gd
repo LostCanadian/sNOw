@@ -44,7 +44,7 @@ func run() -> void:
 	var pile_speed: float = game.x - before
 	var clear = Loop.new()
 	clear.step(1.0 / 60, 1, false)
-	check(pile_speed < clear.x - 180 and pile_speed > 1, "dense ground leaves create a bounded local slowdown")
+	check(pile_speed < clear.x - 180 and pile_speed > 0.5, "dense ground leaves create a bounded local slowdown")
 	var heights: Array = game.ground_leaves.map(func(leaf): return leaf.position.y)
 	check(heights.max() - heights.min() > 2, "individual leaves form layers rather than one floating row")
 	check(not game.activate_surge(), "surge must first be unlocked in the upgrade tree")

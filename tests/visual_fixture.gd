@@ -137,5 +137,16 @@ func _initialize() -> void:
 		push_error("Invalid finale studies");quit(1);return
 	file=FileAccess.open("res://test-results/finale-fixture.json",FileAccess.WRITE)
 	file.store_string(JSON.stringify(finale_studies));file.close()
+	var early_outfit=Loop.new(641023,2)
+	var mid_outfit=Loop.new(641023,2)
+	for completed in range(6):
+		mid_outfit.spawned=mid_outfit.week_leaf_count();mid_outfit.step(1.0/60,0,false);mid_outfit.next_week()
+	var transition=Loop.new(641023,2)
+	for missed_leaf in range(60):
+		transition.spawn_leaf();transition.resolve_leaf(transition.leaves[-1],false)
+	transition.leaves.clear();transition.spawned=transition.week_leaf_count();transition.step(1.0/60,0,false)
+	var continuity_studies:={"version":1,"slots":[{"name":"Early outfit study","checkpoint":Campaign.snapshot(early_outfit)}, {"name":"Mid outfit study","checkpoint":Campaign.snapshot(mid_outfit)}, {"name":"Next level study","checkpoint":Campaign.snapshot(transition)}]}
+	if not Campaign.valid_document(continuity_studies):push_error("Invalid continuity studies");quit(1);return
+	file=FileAccess.open("res://test-results/continuity-fixture.json",FileAccess.WRITE);file.store_string(JSON.stringify(continuity_studies));file.close()
 	print("Created validated late-week, boss and workshop UI fixtures.")
 	quit()

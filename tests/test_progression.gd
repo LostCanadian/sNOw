@@ -88,7 +88,7 @@ func _initialize() -> void:
 				if a + b + c == 12:
 					builds += 1
 					var stats: Dictionary = game.stats([a,b,c])
-					check(stats.speed * (1-stats.pile_penalty) > 50 and stats.burst > 3, "each full-budget build retains mobility and usable battery time")
+					check(stats.speed * (1-stats.pile_penalty) > 25 and stats.burst > 3, "each full-budget build retains mobility and usable battery time")
 	check(builds == 28 and Loop.Upgrades.MAX_RANK * 3 == 30, "thirty nodes support the prior kit comparisons alongside branching builds")
 	var legacy: Dictionary = Campaign.snapshot(Loop.new())
 	legacy.erase("rules")
