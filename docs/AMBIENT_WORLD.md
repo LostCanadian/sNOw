@@ -1,6 +1,6 @@
-# Ambient world — future polish
+# Ambient world
 
-This is planned work, not part of the current release. The background should feel alive without competing with leaves, controls or the caretaker. Use the same textured cut-paper style, with creatures behind the playable path and foliage.
+Implemented: paper wildlife, thirteen weekly atmosphere profiles, painted overcast/dusk/night backgrounds, gentle fog, rain, breeze rustling and background sun rays. Creatures stay behind the playable path and foliage. The original proposals below explain the art direction; native-device performance and the subjective mix still need playtesting.
 
 ## Seasons and wildlife
 
@@ -24,3 +24,13 @@ Animals mostly continue their quiet routines. A blower held directly beneath the
 ## Implementation and review
 
 Use a separate cosmetic random seed, independent of the leaf simulation. Select a week's sky/phase/wildlife variant at its boundary and retain it for retries/reloads; store the cosmetic seed or selected variant when this feature ships. Cosmetic randomness must not change difficulty or future ranked fairness. Pause ambient animation and reaction timers with the game; suppress extra motion and lightning in Soft effects. Keep silhouettes and contrast subordinate to airborne leaves and test on physical phones. Cap simultaneous creatures and avoid unnecessary animation work offscreen.
+
+## Runtime and review
+
+`world_profile.gd` derives each week's cosmetic variation from the already-saved campaign ID and week, independently of the gameplay RNG. Retries/reloads keep the chosen sun position, moon phase and rare wildlife. The sequence is sunny, sunny, overcast, dusk, rain, night, sunny, night storm, fog, dusk, rain, sunny, then the cloudy daytime North Wind.
+
+`ambient_world.gd` draws behind the tree; separate paper paintings replace the sunny valley for overcast, twilight and night. Sun/moon, paper storm clouds, soft gradient fog, stars, rain and feathered rays form independent layers. Rays remain behind the tree/player. Wind bends a bounded sample of attached leaves at 15 Hz by less than a pixel; it never changes an attachment, force or miss. Pause freezes all clocks; the internal reduced-effects mode stops extra animal/rustle motion and suppresses lightning.
+
+The sixteen-pose wildlife atlas includes a running/climbing squirrel, three painted rabbit coats with hop poses, perched/open-wing owl, standing/trotting wolf and two bat poses. Rabbit coats crossfade gradually. Full moon (one of eight phases, night only) replaces the rabbit with a wolf and bat. At most three species appear together. A directly held blower can trigger one owl wing beat per twelve seconds; creatures never interact with leaf physics.
+
+Explore the seasons now has previous/next week arrows to review all thirteen atmospheres, alongside the existing warning, winter and victory previews. `tests/test_ambient_world.gd` covers persistence, gameplay RNG isolation, pause, coat blending, rarity and bounded actors; `tests/browser_ambient.py` exercises the real scene controls and pause/resume. Browser captures: [rain](images/ambient-rain.png), [moonlight](images/ambient-night.png), [sunlight](images/ambient-day.png).

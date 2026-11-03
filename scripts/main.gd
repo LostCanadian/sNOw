@@ -2,6 +2,7 @@ extends Node2D
 ## A small paper theatre: simulation stays separate from cutout presentation and UI.
 
 const SPEAKER_ICON = preload("res://assets/art/speaker.svg")
+const AmbientWorld = preload("res://scripts/ambient_world.gd")
 const AudioDirector = preload("res://scripts/audio_director.gd")
 const LeafBatch = preload("res://scripts/leaf_batch.gd")
 const WinterFall = preload("res://scripts/winter_fall.gd")
@@ -61,6 +62,9 @@ var touches: Dictionary = {}
 var keys: Dictionary = {}
 var pointer_positions: Dictionary = {}
 var elapsed := 0.0
+var world: Node2D
+var world_preview_week := 1
+var rustle_tick := -1
 var ending_time := 0.0
 var defeat_hold_time := 0.0
 var winter_fall = WinterFall.new()
@@ -154,6 +158,8 @@ func _ready() -> void:
 	wardrobe_regions = atlas_regions(WARDROBE, 4, 3)
 	ending_regions = atlas_regions(ENDINGS, 2, 1)
 	defeat_regions.assign(preload("res://scripts/defeat_regions.gd").RECTS)
+	world=AmbientWorld.new()
+	add_child(world)
 	update_actor_mesh()
 	for i in range(65):
 		snow.append({"x": ambient_rng.randf_range(0, 360), "y": -20.0, "active": false, "size": ambient_rng.randf_range(1.0, 3.6), "phase": ambient_rng.randf_range(0, TAU)})
@@ -240,6 +246,9 @@ func _physics_process(dt: float) -> void:
 		for spark in sparks:
 			spark.time += dt
 		sparks = sparks.filter(func(spark: Dictionary) -> bool: return spark.time < 0.8)
+	world.configure(sim.run_id,world_preview_week if preview_mode else sim.week)
+	var ambient_scene:=visual_mode()
+	world.advance(dt,mode=="paused",reduced_effects,ambient_scene=="won" or preview_victory,ambient_scene=="lost" or (preview_mode and preview_weather>=1.0),weather(),mode=="play" and sim.blowing,sim.x)
 	queue_redraw()
 	fill_audio(dt)
 	if OS.has_feature("web"):
@@ -248,6 +257,7 @@ func _physics_process(dt: float) -> void:
 		telemetry_tick += 1
 		if telemetry_tick % 6 == 0:
 			var snapshot := {
+				"world": {"name":world.profile.name,"time":world.profile.time,"weather":world.profile.weather,"moon":world.profile.moon,"rare":world.profile.rare,"clock":world.clock,"animals":world.animal_poses().map(func(a):return {"kind":a.kind,"frame":a.frame,"x":a.position.x,"y":a.position.y})},
 				"debug_pointer": [debug_pointer.x,debug_pointer.y], "mouse_down": Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT), "ui_buttons": overlay.find_children("*","Button",true,false).map(func(b): return {"text":b.text,"name":b.name,"rect":[b.global_position.x,b.global_position.y,b.size.x,b.size.y]}) if is_instance_valid(overlay) else [],
 				"ending_phase": winter_fall.phase, "ending_attached": winter_fall.attached, "ending_air": winter_fall.airborne, "ending_ground": winter_fall.grounded, "snow_cover": winter_fall.cover(),
 				"mode": mode, "score": sim.score, "week": sim.week, "x": sim.x, "charge": sim.charge,
@@ -878,6 +888,11 @@ func show_initials() -> void:
 
 
 func show_season_lab() -> void:
+	world_preview_week=sim.week
+	build_season_lab()
+
+
+func build_season_lab() -> void:
 	preview_mode = true
 	mode = "preview"
 	preview_weather = 0.0
@@ -887,6 +902,10 @@ func show_season_lab() -> void:
 	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(overlay)
 	text_label(overlay, "THE PAPER THEATRE", Rect2(20, 28, 320, 30), 16, CREAM, true)
+	button(overlay,"‹",Rect2(12,76,34,32),func():world_preview_week=wrapi(world_preview_week-1,1,14);build_season_lab(),true)
+	button(overlay,"›",Rect2(314,76,34,32),func():world_preview_week=wrapi(world_preview_week+1,1,14);build_season_lab(),true)
+	var scene_name:String=AmbientWorld.Profile.DAYS[world_preview_week-1][0]
+	text_label(overlay,"Week %d · %s"%[world_preview_week,scene_name],Rect2(48,76,264,32),10,CREAM,true)
 	var labels := ["Autumn", "Warning", "Winter", "Victory"]
 	for i in range(4):
 		button(overlay, labels[i], Rect2(10 + i * 87, 542, 79, 39), func(): set_preview(i), true)
@@ -1217,7 +1236,6 @@ func visual_mode() -> String:
 
 
 func _draw() -> void:
-	draw_texture_rect(BACKDROP, Rect2(0, 0, 360, 640), false)
 	var cold := weather()
 	var scene_mode := visual_mode()
 	var winter := scene_mode == "lost" or (preview_mode and preview_weather >= 1.0)
@@ -1227,8 +1245,6 @@ func _draw() -> void:
 		draw_rect(Rect2(0, 0, 360, 640), Color(0.12, 0.24, 0.38, (cold - 0.45) * 0.65))
 	if sim.week > 1 and mode != "title" and not victory:
 		draw_rect(Rect2(0, 0, 360, 640), Color(0.25, 0.38, 0.52, (mini(sim.week, 12) - 1) * 0.012))
-	draw_light(victory)
-	draw_fog(cold)
 	draw_trees()
 	draw_canopy(winter, ending, victory)
 	if winter:
@@ -1275,30 +1291,14 @@ func _draw() -> void:
 	draw_pause_button()
 
 
-func draw_light(victory: bool) -> void:
-	if reduced_effects: return
-	var strength := 0.075 if victory else 0.035
-	var drift := sin(elapsed * 0.13) * 8.0
-	for i in range(3):
-		var points := PackedVector2Array([Vector2(130 + i * 27, 74), Vector2(141 + i * 27, 74), Vector2(300 + i * 30 + drift, 521), Vector2(215 + i * 32 + drift, 521)])
-		draw_colored_polygon(points, Color(1, 0.91, 0.62, strength))
-
-
-func draw_fog(cold: float) -> void:
-	if reduced_effects: return
-	for layer in range(3):
-		var y := 330.0 + layer * 26.0 + sin(elapsed * 0.15 + layer) * 8.0
-		var pts := PackedVector2Array([Vector2(-10, y)])
-		for i in range(19):
-			pts.append(Vector2(i * 21, y + sin(i * 0.6 + elapsed * 0.12 + layer) * 10))
-		pts.append(Vector2(380, y + 45))
-		pts.append(Vector2(-10, y + 45))
-		draw_colored_polygon(pts, Color(0.89, 0.88, 0.74, 0.032 + cold * 0.018))
-
-
 func draw_trees() -> void:
 	draw_texture_rect(TREE, Rect2(Canopy.TREE_RECT.position + Vector2(2, 3), Canopy.TREE_RECT.size), false, Color(0.13, 0.14, 0.10, 0.16))
-	draw_texture_rect(TREE, Canopy.TREE_RECT, false)
+	var tint:=Color.WHITE
+	if not world.victory:
+		if world.profile.time=="night":tint=Color(0.65,0.72,0.86)
+		elif world.profile.time=="dusk":tint=Color(0.98,0.84,0.82)
+		elif world.profile.weather in ["rain","storm"]:tint=Color(0.88,0.93,0.97)
+	draw_texture_rect(TREE, Canopy.TREE_RECT, false,tint)
 
 
 func make_canopy_batch() -> MultiMesh:
@@ -1345,8 +1345,20 @@ func update_canopy_batches(victory := false) -> void:
 					canopy_gap_markers.append(slot.position)
 		leaf_renderer.cache()
 	var dynamic:bool=mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty() or not sim.attachment_motions.is_empty())
-	if changed or dynamic:
+	var tick:=floori(world.clock*15)
+	var moving:=not reduced_effects and tick!=rustle_tick
+	if changed or dynamic or moving:
+		rustle_tick=tick
 		leaf_renderer.restore()
+		if not reduced_effects:
+			for index in range(0,sim.slots.size(),7):
+				var slot:Dictionary=sim.slots[index]
+				if slot.leaf_id<0 or sim.attachment_motions.has(index):continue
+				if preview_mode and not victory and fmod(index*0.61803398875,1.0)<preview_weather*0.80:continue
+				var bend:Vector3=world.rustle(index,slot.position)
+				var colour_week:int=11 if preview_mode and preview_weather>0.5 else sim.week
+				var colour:Color=sim.leaf_colour(slot.leaf_id,1 if victory else colour_week)
+				leaf_renderer.leaf(slot.leaf_id,slot.position+Vector2(bend.x,bend.y),slot.angle+bend.z,colour)
 		if dynamic:
 			for leaf in sim.ground_leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0),true)
 			for leaf in sim.leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0))
