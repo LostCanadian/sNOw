@@ -103,3 +103,8 @@ Explore the seasons uses the same current-week outfit selection. Its weather set
 Browser checks cover all thirteen atmosphere/score pairs, textured canopy colors, moving paper animals, actual WebAudio output and silence while paused. The native suite adds persistence, isolated cosmetic randomness, rare full-moon wildlife, coat blending and scene pause checks. These are functional/rendering checks; native phone frame rate and subjective listening still need playtesting.
 
 Release Web validation also uses `tests/browser_release_atmospheres.py`, since the optimized Compatibility template exposed a packed instance-colour problem absent from some debug captures. Leaf passes now use an explicit 128×17 RGBA palette lookup by stable depth index, retaining four bulk uploads, the existing identity ordering and independent front/rear piles. The renderer samples that small palette instead of relying on the packed instance tint. Scene layers keep rear foliage, caretaker, foreground piles, snow cover and UI in order.
+
+
+## Planted tree base and smooth moon
+
+A separate textured paper meadow bank covers the bottom root fan, behind the player and leaf piles. Its dirt, grass, clover and low plants overlap the unchanged tree painting. The moon now has a feathered circular edge and phase terminator; its dark side lets the actual sky show through instead of painting a second hard-edged circle over it. The original paper-leaf texture provides faint grain. [Tree-base review](images/planted-roots.png).

@@ -2,6 +2,7 @@ extends Node2D
 ## Bounded cosmetic presentation behind the playable tree. No simulation reference.
 const Profile=preload("res://scripts/world_profile.gd")
 const Wildlife=preload("res://scripts/wildlife.gd")
+const Moon=preload("res://scripts/moon.gd")
 const DAY=preload("res://assets/art/autumn_stage.png")
 const SKIES=preload("res://assets/art/weather_stages.png")
 const CLOUDS=preload("res://assets/art/winter_clouds.png")
@@ -17,6 +18,7 @@ var reaction_ready:=0.0
 var animals:Node2D
 var haze:GradientTexture2D
 var beam:GradientTexture2D
+var moon:Node2D
 func _ready() -> void:
 	texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	show_behind_parent=true
@@ -27,6 +29,7 @@ func _ready() -> void:
 	beam.fill_from=Vector2(0,0);beam.fill_to=Vector2(1,0)
 	beam.gradient=Gradient.new();beam.gradient.offsets=PackedFloat32Array([0,0.25,0.5,0.75,1])
 	beam.gradient.colors=PackedColorArray([Color(1,1,1,0),Color(1,1,1,0.5),Color.WHITE,Color(1,1,1,0.5),Color(1,1,1,0)])
+	moon=Moon.new();add_child(moon)
 	animals=Wildlife.new();animals.world=self;add_child(animals)
 func configure(campaign_id:String,week:int) -> void:
 	var next:="%s:%d"%[campaign_id,week]
@@ -36,6 +39,7 @@ func configure(campaign_id:String,week:int) -> void:
 func advance(dt:float,paused:bool,soft:bool,won:bool,lost:bool,pressure:float,blowing:=false,player_x:=180.0) -> void:
 	if paused:return
 	reduced=soft;victory=won;winter=lost;cold=pressure
+	moon.refresh(profile,won)
 	clock+=dt
 	if profile.time=="night" and blowing and absf(player_x-55)<22 and clock>=reaction_ready and not soft:
 		reaction_until=clock+0.65;reaction_ready=clock+12
@@ -105,14 +109,7 @@ func draw_night() -> void:
 		var p:=Vector2(fmod(i*97.3+32,360),70+fmod(i*37.7,140))
 		var dim:=0.30 if profile.weather=="storm" else 0.60
 		draw_circle(p,0.45 if i%3 else 0.8,Color(0.85,0.9,1,dim))
-	var moon:Vector2=profile.sun
-	for i in range(5,0,-1):draw_circle(moon,8+i*3,Color(0.8,0.86,1,0.012))
-	draw_circle(moon,8,Color("e3e4d2"))
-	var phase:int=profile.moon
-	if phase!=0:
-		var side:=1.0 if phase<4 else -1.0
-		var offset:=2.0+absf(4-phase)*1.3
-		draw_circle(moon+Vector2(side*offset,-1).rotated(profile.moon_turn),7.8,Color("1c345a"))
+	draw_texture_rect(haze,Rect2(profile.sun-Vector2(28,28),Vector2(56,56)),false,Color(0.8,0.86,1,0.08))
 func draw_rays() -> void:
 	var sun:Vector2=Vector2(78,90) if victory else profile.sun
 	var strength:float=(0.18 if victory else 0.11)*clampf(1-cold*1.2,0,1)

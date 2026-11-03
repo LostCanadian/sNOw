@@ -3,6 +3,7 @@ extends Node2D
 
 const SPEAKER_ICON = preload("res://assets/art/speaker.svg")
 const AmbientWorld = preload("res://scripts/ambient_world.gd")
+const RootMeadow = preload("res://scripts/root_meadow.gd")
 const AudioDirector = preload("res://scripts/audio_director.gd")
 const LeafBatch = preload("res://scripts/leaf_batch.gd")
 const LeafLayer = preload("res://scripts/leaf_layer.gd")
@@ -166,6 +167,8 @@ func _ready() -> void:
 	var tree_layer:=Node2D.new();tree_layer.z_index=-2
 	tree_layer.draw.connect(func():draw_trees(tree_layer))
 	add_child(tree_layer);scenery_layers.append(tree_layer)
+	var meadow:=RootMeadow.new();meadow.world=world;meadow.z_index=-2
+	add_child(meadow);scenery_layers.append(meadow)
 	for lane in [1,0,3,2]:
 		var layer:=LeafLayer.new();layer.game=self;layer.lane=lane
 		layer.z_index=-1 if lane<2 else 0
