@@ -31,6 +31,8 @@ func _initialize() -> void:
 	game.spawn_leaf()
 	var leaf: Dictionary = game.leaves[0]
 	var home: Vector2 = game.slots[leaf.home_slot].position
+	game.week_time = Loop.BRANCH_COOLDOWN+0.01
+	game.spawn_timer = 999
 	leaf.position = home + Vector2(0, 90)
 	game.x = home.x - Loop.NOZZLE_OFFSET.x
 	for i in range(180): game.step(1.0 / 60.0, 0.0, true)
@@ -114,6 +116,7 @@ func test_canopy() -> void:
 	var p: Vector2 = game.slots[empty].position
 	check(game.attached_count() == Loop.Canopy.SLOT_COUNT - 1 and game.slots[empty].leaf_id == -1, "shedding removes the attached leaf and exposes its exact gap")
 	check(first.position.distance_to(p) <= 10.0, "falling leaves originate at their branch rather than an arbitrary sky band")
+	game.week_time=Loop.BRANCH_COOLDOWN+0.01
 	check(game.capture_slot(p + Vector2(0, 50), p - Vector2(0, 50)) == empty, "swept capture finds a gap even at upgraded velocity")
 	check(game.capture_slot(Vector2(180, 310), Vector2(180, 300)) == -1, "a lifted leaf away from a real empty spot does not count as saved")
 	var before: int = game.score

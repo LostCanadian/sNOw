@@ -4,7 +4,7 @@ extends RefCounted
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
-const RULES := 9
+const RULES := 10
 const NorthWind = preload("res://scripts/north_wind.gd")
 const CROWN_CEILINGS := [2160,2080,2000,1900,1800,1680,1560,1440,1320,1200,1080,960,960]
 const SURGE_DURATION := 1.15
@@ -26,6 +26,7 @@ const MAIN_WEEKS := 12
 const BOSS_STAGE := MAIN_WEEKS + 1
 const LEAF_RADIUS := Canopy.RADIUS
 const ATTACH_DURATION := 0.34
+const BRANCH_COOLDOWN := 5.0
 const PileSurface=preload("res://scripts/leaf_piles.gd")
 const KNEE_HEIGHT := 14.0
 const PILE_HEIGHT := 10.0
@@ -183,6 +184,7 @@ func prepare_shedding() -> void:
 	for index in range(slots.size()):
 		var slot: Dictionary = slots[index]
 		slot.attached_at = -10.0
+		slot.capture_after = 0.0
 		if slot.leaf_id >= 0:
 			var weight: float = COLOUR_WEIGHTS[leaf_category(slot.leaf_id)]
 			candidates.append([index, -log(maxf(0.000001, rng.randf())) / weight])
@@ -228,10 +230,9 @@ func step_north_wind(previous_time: float) -> void:
 	if cycle != wind_cycle:
 		wind_cycle = cycle
 		wind_released = 0
-		var next := find_attached_leaf(shedding_order[spawned])
-		if next >= 0: wind_lane = clampf(slots[next].position.y, 110, 335)
+		wind_lane = choose_wind_lane()
 	if boss_phase() != "blast": return
-	var quota: int = [44,52,60][difficulty]
+	var quota: int = [48,56,64][difficulty]
 	if wind_released >= quota: return
 	var path := NorthWind.segment(previous_time, week_time, wind_lane)
 	var candidates: Array[int] = []
@@ -243,7 +244,7 @@ func step_north_wind(previous_time: float) -> void:
 		if point.distance_to(Geometry2D.get_closest_point_to_segment(point,path[0],path[1])) <= NorthWind.RADIUS:
 			candidates.append(id)
 	candidates.sort_custom(func(a,b):return Canopy.depth(a)>Canopy.depth(b))
-	for id in candidates.slice(0,mini(6,quota-wind_released)):
+	for id in candidates.slice(0,mini(2,quota-wind_released)):
 		var pending := shedding_order.find(id,spawned)
 		shedding_order[pending] = shedding_order[spawned]
 		shedding_order[spawned] = id
@@ -252,6 +253,37 @@ func step_north_wind(previous_time: float) -> void:
 		leaves[-1].velocity+=NorthWind.tangent(week_time,wind_lane)*135+radial.orthogonal().normalized()*NorthWind.direction(week_time)*90
 		leaves[-1].spin+=NorthWind.direction(week_time)*0.7
 		wind_released += 1
+
+
+func choose_wind_lane() -> float:
+	# Score candidate lanes against the whole curved sweep, once per pass. A bit
+	# mask counts each pending leaf once even if several samples pass nearby.
+	const LANES:=16
+	const FIRST:=110.0
+	const STEP:=15.0
+	var counts:=PackedInt32Array();counts.resize(LANES);counts.fill(0)
+	var path:=PackedVector2Array()
+	for sample in range(25):path.append(NorthWind.point(sample/24.0,0,NorthWind.direction(week_time)))
+	for pending in range(spawned,shedding_order.size()):
+		var index:=find_attached_leaf(shedding_order[pending])
+		if index<0:continue
+		var point:Vector2=slots[index].position
+		var lanes:=0
+		for p in path:
+			var dx:=point.x-p.x
+			if absf(dx)>NorthWind.RADIUS:continue
+			var reach:=sqrt(NorthWind.RADIUS*NorthWind.RADIUS-dx*dx)
+			var low:=maxi(0,ceili((point.y-p.y-reach-FIRST)/STEP))
+			var high:=mini(LANES-1,floori((point.y-p.y+reach-FIRST)/STEP))
+			for lane in range(low,high+1):lanes|=1<<lane
+		for lane in range(LANES):
+			if lanes & (1<<lane):counts[lane]+=1
+	var best:=(maxi(0,wind_cycle)*5)%LANES
+	# Rotate equal-density choices without consuming the gameplay RNG.
+	for lane in range(LANES):
+		var candidate:=(lane+maxi(0,wind_cycle)*5)%LANES
+		if counts[candidate]>counts[best]:best=candidate
+	return FIRST+best*STEP
 
 
 func crown_ceiling() -> int:
@@ -286,7 +318,7 @@ func capture_slot(from: Vector2, to: Vector2) -> int:
 	for cx in range(start.x, end.x + 1):
 		for cy in range(start.y, end.y + 1):
 			for i in capture_grid.get(Vector2i(cx, cy), []):
-				if slots[i].leaf_id >= 0: continue
+				if slots[i].leaf_id >= 0 or week_time < float(slots[i].get("capture_after",0)): continue
 				var point := Geometry2D.get_closest_point_to_segment(slots[i].position, from, to)
 				var distance := point.distance_squared_to(slots[i].position)
 				if distance < nearest or (distance == nearest and best >= 0 and i < best):
@@ -430,7 +462,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 			# Fan out from the nozzle: standing to one side now steers a leaf that way.
 			# Each leaf carries independent, smooth turbulence rather than sharing lanes.
 			var turbulence: float = sin(flutter * 1.31 + leaf.id * 2.399) * 23.0 + sin(flutter * 2.17) * 9.0
-			var lift:float=(GRAVITY*float(DIFFICULTIES[difficulty].fall)+7.0)/maxf(0.7,-airflow.y) if low_power else float(s.force)
+			var lift:float=(GRAVITY*float(DIFFICULTIES[difficulty].fall)+7.0)/maxf(0.7,-airflow.y) if low_power else float(s.force)*float(leaf.get("lift_response",1.0))
 			var force:Vector2=airflow*lift+lateral*(normalized_across*155.0*float(s.steering)+turbulence)*(0.25 if low_power else 1.0)
 			# At the borders a return breeze wins over outward-directed blower force.
 			if force.x < 0: force.x *= smoothstep(-8, 48, p.x)
@@ -449,7 +481,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 				leaf.surge_lift = 0.8
 		v.x += BlowerPose.edge_force(p.x) * dt
 		leaf.surge_lift = maxf(0, float(leaf.get("surge_lift", 0)) - dt)
-		v.y = clampf(v.y, -238.0 if leaf.surge_lift > 0 else -158.0, (45.0 + week * 1.5) * float(DIFFICULTIES[difficulty].fall))
+		v.y = clampf(v.y, -238.0 if leaf.surge_lift > 0 else -158.0*float(leaf.get("lift_response",1.0)), (45.0 + week * 1.5) * float(DIFFICULTIES[difficulty].fall))
 		v.x = clampf(v.x, -125.0, 125.0)
 		p += v * dt
 		# A short overshoot is allowed; the spring continuously draws leaves back in.
@@ -490,6 +522,16 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 			status = "workshop"
 
 
+static func leaf_lift_response(id:int) -> float:
+	# Mix identity bits independently of the sequences used for colour and depth.
+	# Thus the frontmost leaves in a falling clump do not all have the same mass.
+	var bits:=id^0x9e3779b9
+	bits=(((bits>>16)^bits)*0x45d9f3b)&0xffffffff
+	bits=(((bits>>16)^bits)*0x45d9f3b)&0xffffffff
+	bits=(bits>>16)^bits
+	return 0.80+float(bits&0xffff)/65535.0*0.36
+
+
 func spawn_leaf() -> bool:
 	if spawned >= shedding_order.size() or leaves.size() >= MAX_ACTIVE: return false
 	var id := shedding_order[spawned]
@@ -499,12 +541,14 @@ func spawn_leaf() -> bool:
 	var pose := attachment_pose(slot_index)
 	attachment_motions.erase(slot_index)
 	slot.leaf_id = -1
+	slot.capture_after = week_time+BRANCH_COOLDOWN
 	canopy_revision += 1
 	attached_lookup[id] = -1
 	leaves.append({
 		"id": id, "position": pose.position, "home_slot": slot_index,
 		"velocity": Vector2(rng.randf_range(-6, 6), 3.0),
 		"state": "air", "lifted": false, "age": 0.0,
+		"lift_response": leaf_lift_response(id),
 		"angle": pose.angle, "rest_angle": pose.angle, "colour": leaf_colour(id), "category": leaf_category(id),
 		"flutter_phase": rng.randf_range(0, TAU), "flutter_rate": rng.randf_range(2.1, 3.8),
 		"flutter_strength": rng.randf_range(23, 37), "drag": rng.randf_range(0.48, 0.85),
