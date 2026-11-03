@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Eighteen headless regression scripts pass 853 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 21 Python launcher/mobile-export checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Eighteen headless regression scripts pass 854 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 21 Python launcher/mobile-export checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -88,5 +88,7 @@ Every level intro clears the snow pool, including Next Week. Snow is also cleare
 Starting speed is 50 logical units/second. Existing percentage boot effects apply to that baseline. An additional 120 placements now point into the central fork, west of the prior middle-right pass, using actual inner branches while retaining all 2,160 identities.
 
 Defeat uses twelve matched sad outfit illustrations instead of one bundled winter pose. The current costume index and facing are retained, with a short transition from the live pose. Victory retains its existing celebration.
+
+Explore the seasons uses the same current-week outfit selection. Its weather settings no longer change the clothing to a winter costume; the winter preview keeps that outfit in its matching sad pose.
 
 `tests/browser_scene_continuity.py` loads validated study checkpoints and uses real buttons and keyboard input to check warning snow through Next Week, a clean next-level opening, and early/mid-season defeats with the correct clothing and the extra ending hold. It completes without browser runtime errors. Review stills: [early outfit defeat](images/defeat-early-outfit.png) and [hoodie outfit defeat](images/defeat-hoodie-outfit.png).

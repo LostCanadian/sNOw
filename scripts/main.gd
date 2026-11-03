@@ -1484,7 +1484,6 @@ func update_actor_mesh(force := false) -> void:
 
 
 func outfit_index() -> int:
-	if preview_mode: return 10 if preview_weather>0.5 else 0
 	return clampi(sim.week-1,0,11)
 
 

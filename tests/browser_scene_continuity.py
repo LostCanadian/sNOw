@@ -47,6 +47,15 @@ with sync_playwright() as p:
         assert snap()['defeat_hold_time']>=3 and snap()['score']==frozen_score
         page.wait_for_function('snowSnapshot.result_tallied');click('Main menu');mode('title')
         print(f'PASS: outfit {outfit} remains selected during defeat, and the finished scene holds before Results.',flush=True)
+    click('Explore the seasons');mode('preview')
+    outfit=snap()['outfit_index']
+    for caption in ['Warning','Winter','Autumn']:
+        click(caption)
+        page.wait_for_timeout(250)
+        assert snap()['outfit_index']==outfit
+        if caption=='Winter':capture('preview-matching-defeat')
+    click('Back to menu');mode('title')
+    print('PASS: warning and winter in Explore the seasons retain the current outfit.',flush=True)
     browser.close()
 assert not errors,errors
 print('No browser runtime errors.')

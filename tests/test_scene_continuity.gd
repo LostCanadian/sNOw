@@ -42,6 +42,16 @@ func run() -> void:
 		main.mode="lost";main.sim.status="lost"
 		matching=matching and current==week-1 and main.outfit_index()==current and main.defeat_regions[current].size.y>100
 	check(matching,"all twelve defeats select a sad pose matching the level's current outfit")
+	var preview_matching:=true
+	for week in range(1,13):
+		main.sim.week=week
+		main.show_season_lab()
+		var current:int=main.outfit_index()
+		for season in [1,2,0]:
+			main.set_preview(season)
+			preview_matching=preview_matching and main.outfit_index()==current and current==week-1
+	check(preview_matching,"the season preview keeps the current clothing through warning, winter defeat and autumn")
+	main.preview_mode=false
 	var game=Loop.new()
 	var covered:=true
 	for p in [Vector2(180,255),Vector2(190,260),Vector2(200,270),Vector2(190,280),Vector2(205,285)]:
