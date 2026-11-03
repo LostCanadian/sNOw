@@ -87,6 +87,13 @@ func run() -> void:
 		for text in chapter:
 			subtle = subtle and str(text).findn("magic") == -1 and str(text).findn("controls the seasons") == -1
 	check(introductions.size() == 13 and conclusions.size() == 13 and subtle, "all twelve weeks and the finale have unique suggestive opening and closing lines")
+	var fits:=true
+	var story_font=preload("res://assets/fonts/DejaVuSerif.ttf")
+	for chapter in Story.CHAPTERS:
+		for text in chapter.slice(1):
+			for line in text.split("\n"):
+				fits=fits and story_font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,15).x<=280
+	check(fits,"every story line fits the paper card with readable margins at its actual font size")
 	var main = Main.instantiate()
 	root.add_child(main)
 	main.set_physics_process(false)

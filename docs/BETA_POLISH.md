@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Twenty headless regression scripts pass 893 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 24 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Twenty-one headless regression scripts pass 904 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -130,3 +130,12 @@ Validation: seven growth/render-buffer checks, the existing finale timing tests,
 The finale uses a sixteen-frame paper wind atlas with interpolated poses, rolling motion and a curved, side-to-side route that travels completely offscreen. Its physical stripping capsule and local swirling force follow the same route. Gusts impart a rolling impulse to real leaves; regular three-leaf falls continue between gusts, sharing the existing finite schedule. Fine chaff and orbiting debris add motion without creating scoring leaves. Rules 9 retains earlier saves and the single high-score table.
 
 Validation: 38 finale checks include finite unique schedules on all difficulties, playable minimum foliage, ordinary falling during recovery, curved exit/reentry and swept-path stripping. The browser finale study shows textured gusts on both approaches and verifies pause and ending flow. Small falling snow crystals now use smooth shaded silhouettes; the settled snowbank has an antialiased highlighted rim and soft folds. [Wind return review](images/north-wind-sweep.png).
+
+
+### Original score and story revision
+
+All thirteen chapters now describe the caretaker's effort to preserve the valley's last warm tree, retaining hints of an older watch, warm roots and a winter flower. Each line fits the existing story card at its actual font size.
+
+The eighteen original sixteen-bar scores retain their hooks and contrasting sections, with lower lead registers (no lead above MIDI 81), at most four melody attacks per bar, held notes and rests. Close chord inversions and sparse replies replace overlapping high arpeggios. Band-limited quarter/half-duty pulses, triangle bass, reed, flute, mallet, bell and soft string voices provide different palettes; the bridge changes the foreground voice. Rain/mist/night pieces slow to 74–90 BPM; the finale uses a deliberate 116 BPM pulse. These are original melodies, using broad NES instrumentation cues without reproducing any existing game's music.
+
+Regenerate just the music with `python3 tools/generate_audio.py --music-only`; this preserves every existing sound effect. The catalog records each instrumentation palette and measured output levels. Five composition tests cover form, register, breathing room, instrument contrast, encoding and headroom. Debug finale and release atmosphere checks cover actual packaged playback; native-device listening and final mix remain playtest work.

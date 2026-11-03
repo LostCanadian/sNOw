@@ -1,164 +1,290 @@
 {
   "menu": {
-    "bpm": 112,
+    "bpm": 104,
     "mood": "sun",
+    "instruments": [
+      "reed",
+      "strings",
+      "bass",
+      "mallet",
+      "flute"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 34.285714285714285,
-    "peak": 0.2677565391915439,
-    "rms": 0.0652156093825501
+    "events": 314,
+    "seconds": 36.92308390022676,
+    "peak": 0.250866470048396,
+    "rms": 0.06773261731197454
   },
   "workshop": {
-    "bpm": 126,
+    "bpm": 112,
     "mood": "workshop",
+    "instruments": [
+      "mallet",
+      "pad",
+      "bass",
+      "pulse25",
+      "reed"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 30.476190476190474,
-    "peak": 0.2608326447226686,
-    "rms": 0.06686708825947872
+    "events": 314,
+    "seconds": 34.285714285714285,
+    "peak": 0.24199141240219402,
+    "rms": 0.05713730303438944
   },
   "results": {
-    "bpm": 120,
+    "bpm": 112,
     "mood": "sun",
+    "instruments": [
+      "reed",
+      "strings",
+      "bass",
+      "mallet",
+      "flute"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 32.0,
-    "peak": 0.2666865954117936,
-    "rms": 0.06694010991130223
+    "events": 314,
+    "seconds": 34.285714285714285,
+    "peak": 0.24872723141045316,
+    "rms": 0.06837680458687595
   },
   "victory": {
-    "bpm": 132,
+    "bpm": 124,
     "mood": "victory",
+    "instruments": [
+      "pulse25",
+      "strings",
+      "bass",
+      "bell",
+      "flute"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 29.09092970521542,
-    "peak": 0.2603466848712495,
-    "rms": 0.06739084999114446
+    "events": 314,
+    "seconds": 30.967755102040815,
+    "peak": 0.2751880745645288,
+    "rms": 0.06765781178370091
   },
   "winter": {
-    "bpm": 76,
+    "bpm": 66,
     "mood": "winter",
+    "instruments": [
+      "triangle",
+      "pad",
+      "bass",
+      "bell",
+      "flute"
+    ],
     "bars": 16,
-    "events": 204,
-    "seconds": 50.52630385487528,
-    "peak": 0.17509437396903565,
-    "rms": 0.038668718131070645
+    "events": 102,
+    "seconds": 58.18181405895692,
+    "peak": 0.19543166470393222,
+    "rms": 0.04203098120603375
   },
   "boss": {
-    "bpm": 140,
+    "bpm": 116,
     "mood": "storm",
+    "instruments": [
+      "pulse50",
+      "strings",
+      "bass",
+      "pulse25",
+      "reed"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 27.428571428571427,
-    "peak": 0.25440569526615625,
-    "rms": 0.0675149997523181
+    "events": 314,
+    "seconds": 33.10344671201814,
+    "peak": 0.31066774740716396,
+    "rms": 0.07547150163275491
   },
   "week_01": {
-    "bpm": 124,
+    "bpm": 118,
     "mood": "sun",
+    "instruments": [
+      "pulse25",
+      "strings",
+      "bass",
+      "mallet",
+      "flute"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 30.967755102040815,
-    "peak": 0.26189475169603244,
-    "rms": 0.06652065591308871
+    "events": 314,
+    "seconds": 32.54235827664399,
+    "peak": 0.27081869266930125,
+    "rms": 0.06747233071113239
   },
   "week_02": {
-    "bpm": 130,
+    "bpm": 124,
     "mood": "sun",
+    "instruments": [
+      "reed",
+      "strings",
+      "bass",
+      "mallet",
+      "flute"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 29.53845804988662,
-    "peak": 0.2541231508390927,
-    "rms": 0.06759435719087141
+    "events": 314,
+    "seconds": 30.967755102040815,
+    "peak": 0.2734276788306588,
+    "rms": 0.06946711000761005
   },
   "week_03": {
-    "bpm": 116,
+    "bpm": 102,
     "mood": "cloud",
+    "instruments": [
+      "reed",
+      "pad",
+      "bass",
+      "mallet",
+      "flute"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 33.10344671201814,
-    "peak": 0.25162159001502793,
-    "rms": 0.06609244120815563
+    "events": 214,
+    "seconds": 37.647074829931974,
+    "peak": 0.2463394982364527,
+    "rms": 0.06670707011655179
   },
   "week_04": {
-    "bpm": 114,
+    "bpm": 98,
     "mood": "dusk",
+    "instruments": [
+      "flute",
+      "strings",
+      "bass",
+      "mallet",
+      "reed"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 33.68421768707483,
-    "peak": 0.2508096059640055,
-    "rms": 0.06552527427228311
+    "events": 214,
+    "seconds": 39.183673469387756,
+    "peak": 0.2556384074968339,
+    "rms": 0.0682400473390162
   },
   "week_05": {
-    "bpm": 102,
+    "bpm": 88,
     "mood": "rain",
+    "instruments": [
+      "reed",
+      "pad",
+      "bass",
+      "mallet",
+      "flute"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 37.647074829931974,
-    "peak": 0.2501017970788047,
-    "rms": 0.05665652972080857
+    "events": 214,
+    "seconds": 43.636371882086166,
+    "peak": 0.24682019334521474,
+    "rms": 0.06334173306685104
   },
   "week_06": {
-    "bpm": 88,
+    "bpm": 74,
     "mood": "night",
+    "instruments": [
+      "flute",
+      "pad",
+      "bass",
+      "bell",
+      "triangle"
+    ],
     "bars": 16,
-    "events": 332,
-    "seconds": 43.636371882086166,
-    "peak": 0.18725593969264268,
-    "rms": 0.04129556272768985
+    "events": 166,
+    "seconds": 51.8918820861678,
+    "peak": 0.19673854468058488,
+    "rms": 0.04452973427269972
   },
   "week_07": {
-    "bpm": 132,
+    "bpm": 126,
     "mood": "sun",
+    "instruments": [
+      "pulse25",
+      "strings",
+      "bass",
+      "mallet",
+      "flute"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 29.09092970521542,
-    "peak": 0.27025977195120343,
-    "rms": 0.06747008817000949
+    "events": 314,
+    "seconds": 30.476190476190474,
+    "peak": 0.26798737045233084,
+    "rms": 0.06819095656629214
   },
   "week_08": {
-    "bpm": 108,
+    "bpm": 82,
     "mood": "night_storm",
+    "instruments": [
+      "triangle",
+      "strings",
+      "bass",
+      "mallet",
+      "reed"
+    ],
     "bars": 16,
-    "events": 332,
-    "seconds": 35.55555555555556,
-    "peak": 0.18842451852252307,
-    "rms": 0.04330327538290637
+    "events": 166,
+    "seconds": 46.829251700680274,
+    "peak": 0.1967935863164979,
+    "rms": 0.04528792322724685
   },
   "week_09": {
-    "bpm": 108,
+    "bpm": 90,
     "mood": "mist",
+    "instruments": [
+      "flute",
+      "pad",
+      "bass",
+      "bell",
+      "reed"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 35.55555555555556,
-    "peak": 0.2622286781001136,
-    "rms": 0.06511008656897306
+    "events": 214,
+    "seconds": 42.666666666666664,
+    "peak": 0.25156787892051663,
+    "rms": 0.06644288149938095
   },
   "week_10": {
-    "bpm": 118,
+    "bpm": 100,
     "mood": "dusk",
+    "instruments": [
+      "flute",
+      "strings",
+      "bass",
+      "mallet",
+      "reed"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 32.54235827664399,
-    "peak": 0.2517144762279314,
-    "rms": 0.06545116519247257
+    "events": 214,
+    "seconds": 38.4,
+    "peak": 0.2423292875809734,
+    "rms": 0.0669935057574984
   },
   "week_11": {
-    "bpm": 106,
+    "bpm": 86,
     "mood": "rain",
+    "instruments": [
+      "reed",
+      "pad",
+      "bass",
+      "mallet",
+      "flute"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 36.22639455782313,
-    "peak": 0.2456680427057265,
-    "rms": 0.056869505232622485
+    "events": 214,
+    "seconds": 44.651156462585035,
+    "peak": 0.23360880182214405,
+    "rms": 0.06388651016358408
   },
   "week_12": {
-    "bpm": 128,
+    "bpm": 120,
     "mood": "sun",
+    "instruments": [
+      "mallet",
+      "strings",
+      "bass",
+      "mallet",
+      "flute"
+    ],
     "bars": 16,
-    "events": 584,
-    "seconds": 30.0,
-    "peak": 0.26326819023818393,
-    "rms": 0.0670766004075041
+    "events": 314,
+    "seconds": 32.0,
+    "peak": 0.2478975327820321,
+    "rms": 0.059905544196629294
   }
 }

@@ -14,19 +14,23 @@ import numpy as np
 
 RATE = 22050
 ROOT = Path(__file__).resolve().parents[1] / 'assets/audio'
-from score_composition import SCORES, compose, QUIET
+from score_composition import SCORES, compose, QUIET, instruments
 
 def vlq(n):
     data=[n&127];n>>=7
     while n: data.insert(0,(n&127)|128);n>>=7
     return bytes(data)
 
-def midi_file(path, bpm, notes):
+def midi_file(path, bpm, notes, palette):
     tracks=[]
     tempo=round(60000000/bpm)
     tracks.append(b'\x00\xff\x51\x03'+tempo.to_bytes(3,'big')+b'\x00\xff\x2f\x00')
-    for channel,program in [(0,10),(1,88),(2,38),(3,98),(4,80),(9,0)]:
+    programs={'pulse25':80,'pulse50':81,'reed':71,'flute':73,'mallet':11,
+              'strings':48,'pad':89,'bass':38,'triangle':80,'bell':10}
+    for channel,program in [(ch,programs[kind]) for ch,kind in enumerate(palette)]+[(9,0)]:
         events=[(0,bytes([0xc0|channel,program]))]
+        if channel==0:
+            events.extend([(32*480,bytes([0xc0,programs[palette[4]]])),(48*480,bytes([0xc0,program]))])
         for beat,duration,pitch,velocity,ch in notes:
             if ch==channel:
                 events.extend([(round(beat*480),bytes([0x90|ch,pitch,velocity])),(round((beat+duration)*480),bytes([0x80|ch,pitch,0]))])
@@ -50,10 +54,25 @@ def voice(pitch, duration, kind, rng):
         signal=rng.uniform(-1,1,len(t)) if pitch!=36 else np.sin(math.tau*(65*t-30*t*t))
         envelope=np.exp(-t*(55 if pitch==42 else 25))*np.minimum(1,t/.002)
     else:
-        # A softened pulse, not a full-amplitude square wave, leaves room for effects.
-        signal=np.sin(phase)+np.sin(phase*3)*.16+np.sin(phase*5)*.055
-        if kind=='glass': signal=np.sin(phase)*.7+np.sin(phase*2)*.3+np.sin(phase*4)*.08
-        envelope=np.minimum(1,t/.006)*np.minimum(1,(duration-t)/.035)*np.exp(-t*(4.5 if kind=='pluck' else 2.6))
+        if kind in {'pulse25','pulse50'}:
+            duty=.25 if kind=='pulse25' else .5
+            signal=np.zeros(len(t))
+            # Band-limited softened NES pulse: no harsh aliased top harmonics.
+            for harmonic in range(1,min(10,int(RATE/2/f))):
+                signal+=np.sin(phase*harmonic)*np.sin(math.pi*harmonic*duty)/harmonic**1.7
+        elif kind=='reed':
+            signal=np.sin(phase)*.8+np.sin(phase*2)*.20+np.sin(phase*3)*.12
+        elif kind=='flute':
+            phase+=np.sin(t*math.tau*4.6)*.015*np.minimum(1,t/.15)
+            signal=np.sin(phase)*.9+np.sin(phase*2)*.08
+        elif kind=='triangle':signal=np.arcsin(np.sin(phase))*2/math.pi
+        elif kind=='strings':signal=np.sin(phase)*.6+np.sin(phase*1.002)*.25+np.sin(phase*2)*.12
+        elif kind=='bell':signal=np.sin(phase)*.75+np.sin(phase*2)*.13*np.exp(-t*7)
+        else:signal=np.sin(phase)*.8+np.sin(phase*2)*.2*np.exp(-t*10)
+        plucked=kind in {'mallet','bell'}
+        attack=.012 if plucked else .025
+        release=.09 if not plucked else .05
+        envelope=np.minimum(1,t/attack)*np.minimum(1,(duration-t)/release)*np.exp(-t*(3.6 if plucked else .8))
     return signal*envelope
 
 def encode(name, signal):
@@ -72,12 +91,14 @@ def encode(name, signal):
 def score(name, config):
     rng=np.random.default_rng(config.seed)
     beat_seconds=60/config.bpm; notes=compose(config)
-    midi_file(ROOT/'midi'/f'{name}.mid',config.bpm,notes)
+    midi_file(ROOT/'midi'/f'{name}.mid',config.bpm,notes,instruments(config))
     signal=np.zeros(round(64*beat_seconds*RATE))
     for beat,duration,pitch,velocity,ch in notes:
-        kind={0:'glass' if config.mood in QUIET or config.mood=='rain' else 'warm',1:'pad',2:'bass',3:'pluck',4:'glass',9:'drum'}[ch]
+        palette=instruments(config)
+        kind='drum' if ch==9 else palette[ch]
+        if ch==0 and 32<=beat<48:kind=palette[4]
         sound=voice(pitch,duration*beat_seconds,kind,rng)
-        volume={0:.105,1:.060,2:.14 if config.mood in QUIET else .115,3:.065,4:.065,9:.045}[ch]*velocity/64
+        volume={0:.14,1:.050,2:.14 if config.mood in QUIET else .12,3:.065,4:.06,9:.04}[ch]*velocity/64
         begin=round(beat*beat_seconds*RATE);count=min(len(sound),len(signal)-begin)
         signal[begin:begin+count]+=sound[:count]*volume
     # Two quiet circular echoes add depth while preserving an exact loop boundary.
@@ -87,7 +108,7 @@ def score(name, config):
     signal=np.tanh(signal*1.15)/1.15
     if config.mood in QUIET:signal*=.80
     # No hard limiter is reached; these measurements are recorded for review.
-    return_info={'bpm':config.bpm,'mood':config.mood,'bars':16,'events':len(notes),
+    return_info={'bpm':config.bpm,'mood':config.mood,'instruments':list(instruments(config)),'bars':16,'events':len(notes),
                  'seconds':len(signal)/RATE,'peak':float(abs(signal).max()),'rms':float(np.sqrt(np.mean(signal**2)))}
     encode(name,signal)
     return return_info
@@ -103,13 +124,17 @@ def effect(name,duration,base,end,noise=0,seed=0):
     if name=='whirlwind': signal+=np.sin(math.tau*(280*t+180*t*t))*.2
     encode(name,signal*envelope*.33)
 
-def main():
+def main(music_only=False):
     (ROOT/'midi').mkdir(parents=True,exist_ok=True)
     catalog={name:score(name,config) for name,config in SCORES.items()}
     import json
     (ROOT/'score_catalog.json').write_text(json.dumps(catalog,indent=2)+'\n')
 
-    for args in [('menu_tap',.09,650,450,.04),('menu_focus',.055,420,520,.02),('upgrade',.35,520,1040,.12),('reset',.23,440,220,.1),('shuffle',.11,100,70,.8),('whirlwind',1.15,170,70,.5),('blower',1.0,110,110,.3),('leaf_saved',.13,830,1100,.02),('leaf_fallen',.12,150,95,.4),('battery_low',.2,330,220,.01),('week_clear',.6,520,1040,.03)]: effect(*args)
-    print(f'Generated {len(SCORES)} original sixteen-bar MIDI/Ogg/MP3 scores and eleven effects.')
+    for args in ([] if music_only else [('menu_tap',.09,650,450,.04),('menu_focus',.055,420,520,.02),('upgrade',.35,520,1040,.12),('reset',.23,440,220,.1),('shuffle',.11,100,70,.8),('whirlwind',1.15,170,70,.5),('blower',1.0,110,110,.3),('leaf_saved',.13,830,1100,.02),('leaf_fallen',.12,150,95,.4),('battery_low',.2,330,220,.01),('week_clear',.6,520,1040,.03)]): effect(*args)
+    suffix='; existing effects preserved.' if music_only else ' and eleven effects.'
+    print(f'Generated {len(SCORES)} original sixteen-bar MIDI/Ogg/MP3 scores'+suffix)
 
-if __name__=='__main__': main()
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser();parser.add_argument('--music-only',action='store_true')
+    main(parser.parse_args().music_only)

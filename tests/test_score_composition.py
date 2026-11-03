@@ -32,6 +32,25 @@ class CompositionTests(unittest.TestCase):
                     self.assertAlmostEqual(len(data)/22050,info['seconds'],delta=.12)
                     self.assertLess(float(abs(data).max()),.9)
                     self.assertGreater(float(np.sqrt(np.mean(data**2))),.01)
+    def test_breathing_room_and_register(self):
+        for name,cfg in score.SCORES.items():
+            with self.subTest(name=name):
+                lead=[n for n in score.compose(cfg) if n[4]==0]
+                self.assertLessEqual(max(n[2] for n in lead),81)
+                for bar in range(16):
+                    phrase=[n for n in lead if bar*4<=n[0]<(bar+1)*4]
+                    self.assertLessEqual(len(phrase),4)
+                    self.assertLess(sum(n[1] for n in phrase),3.9)
+                self.assertTrue(all(a[0]+a[1]<=b[0] for a,b in zip(lead,lead[1:])))
+                if cfg.mood in {'rain','night','night_storm','mist','winter'}:self.assertLessEqual(cfg.bpm,90)
+    def test_instrument_contrast(self):
+        palettes={score.instruments(s) for s in score.SCORES.values()}
+        self.assertGreaterEqual(len(palettes),8)
+        for name in ['week_01','week_05','week_06']:
+            self.assertGreaterEqual(len(set(score.instruments(score.SCORES[name]))),4)
+        catalog=json.loads((ROOT/'assets/audio/score_catalog.json').read_text())
+        for name,cfg in score.SCORES.items():
+            self.assertEqual(catalog[name]['instruments'],list(score.instruments(cfg)))
     def test_mood_contrast(self):
         sun=score.SCORES['week_01'];night=score.SCORES['week_06'];rain=score.SCORES['week_05']
         self.assertGreater(sun.bpm,rain.bpm);self.assertGreater(rain.bpm,night.bpm)
