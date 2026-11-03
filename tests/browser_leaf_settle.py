@@ -26,12 +26,18 @@ with sync_playwright() as p:
         x,y,w,h=button['rect'];canvas=page.locator('canvas').bounding_box()
         page.mouse.click(canvas['x']+(x+w/2)/360*canvas['width'],canvas['y']+(y+h/2)/640*canvas['height'])
     def capture(name):page.locator('canvas').screenshot(path=f'test-results/{name}.png')
-    click('Continue / New game');mode('slots');click('Attachment study\nWeek 1 · Blustery');mode('continue')
+    click('Continue / New game');mode('slots');click('Attachment study\nWeek 2 · Blustery');mode('continue')
     click('Continue');mode('intro');mode('play')
     page.evaluate('''window.settleSamples=[];window.lastSettleAge=-1;
       function observeSettle(){for(const record of window.snowSnapshot?.attachments??[]){
         if(record[1]!==window.lastSettleAge){window.settleSamples.push([...record]);window.lastSettleAge=record[1];}}
         requestAnimationFrame(observeSettle);}observeSettle();''')
+    target_x=max(29,min(331,study['target'][0]-11.7))
+    if abs(snap()['x']-target_x)>3:
+        page.keyboard.down('d' if snap()['x']<target_x else 'a')
+        page.wait_for_function('target=>Math.abs(snowSnapshot.x-target)<12',arg=target_x)
+        page.keyboard.up('d');page.keyboard.up('a')
+    page.wait_for_function('Math.abs(snowSnapshot.aim)<0.01')
     page.wait_for_function('target=>snowSnapshot.airborne.some(leaf=>leaf[1]>target[1]+0.5)',arg=study['target'])
     page.keyboard.down('Space')
     try:

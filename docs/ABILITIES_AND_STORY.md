@@ -21,7 +21,7 @@ The normal battery recharge remains separate and quick. Holding E does not autom
 
 **Recovery is real:** lifting a ground leaf removes it from the ground pile and its current-week frost penalty while it is back in play. It earns no points merely for being lifted. It must reach a real empty branch position to earn its one rescue. If it lands again, its miss returns. Existing duplicate-score/identity guards remain in place. The accounting invariant is `attached + airborne + unrecovered misses − regrown = 2160`; grounded leaves are already represented in unrecovered misses, so they are not counted twice.
 
-All scores share one top ten per difficulty, with no archived versions. Current rules version 9 includes the branching progression, Gold Leaves, positional airflow, seasonal thinning and the North Wind schedule. Existing campaign checkpoints migrate without losing their leaves, completed weeks or earned-week ledger and mapped equipment; the extra Gold Leaves for completed weeks are credited.
+All scores share one top ten per difficulty, with no archived versions. Current rules version 10 includes the branching progression, Gold Leaves, positional airflow, seasonal thinning and the North Wind schedule. Existing campaign checkpoints migrate without losing their leaves, completed weeks or earned-week ledger and mapped equipment; the extra Gold Leaves for completed weeks are credited.
 
 ## Quiet gameplay UI
 
@@ -31,7 +31,7 @@ The fan uses a 256-pixel SVG source with mipmapped smooth filtering, replacing t
 
 Each main week and the finale have unique opening and closing text. A stylized paper panel appears as the scene fades in, then fades out automatically. Each interlude lasts 3.1 seconds and can be skipped by tapping or pressing Space/Enter after a short minimum. Input clears at the transition so skipping cannot accidentally blow or buy an upgrade.
 
-Physics, shedding, battery/ability clocks and scoring stay frozen while a card is readable. Pause/focus loss freezes the card's own fade/read timer too. Completion autosaves before the closing panel; it then opens the results tally. Upgrades are an optional visit that returns to results. Loading an already-completed checkpoint shows results without replaying the congratulations. The finale grows new leaves and flowers, then holds the completed scene before showing its final line in a separate story card. Results follow that card; reloading a completed finale replays the visual sequence without awarding anything again.
+Physics, shedding, battery/ability clocks and scoring stay frozen while a card is readable. Pause/focus loss freezes the card's own fade/read timer too. Ordinary weekly completion autosaves before the closing panel, then opens the results tally. Upgrades are an optional visit that returns to results. Loading an already-completed ordinary week shows Results directly. The finale grows new leaves and flowers, then holds the completed scene before showing its final line in a separate story card. Continue appears after that card and opens Results; reloading a completed finale replays the visual sequence without awarding anything again.
 
 The text suggests unusual warmth, old roots, shadows and sounds, leaving the explanation to the player. Neither the panels nor the menu announces the tree's role outright. Full chapter text follows below.
 

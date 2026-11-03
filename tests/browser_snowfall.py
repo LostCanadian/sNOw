@@ -37,6 +37,8 @@ with sync_playwright() as pw:
     page.wait_for_function('snowSnapshot.ending_phase==="done"',timeout=30000)
     assert not snap()['result_visible'] and snap()['outfit_index']==6
     capture('snow-settled-banks');score=snap()['score']
+    page.wait_for_function('snowSnapshot.ending_continue',timeout=20000)
+    page.wait_for_timeout(1200);assert not snap()['result_visible'];click('Continue')
     page.wait_for_function('snowSnapshot.result_visible',timeout=20000)
     assert snap()['score']==score and snap()['defeat_hold_time']>=3
     browser.close()

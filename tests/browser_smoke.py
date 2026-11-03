@@ -124,6 +124,8 @@ def run(url: str, executable: str):
         page.wait_for_function("window.snowSnapshot.mode === 'play'")
         page.wait_for_function("window.snowSnapshot.mode === 'lost'", timeout=120000)
         try:
+            page.wait_for_function("window.snowSnapshot.ending_continue", timeout=20000)
+            click(288,590)
             page.wait_for_function("window.snowSnapshot.result_visible", timeout=20000)
         except Exception:
             state = snap()

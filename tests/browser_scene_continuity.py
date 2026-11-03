@@ -44,7 +44,9 @@ with sync_playwright() as p:
         page.wait_for_function('snowSnapshot.ending_phase==="done"',timeout=45000)
         assert not snap()['result_visible']
         capture('defeat-settled-snow-'+str(outfit))
-        frozen_score=snap()['score'];page.wait_for_function('snowSnapshot.result_visible',timeout=20000)
+        frozen_score=snap()['score'];page.wait_for_function('snowSnapshot.ending_continue',timeout=20000)
+        page.wait_for_timeout(1000);assert not snap()['result_visible'];click('Continue')
+        page.wait_for_function('snowSnapshot.result_visible',timeout=20000)
         assert snap()['defeat_hold_time']>=3 and snap()['score']==frozen_score
         page.wait_for_function('snowSnapshot.result_tallied');click('Main menu');mode('title')
         print(f'PASS: outfit {outfit} remains selected during defeat, and the finished scene holds before Results.',flush=True)

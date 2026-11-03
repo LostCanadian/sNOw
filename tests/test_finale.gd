@@ -25,7 +25,11 @@ func run() -> void:
 	check(main.mode=="paused" and main.story_time==frozen,"focus loss freezes the victory closing card")
 	main.resume_game();main._physics_process(0.7)
 	main.finish_story()
-	check(main.mode=="won" and main.overlay!=null and main.sim.score==score,"Results follow the closing card without awarding victory twice")
+	check(main.mode=="won" and main.overlay==null and is_instance_valid(main.ending_continue),"the closing card returns to an ending scene with Continue")
+	main._physics_process(45)
+	check(main.mode=="won" and main.overlay==null and main.sim.score==score,"victory can keep playing indefinitely without Results or repeated rewards")
+	main.ending_continue.pressed.emit()
+	check(main.overlay!=null and main.sim.score==score,"Continue opens victory Results without awarding victory twice")
 	check(main.overlay.find_children("*","Label",true,false).all(func(label):return not label.text.contains("first flower")),"the victory sentence is absent from Results button slots")
 	var win_path:="user://finale-win-%d.json"%Time.get_ticks_usec()
 	main.campaign=Campaign.new(win_path)
@@ -88,7 +92,7 @@ func run() -> void:
 	var original_positions:={}
 	for slot in wind.slots:original_positions[slot.leaf_id]=slot.position
 	wind.step(1.0/60,0,false)
-	var swept:bool=wind.spawned>0 and wind.spawned<=6
+	var swept:bool=wind.spawned>0 and wind.spawned<=4
 	for leaf in wind.leaves:
 		var origin:Vector2=original_positions[leaf.id]
 		swept=swept and origin.distance_to(Geometry2D.get_closest_point_to_segment(origin,path[0],path[1]))<=Loop.NorthWind.RADIUS

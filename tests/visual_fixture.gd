@@ -107,11 +107,21 @@ func _initialize() -> void:
 	file = FileAccess.open("res://test-results/ending-fixture.json",FileAccess.WRITE)
 	file.store_string(JSON.stringify(endings))
 	file.close()
-	# One normal falling identity isolates the branch-settle animation for browser review.
+	# Week two provides a naturally old empty branch. The dropped leaf must
+	# settle into that gap while its freshly vacated home is still cooling.
 	var returning=Loop.new()
-	var nearest:=0
-	for index in range(returning.slots.size()):
-		if returning.slots[index].position.distance_squared_to(Vector2(192,320))<returning.slots[nearest].position.distance_squared_to(Vector2(192,320)):nearest=index
+	returning.spawned=returning.week_leaf_count();returning.step(1.0/60,0,false);returning.next_week()
+	var nearest:=-1;var old_gap:=-1;var pair_score:=INF
+	for gap in range(returning.slots.size()):
+		if returning.slots[gap].leaf_id>=0:continue
+		var target:Vector2=returning.slots[gap].position
+		for index in range(returning.slots.size()):
+			if returning.slots[index].leaf_id<0:continue
+			var source:Vector2=returning.slots[index].position
+			if absf(source.x-target.x)>12 or source.y>target.y+15:continue
+			var score:=pow(target.x-192,2)*10+pow(target.y-320,2)+source.distance_squared_to(target)*5
+			if score<pair_score:pair_score=score;nearest=index;old_gap=gap
+	if nearest<0:push_error("No attachment study pair");quit(1);return
 	returning.shedding_order.assign([returning.slots[nearest].leaf_id])
 	var attachment_study:={"version":1,"slots":[{"name":"Attachment study","checkpoint":Campaign.snapshot(returning)},null,null]}
 	if not Campaign.valid_document(attachment_study):
@@ -119,7 +129,7 @@ func _initialize() -> void:
 		quit(1)
 		return
 	file=FileAccess.open("res://test-results/attachment-fixture.json",FileAccess.WRITE)
-	file.store_string(JSON.stringify({"saves":attachment_study,"target":[returning.slots[nearest].position.x,returning.slots[nearest].position.y]}))
+	file.store_string(JSON.stringify({"saves":attachment_study,"target":[returning.slots[old_gap].position.x,returning.slots[old_gap].position.y]}))
 	file.close()
 	var north=Loop.new(55,1)
 	for completed in range(12):

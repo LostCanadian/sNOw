@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Twenty-four headless regression scripts pass 925 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Twenty-six headless regression scripts pass 956 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -69,7 +69,7 @@ The [winter preview](images/paper-cloud-winter.png) uses an original textured pa
 
 ## Finale timing and attachment cues
 
-Victory now lets the 3.5-second flower animation finish and holds the finished scene for another 5.5 seconds. Its closing sentence then uses a separate story card before Results, with pause/skip behavior matching the other interludes. The sentence is removed from the Results action grid. Attachment twinkles are slightly larger and brighter, with a stronger warm halo.
+Victory now lets the 3.5-second flower animation finish and holds the finished scene for another 5.5 seconds. Its closing sentence then uses a separate story card before Results, with pause/skip behavior matching the other interludes. The sentence is removed from the Results action grid. Attachment suggestions now cycle through at most five fully fading glints.
 
 ## North Wind and seasonal balance
 
@@ -77,13 +77,13 @@ The North Wind is now a fast ribbon of curls drawn over the tree, with its visib
 
 Seasonal twig clusters thin a healthy crown from 2,160 to 960 leaves, with a separate saved seasonal-loss counter. The 720-leaf recovery floor remains above the largest 636-leaf finale schedule, preventing a nearly empty tree from making the boss trivial. Initial middle-right coverage improves through 280 relocated sprays on verified painted bark in the middle-right and central fork, without increasing total density. Starting speed is now 50; two early speed upgrades raise it to 61. All these values still need human balance playtesting.
 
-The browser finale study covers the completed flower hold, the separate closing card with pause/resume, clean Results, visible gusts in both directions, and a fresh first-week crown. Completed-save loading also replays the victory scene without awarding points again. Perfect-response scheduling studies finish the three boss profiles in about 54–59 seconds; idle depleted-crown studies still lose at their normal miss limits. These are simulation/flow checks, not claims of a human full-campaign win.
+The browser finale study covers the completed flower hold, the separate closing card with pause/resume, clean Results, visible gusts in both directions, and a fresh first-week crown. Completed-save loading also replays the victory scene without awarding points again. Perfect-response scheduling studies finish all three finite boss profiles; idle depleted-crown studies still lose at their normal miss limits. These are simulation/flow checks, not claims of a human full-campaign win.
 
 Browser review stills: [North Wind sweep](images/north-wind-sweep.png), [victory closing card](images/finale-closing-card.png), and [initial branch coverage](images/filled-middle-right-crown.png). The first two use validated study checkpoints; the crown capture starts a fresh campaign.
 
 ## Weather and defeat continuity
 
-Every level intro clears the snow pool, including Next Week. Snow is also cleared and hidden below 55% weekly frost pressure, so particles cannot persist into safe gameplay or reappear halfway down the screen after recovery. Both finished endings now linger: victory holds 5.5 seconds after its flowers finish before the closing card, and defeat holds three seconds after snow finishes accumulating before Results. Pause freezes these holds.
+Every level intro clears the snow pool, including Next Week. Snow is also cleared and hidden below 55% weekly frost pressure, so particles cannot persist into safe gameplay or reappear halfway down the screen after recovery. Both finished endings now linger: victory holds 5.5 seconds after its flowers finish before the closing card, and defeat holds three seconds after snow finishes accumulating before Continue appears. Pause freezes these holds.
 
 Starting speed is 50 logical units/second. Existing percentage boot effects apply to that baseline. An additional 120 placements now point into the central fork, west of the prior middle-right pass, using actual inner branches while retaining all 2,160 identities.
 
@@ -127,7 +127,7 @@ Validation: seven growth/render-buffer checks, the existing finale timing tests,
 
 ### North Wind and snow polish
 
-The finale uses a sixteen-frame paper wind atlas with interpolated poses, rolling motion and a curved, side-to-side route that travels completely offscreen. Its physical stripping capsule and local swirling force follow the same route. Gusts impart a rolling impulse to real leaves; regular three-leaf falls continue between gusts, sharing the existing finite schedule. Fine chaff and orbiting debris add motion without creating scoring leaves. Rules 9 retains earlier saves and the single high-score table.
+The finale uses a sixteen-frame paper wind atlas with interpolated poses, rolling motion and a curved, side-to-side route that travels completely offscreen. Its physical stripping capsule and local swirling force follow the same route. Gusts impart a rolling impulse to real leaves; regular three-leaf falls continue between gusts, sharing the existing finite schedule. Fine chaff and orbiting debris add motion without creating scoring leaves. Rules 10 retains earlier saves and the single high-score table.
 
 Validation: 38 finale checks include finite unique schedules on all difficulties, playable minimum foliage, ordinary falling during recovery, curved exit/reentry and swept-path stripping. The browser finale study shows textured gusts on both approaches and verifies pause and ending flow. Small falling snow crystals now use smooth shaded silhouettes; the settled snowbank has an antialiased highlighted rim and soft folds. [Wind return review](images/north-wind-sweep.png).
 
@@ -161,4 +161,17 @@ All flakes now share a continuous 0.65–6 logical-pixel radius distribution, we
 
 Validation adds ten snow geometry/accumulation checks, four size/distribution checks, and `tests/browser_snowfall.py`, which follows an actual saved level through loss, first coating, growing banks, the final hold and Results. These are real input/render checks over a validated checkpoint, not a complete human campaign playtest.
 
-Review captures: [coating on the real leaf piles](images/snow-first-coating.png), [release preview bank shading](images/snow-banks.png). Final verification: 24 native scripts / 925 checks, 26 Python tests, real-input snowfall accumulation, and release rendering across all thirteen atmospheres and both ending previews.
+Review captures: [coating on the real leaf piles](images/snow-first-coating.png), [release preview bank shading](images/snow-banks.png). Final verification: 26 native scripts / 956 checks, 26 Python tests, real-input snowfall accumulation, and release rendering across all thirteen atmospheres and both ending previews.
+
+
+### Wind pacing, quiet glints and player-controlled endings
+
+The old approach arcs are removed; the North Wind uses only the paper gust artwork when it enters. Lane selection scores the whole curved path against pending leaves once per pass. Four-leaf packets spaced by at least 50 ms spread releases along the sweep. The finite weekly schedule, nearby-leaf stripping and ordinary falling leaves remain intact. Gameplay rules 10 retain existing saves and the unified score tables.
+
+Vacated spots cool for five seconds; older empty spots remain usable immediately. Full-power blower acceleration and upward speed vary per leaf, using an integer identity mix independent of canopy depth and colour. The recharge draft keeps its existing holding power. The wind/clump study covers four seeds and real capture eligibility.
+
+Attachment suggestions now use at most five glints, with a shuffled cycle and complete fade-in/fade-out. The scheduler never changes capture eligibility, and unlit ready spots still accept leaves. It works on the cached candidate areas and a bounded active list, preserving the earlier canopy performance fix.
+
+After losing, the snow finishes and the existing short hold completes before a bottom-right Continue action appears. Victory still finishes its regrowth/flower sequence and closing card, then offers Continue. Both scenes keep their wildlife, weather and music running until the player opens Results. Loaded completed campaigns replay that sequence without awarding anything again. Ordinary weekly interludes still lead directly to Results. The main-menu speaker icon is centered.
+
+Validation includes the cooldown and clump study, seven glint scheduling checks, manual victory/loss continuation, unchanged score on long ending holds, save compatibility and real-input browser captures. The one-leaf attachment study now starts in week two and uses a naturally old empty spot. [Watching the victory scene](images/ending-continue.png) · [Clean wind approach](images/wind-approach.png).

@@ -34,7 +34,11 @@ func run() -> void:
 	main.pause_game();var frozen:float=main.defeat_hold_time;main._physics_process(1)
 	check(main.defeat_hold_time==frozen,"pause freezes the post-loss hold")
 	main.resume_game();main._physics_process(0.2)
-	check(main.overlay!=null and main.mode=="lost","loss Results appear only after the extra hold")
+	check(main.overlay==null and main.mode=="lost" and is_instance_valid(main.ending_continue),"loss offers Continue after the extra hold")
+	main._physics_process(45)
+	check(main.overlay==null,"the completed snow scene keeps playing until Continue is selected")
+	main.ending_continue.pressed.emit()
+	check(main.overlay!=null and main.mode=="lost","Continue opens loss Results")
 	var matching:bool=main.defeat_regions.size()==12 and main.DEFEAT_WARDROBE.get_image().get_mipmap_count()>0
 	for week in range(1,13):
 		main.sim.week=week;main.mode="play";main.sim.status="playing"

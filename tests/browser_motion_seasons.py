@@ -89,6 +89,8 @@ with sync_playwright() as p:
     settled=snap()
     assert settled['ending_attached']==0 and settled['ending_air']==0 and settled['ending_ground']==count
     settled_frame=time.monotonic()-started
+    page.wait_for_function('window.snowSnapshot.ending_continue',timeout=30000)
+    click(288,590)
     page.wait_for_function('window.snowSnapshot.result_visible',timeout=30000)
     page.wait_for_function('window.snowSnapshot.result_tallied')
     assert snap()['score']==score and snap()['snow_cover']==1

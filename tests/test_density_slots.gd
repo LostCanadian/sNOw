@@ -44,14 +44,14 @@ func run() -> void:
 		var expected := -1
 		var best := Loop.CAPTURE_RADIUS * Loop.CAPTURE_RADIUS
 		for j in range(game.slots.size()):
-			if game.slots[j].leaf_id >= 0: continue
+			if game.slots[j].leaf_id >= 0 or game.week_time<float(game.slots[j].get("capture_after",0)): continue
 			var point := Geometry2D.get_closest_point_to_segment(game.slots[j].position, from, to)
 			var distance := point.distance_squared_to(game.slots[j].position)
 			if distance < best:
 				best = distance
 				expected = j
 		correct = correct and game.capture_slot(from, to) == expected
-	check(correct, "nearby-branch indexing matches exhaustive swept capture with a dense canopy")
+	check(correct, "nearby-branch indexing matches exhaustive swept capture over eligible branches")
 	# Construct an actual previous-format boundary, including relocated identities/gaps.
 	var old: Dictionary = Campaign.snapshot(Loop.new())
 	old.rules = 3

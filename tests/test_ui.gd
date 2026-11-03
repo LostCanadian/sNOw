@@ -109,9 +109,11 @@ func run() -> void:
 		main._physics_process(1.0 / 60.0)
 		main._physics_process(4.1)
 		for frame in range(900):
-			if main.overlay != null: break
-			main._physics_process(1.0 / 60)
-		check(main.mode == ending and main.overlay != null, ending + " opens its result controls after the cinematic")
+			if is_instance_valid(main.ending_continue):break
+			main._physics_process(1.0/60)
+		check(main.mode==ending and main.overlay==null and is_instance_valid(main.ending_continue),ending+" offers Continue after the cinematic")
+		main.ending_continue.pressed.emit()
+		check(main.overlay!=null,ending+" opens Results only after Continue")
 		main.pause_game()
 		var frozen_ending: float = main.ending_time
 		main._physics_process(1.0)

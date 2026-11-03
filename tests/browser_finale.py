@@ -24,6 +24,7 @@ with sync_playwright() as p:
         screenshot=page.context.new_cdp_session(page).send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
         import base64
         Path(f'test-results/{name}.png').write_bytes(base64.b64decode(screenshot['data']))
+    capture('menu-speaker-centered')
     def skip_intro():
         mode('intro');page.wait_for_timeout(1000);page.keyboard.press('Space');mode('play')
     click('Continue / New game');mode('slots');click('Victory study');mode('continue');click('Continue');skip_intro()
@@ -34,15 +35,19 @@ with sync_playwright() as p:
     mode('victory_outro');assert not snap()['result_visible']
     page.keyboard.press('Escape');mode('paused');frozen=snap()['story_time'];page.wait_for_timeout(400);assert snap()['story_time']==frozen
     page.keyboard.press('Escape');mode('victory_outro');capture('finale-closing-card');page.keyboard.press('Space')
+    mode('won');page.wait_for_function('snowSnapshot.ending_continue');page.wait_for_timeout(1800)
+    assert not snap()['result_visible'];capture('finale-watching-ending');click('Continue')
     page.wait_for_function('snowSnapshot.result_visible');page.wait_for_function('snowSnapshot.result_tallied');capture('finale-clean-results')
     print('PASS: flowers finish and hold before a separate victory card, pause freezes it, and Results follow.',flush=True)
     click('Main menu');mode('title');click('Continue / New game');mode('slots');click('North Wind study');mode('continue');click('Continue');skip_intro()
-    assert snap()['attached']==960 and snap()['seasonal_fallen']==1200
+    opening=snap()
+    assert opening['attached']+opening['air']+opening['missed']-opening['regrown']==960 and opening['seasonal_fallen']==1200,opening
+    capture('north-wind-clean-approach')
     page.wait_for_function('snowSnapshot.boss_phase==="blast" && snowSnapshot.wind_center[0]>95 && snowSnapshot.wind_center[0]<280 && snowSnapshot.wind_released>0',timeout=30000)
     capture('north-wind-sweep')
     page.wait_for_function('snowSnapshot.time>5.7 && snowSnapshot.boss_phase==="blast" && snowSnapshot.wind_released>0',timeout=30000)
     capture('north-wind-return')
-    assert snap()['air']>0 and snap()['attached']<960
+    assert snap()['air']>0 and snap()['attached']<960 and snap()['glints']<=5
     page.keyboard.press('Escape');mode('paused');frozen=snap()['time'];page.wait_for_timeout(350);assert snap()['time']==frozen
     click('Exit to menu');click('Exit');mode('title')
     click('Continue / New game');mode('slots');click('Slot 3');mode('name');click('Start week 1');skip_intro()

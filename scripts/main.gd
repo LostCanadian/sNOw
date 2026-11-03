@@ -14,6 +14,7 @@ const WORKSHOP_TOKENS = preload("res://assets/art/workshop_tokens.png")
 const WorkshopRegions = preload("res://scripts/workshop_regions.gd")
 const PLAY_ICON = preload("res://assets/art/play.svg")
 const PAUSE_ICON = preload("res://assets/art/pause.svg")
+const GapGlints = preload("res://scripts/gap_glints.gd")
 const TWINKLE = preload("res://assets/art/twinkle.svg")
 const StageStory = preload("res://scripts/stage_story.gd")
 const FAN_ICON = preload("res://assets/art/fan.svg")
@@ -70,6 +71,8 @@ var world: Node2D
 var scenery_layers: Array[Node2D] = []
 var world_preview_week := 1
 var ending_time := 0.0
+var ending_continue:Button
+var victory_story_seen:=false
 var defeat_hold_time := 0.0
 var winter_fall = WinterFall.new()
 var winter_batch: MultiMesh
@@ -115,7 +118,8 @@ var winter_front_shadows: MultiMesh
 var winter_renderer
 var winter_upload_revision:=-1
 var canopy_stamp := ""
-var canopy_gap_markers: Array[Vector2] = []
+var canopy_gap_markers: Array[int] = []
+var gap_glints=GapGlints.new()
 var canopy_rank := PackedInt32Array()
 var wardrobe_regions: Array[Rect2] = []
 var workshop_game
@@ -258,11 +262,12 @@ func _physics_process(dt: float) -> void:
 			winter_fall.step(dt)
 			if winter_fall.finished(): defeat_hold_time += dt
 		if overlay == null:
-			if mode == "lost" and winter_fall.finished() and defeat_hold_time >= DEFEAT_HOLD: show_result()
-			elif mode == "won" and ending_time >= FLOWER_DURATION + VICTORY_HOLD:
+			if mode == "lost" and winter_fall.finished() and defeat_hold_time >= DEFEAT_HOLD: show_ending_continue()
+			elif mode == "won" and not victory_story_seen and ending_time >= FLOWER_DURATION + VICTORY_HOLD:
 				mode = "victory_outro"
 				story_time = 0
 				clear_input()
+	if is_instance_valid(ending_continue):ending_continue.visible=mode in ["lost","won"] and overlay==null
 	if mode in ["results", "lost", "won"] and is_instance_valid(overlay):
 		result_time = minf(TALLY_DURATION, result_time + dt)
 		if result_time >= TALLY_DURATION and not result_tallied: finish_tally()
@@ -276,6 +281,8 @@ func _physics_process(dt: float) -> void:
 		for spark in sparks:
 			spark.time += dt
 		sparks = sparks.filter(func(spark: Dictionary) -> bool: return spark.time < 0.8)
+	gap_glints.configure("%s:%d"%[sim.run_id,sim.week])
+	if mode=="play":gap_glints.advance(dt,sim.slots,sim.week_time,reduced_effects)
 	world.configure(sim.run_id,world_preview_week if preview_mode else sim.week,preview_mode)
 	world.set_canopy(sim.slots,preview_weather if preview_mode else -1.0)
 	var ambient_scene:=visual_mode()
@@ -294,7 +301,7 @@ func _physics_process(dt: float) -> void:
 		if telemetry_tick % 6 == 0:
 			var snapshot := {
 				"world": {"name":world.profile.name,"time":world.profile.time,"weather":world.profile.weather,"moon":world.profile.moon,"rare":world.profile.rare,"clock":world.clock,"animals":world.animal_poses().map(func(a):return {"kind":a.kind,"sheet":a.sheet,"frame":a.frame,"x":a.position.x,"y":a.position.y,"plane":a.plane,"action":a.action,"direction":a.direction,"look":a.get("look",0)})},
-				"debug_pointer": [debug_pointer.x,debug_pointer.y], "mouse_down": Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT), "ui_buttons": overlay.find_children("*","Button",true,false).map(func(b): return {"text":b.text,"name":b.name,"rect":[b.global_position.x,b.global_position.y,b.size.x,b.size.y]}) if is_instance_valid(overlay) else [],
+				"debug_pointer": [debug_pointer.x,debug_pointer.y], "mouse_down": Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT), "ending_continue":is_instance_valid(ending_continue) and ending_continue.visible, "glints":gap_glints.poses().size(), "ui_buttons": overlay.find_children("*","Button",true,false).map(func(b): return {"text":b.text,"name":b.name,"rect":[b.global_position.x,b.global_position.y,b.size.x,b.size.y]}) if is_instance_valid(overlay) else ([{"text":ending_continue.text,"name":ending_continue.name,"rect":[ending_continue.global_position.x,ending_continue.global_position.y,ending_continue.size.x,ending_continue.size.y]}] if is_instance_valid(ending_continue) and ending_continue.visible else []),
 				"ending_phase": winter_fall.phase, "ending_attached": winter_fall.attached, "ending_air": winter_fall.airborne, "ending_ground": winter_fall.grounded, "snow_cover": winter_fall.cover(),
 				"mode": mode, "score": sim.score, "week": sim.week, "x": sim.x, "charge": sim.charge,
 				"ground_positions": sim.ground_leaves.map(func(leaf): return [leaf.id, leaf.position.x, leaf.position.y, leaf.velocity.x]),
@@ -646,6 +653,7 @@ func confirm_reset_slot(index: int, save_name: String, difficulty: int) -> void:
 
 
 func load_slot(index: int) -> void:
+	reset_ending_controls()
 	var record = campaign.slots[index]
 	if record == null: return
 	var restored = Campaign.restore(record.checkpoint)
@@ -766,6 +774,7 @@ func button(parent: Node, content: String, rect: Rect2, callback: Callable, seco
 
 
 func show_title() -> void:
+	reset_ending_controls()
 	clear_paused_overlay()
 	workshop_game=null
 	restart_draft.clear()
@@ -801,6 +810,7 @@ func show_title() -> void:
 	button(panel, "License", Rect2(160, 254, 123, 38), show_license, true)
 	var audio_button := button(panel, "", Rect2(132, 354, 44, 36), show_audio_options, true)
 	audio_button.name = "AudioSettings"
+	audio_button.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	audio_button.tooltip_text = "Audio settings"
 	audio_button.expand_icon = true
 	audio_button.add_theme_constant_override("icon_max_width", 24)
@@ -1165,6 +1175,8 @@ func gold_leaf_badge(parent: Node, amount: int, rect: Rect2) -> void:
 
 func show_result() -> void:
 	if sim.status not in ["workshop", "lost", "won"]: return
+	if is_instance_valid(ending_continue):ending_continue.queue_free()
+	ending_continue=null
 	clear_input()
 	var key := "%s:%d:%s:%d" % [sim.run_id, sim.week, sim.status, sim.score]
 	if key != result_key:
@@ -1356,6 +1368,7 @@ func make_canopy_batch() -> MultiMesh:
 
 
 func update_canopy_batches(victory := false) -> void:
+	gap_glints.configure("%s:%d"%[sim.run_id,sim.week])
 	var stamp := "%s:%d:%d:%s:%.3f" % [sim.run_id, sim.canopy_revision, sim.week, victory, preview_weather if preview_mode else -1.0]
 	if victory and not preview_victory:stamp+=":%d"%floori(minf(ending_time,5.5)*30)
 	var changed:=stamp!=canopy_stamp
@@ -1386,7 +1399,8 @@ func update_canopy_batches(victory := false) -> void:
 				var cell := Vector2i(slot.position / 16.0)
 				if not marked.has(cell):
 					marked[cell] = true
-					canopy_gap_markers.append(slot.position)
+					canopy_gap_markers.append(i)
+		gap_glints.set_candidates(canopy_gap_markers)
 		leaf_renderer.cache()
 	var dynamic:bool=not victory and mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty() or not sim.attachment_motions.is_empty())
 	if changed or dynamic:
@@ -1405,11 +1419,12 @@ func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 	if winter: return
 	update_canopy_batches(victory)
 	if mode == "play":
-		for i in range(mini(64, canopy_gap_markers.size())):
-			var point: Vector2 = canopy_gap_markers[i]
-			var glow := 0.88 if reduced_effects else 0.80 + sin(elapsed * 2 + point.x * 0.21 + point.y * 0.17) * 0.16
-			draw_circle(point, 4.6, Color(1.0,0.87,0.5,glow * 0.20))
-			draw_texture_rect(TWINKLE, Rect2(point - Vector2.ONE * 3.4, Vector2.ONE * 6.8), false, Color(1.0,0.93,0.70,glow))
+		for light in gap_glints.poses():
+			var point:Vector2=light.position
+			var glow:float=light.alpha
+			draw_circle(point,4.0,Color(1,0.87,0.5,glow*0.12),true,-1,true)
+			draw_texture_rect(TWINKLE,Rect2(point-Vector2.ONE*3.1,Vector2.ONE*6.2),false,Color(1,0.93,0.70,glow))
+
 
 
 func cloud_rect(progress: float) -> Rect2:
@@ -1677,13 +1692,7 @@ func draw_boss() -> void:
 			var p:=Vector2(fposmod(i*73.7+time*(32+i%7*3),420)-30,130+fposmod(i*47.1+sin(time*1.4+i)*18,290))
 			var drift:=Vector2(4+sin(time*2+i)*2,sin(time*3+i)*2)
 			draw_line(p,p+drift,Color(0.83,0.76,0.54,0.25),0.8,true)
-	if phase=="warning":
-		var side:float=wind.direction(time)
-		var x:float=4 if side>0 else 356
-		for i in range(4):
-			var p:=Vector2(x,sim.wind_lane+(i-1.5)*13)
-			draw_arc(p,10+i*4,-PI*0.7,PI*0.55,22,Color(0.95,0.96,0.91,0.28),0.9,true)
-	elif phase=="blast" and not reduced_effects:
+	if phase=="blast" and not reduced_effects:
 		var center:Vector2=wind.center(time,sim.wind_lane)
 		for i in range(17):
 			var angle:=time*7*wind.direction(time)+i*2.39996
@@ -1771,6 +1780,7 @@ func show_audio_options() -> void:
 
 
 func begin_intro() -> void:
+	reset_ending_controls()
 	reset_weather()
 	clear_overlay()
 	clear_input()
@@ -1782,8 +1792,26 @@ func finish_story() -> void:
 	if mode == "intro":
 		clear_input()
 		mode = "play"
-	elif mode in ["outro", "victory_outro"]:
+	elif mode=="victory_outro":
+		clear_input()
+		victory_story_seen=true
+		mode="won"
+		show_ending_continue()
+	elif mode=="outro":
 		show_result()
+
+
+func reset_ending_controls() -> void:
+	if is_instance_valid(ending_continue):ending_continue.queue_free()
+	ending_continue=null
+	victory_story_seen=false
+
+
+func show_ending_continue() -> void:
+	if is_instance_valid(ending_continue):return
+	ending_continue=button(ui,"Continue",Rect2(232,568,112,44),func():
+		if mode in ["lost","won"] and overlay==null:show_result())
+	ending_continue.name="EndingContinue"
 
 
 func draw_story_card(kind: String) -> void:

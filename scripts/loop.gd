@@ -64,6 +64,7 @@ var seasonal_fallen := 0
 var wind_cycle := -1
 var wind_lane := 220.0
 var wind_released := 0
+var wind_next_packet:=0.0
 var spawned := 0
 var week_rescued := 0
 var week_missed := 0
@@ -230,8 +231,9 @@ func step_north_wind(previous_time: float) -> void:
 	if cycle != wind_cycle:
 		wind_cycle = cycle
 		wind_released = 0
+		wind_next_packet=week_time
 		wind_lane = choose_wind_lane()
-	if boss_phase() != "blast": return
+	if boss_phase() != "blast" or week_time<wind_next_packet: return
 	var quota: int = [48,56,64][difficulty]
 	if wind_released >= quota: return
 	var path := NorthWind.segment(previous_time, week_time, wind_lane)
@@ -244,7 +246,7 @@ func step_north_wind(previous_time: float) -> void:
 		if point.distance_to(Geometry2D.get_closest_point_to_segment(point,path[0],path[1])) <= NorthWind.RADIUS:
 			candidates.append(id)
 	candidates.sort_custom(func(a,b):return Canopy.depth(a)>Canopy.depth(b))
-	for id in candidates.slice(0,mini(2,quota-wind_released)):
+	for id in candidates.slice(0,mini(4,quota-wind_released)):
 		var pending := shedding_order.find(id,spawned)
 		shedding_order[pending] = shedding_order[spawned]
 		shedding_order[spawned] = id
@@ -253,6 +255,7 @@ func step_north_wind(previous_time: float) -> void:
 		leaves[-1].velocity+=NorthWind.tangent(week_time,wind_lane)*135+radial.orthogonal().normalized()*NorthWind.direction(week_time)*90
 		leaves[-1].spin+=NorthWind.direction(week_time)*0.7
 		wind_released += 1
+	if not candidates.is_empty():wind_next_packet=week_time+0.05
 
 
 func choose_wind_lane() -> float:
