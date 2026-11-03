@@ -107,12 +107,12 @@ Release Web validation also uses `tests/browser_release_atmospheres.py`, since t
 
 ## Planted tree base and smooth moon
 
-A separate textured paper meadow bank covers the bottom root fan, behind the player and leaf piles. Its dirt, grass, clover and low plants overlap the unchanged tree painting. The moon now has a feathered circular edge and phase terminator; its dark side lets the actual sky show through instead of painting a second hard-edged circle over it. The original paper-leaf texture provides faint grain. [Tree-base review](images/planted-roots.png).
+A separate textured paper meadow bank covers the bottom root fan, behind the player and leaf piles. Its grass, clover and low plants overlap the unchanged tree painting. The moon now has a feathered circular edge and phase terminator; its dark side lets the actual sky show through instead of painting a second hard-edged circle over it. The original paper-leaf texture provides faint grain. [Tree-base review](images/planted-roots.png).
 
 
 ## Wildlife animation and branch placement
 
-Four paper motion atlases replace the sixteen-pose reference sheet with seventy-two poses. The owl sits on verified main-tree bark in a less crowded leaf area, tracks the player's horizontal position through front-view head poses, and occasionally plays an eight-frame wingbeat. The squirrel draws over the trunk, climbs once, jumps onto a branch and remains there to nibble. Grass/soil, leaves and the player draw in front of tree residents. Rabbits hop and graze, disappear offscreen and return facing the other way; wolves trot and sniff; bats use a full eight-frame wingbeat. Pausing freezes all clocks.
+Four paper motion atlases replace the sixteen-pose reference sheet with seventy-two poses. The owl sits on verified main-tree bark in a less crowded leaf area, tracks the player's horizontal position through front-view head poses, and occasionally plays an eight-frame wingbeat. The squirrel draws over the trunk, climbs once, jumps onto a branch and remains there to nibble. Grass, leaves and the player draw in front of tree residents. Rabbits hop and graze, disappear offscreen and return facing the other way; wolves trot and sniff; bats use a full eight-frame wingbeat. Pausing freezes all clocks.
 
 The nighttime **Full moon** preview action makes rare visitors easy to inspect and cannot change campaign weather or saves. Review captures: [squirrel climbing](images/squirrel-climbing.png), [branch resident](images/squirrel-perched.png), [owl gaze](images/owl-gaze.png), [full-moon visitors](images/full-moon-visitors.png). Motion and asset checks live in `tests/test_wildlife_polish.gd`; `tests/browser_wildlife_polish.py` uses real buttons/keys and read-only frame observations.
 
@@ -123,3 +123,10 @@ Run native regressions with `python3 tools/check_godot_tests.py`. It rejects eng
 The root bank is now completely vegetated paper artwork, with a feathered lower edge and lighting/colour treatments for autumn, rain, dusk, night and winter. Victory sends a short warm light pulse through the tree. Missing leaves grow from their stems in a staggered branch wave; the existing crown changes colour, the meadow greens over 5.5 seconds, and the current winter outfit dissolves into the summer celebration pose. The landscape crossfades into sunlight. These are presentation effects and do not change saved leaf identities, rewards or RNG. Settled snow has a smooth highlighted rim and soft shaded folds.
 
 Validation: seven growth/render-buffer checks, the existing finale timing tests, and the browser finale flow. Ambient rustle now reaches independently timed leaves throughout the crown; the attachment regression allows its small cosmetic motion after a leaf has settled.
+
+
+### North Wind and snow polish
+
+The finale uses a sixteen-frame paper wind atlas with interpolated poses, rolling motion and a curved, side-to-side route that travels completely offscreen. Its physical stripping capsule and local swirling force follow the same route. Gusts impart a rolling impulse to real leaves; regular three-leaf falls continue between gusts, sharing the existing finite schedule. Fine chaff and orbiting debris add motion without creating scoring leaves. Rules 9 retains earlier saves and the single high-score table.
+
+Validation: 38 finale checks include finite unique schedules on all difficulties, playable minimum foliage, ordinary falling during recovery, curved exit/reentry and swept-path stripping. The browser finale study shows textured gusts on both approaches and verifies pause and ending flow. Small falling snow crystals now use smooth shaded silhouettes; the settled snowbank has an antialiased highlighted rim and soft folds. [Wind return review](images/north-wind-sweep.png).

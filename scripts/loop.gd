@@ -4,7 +4,7 @@ extends RefCounted
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
-const RULES := 8
+const RULES := 9
 const NorthWind = preload("res://scripts/north_wind.gd")
 const CROWN_CEILINGS := [2160,2080,2000,1900,1800,1680,1560,1440,1320,1200,1080,960,960]
 const SURGE_DURATION := 1.15
@@ -248,7 +248,9 @@ func step_north_wind(previous_time: float) -> void:
 		shedding_order[pending] = shedding_order[spawned]
 		shedding_order[spawned] = id
 		if not spawn_leaf(): break
-		leaves[-1].velocity += Vector2(NorthWind.direction(week_time)*24,8)
+		var radial:Vector2=leaves[-1].position-NorthWind.center(week_time,wind_lane)
+		leaves[-1].velocity+=NorthWind.tangent(week_time,wind_lane)*135+radial.orthogonal().normalized()*NorthWind.direction(week_time)*90
+		leaves[-1].spin+=NorthWind.direction(week_time)*0.7
 		wind_released += 1
 
 
@@ -392,14 +394,13 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 	step_ground(dt, x - previous_x)
 	var previous_time := week_time
 	week_time += dt
-	if is_boss():
-		step_north_wind(previous_time)
-	else:
-		spawn_timer -= dt
-		if spawn_timer <= 0.0 and spawned < week_leaf_count() and leaves.size() < MAX_ACTIVE:
-			for i in range(shed_batch_size()):
-				if not spawn_leaf(): break
-			spawn_timer += shedding_interval()
+	# Ordinary shedding continues in the finale, sharing the same finite schedule.
+	spawn_timer -= dt
+	if spawn_timer<=0 and spawned<week_leaf_count() and leaves.size()<MAX_ACTIVE:
+		for i in range(3 if is_boss() else shed_batch_size()):
+			if not spawn_leaf():break
+		spawn_timer+=shedding_interval()*(2.4 if is_boss() else 1.0)
+	if is_boss():step_north_wind(previous_time)
 	var origin := nozzle()
 	var airflow := air_axis()
 	var lateral := airflow.orthogonal()

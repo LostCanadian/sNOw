@@ -95,7 +95,16 @@ func run() -> void:
 	check(swept,"a visible swept path strips only nearby real leaves in bounded packets")
 	var count:int=wind.spawned
 	wind.week_time=3.0;wind.step(1.0/60,0,false)
-	check(wind.spawned==count and wind.boss_phase()=="rest","the recovery phase creates no background leaf bursts")
+	check(wind.spawned==count and wind.boss_phase()=="rest","the recovery phase does not trigger an extra wind packet")
+	wind.spawn_timer=0;wind.step(1.0/60,0,false)
+	check(wind.spawned==count+3 and wind.boss_phase()=="rest","ordinary leaves keep falling between North Wind passes")
+	var path_wind=Loop.NorthWind
+	var first:Vector2=path_wind.center(path_wind.WARNING,220)
+	var last:Vector2=path_wind.center(path_wind.WARNING+path_wind.SWEEP-0.001,220)
+	var upper:Vector2=path_wind.point(0.25,220,1)
+	var lower:Vector2=path_wind.point(0.75,220,1)
+	check(first.x< -100 and last.x>460 and upper.y-lower.y>90,"a gust curves above and below its lane and exits fully offscreen")
+	check(path_wind.center(path_wind.PERIOD+path_wind.WARNING,220).x>460,"the next approach enters from the opposite side")
 	check(Loop.NorthWind.force(Vector2(1000,1000),1.4,220)==Vector2.ZERO and Loop.NorthWind.direction(5.8)<0,"the gust has a local force field and reverses its next approach")
 	var old:Dictionary=Campaign.snapshot(Loop.new());old.rules=7;old.erase("seasonal_fallen");old.week=13;old.earned_points=24;old.points=24
 	var migrated=Campaign.restore(old)

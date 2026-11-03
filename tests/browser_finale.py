@@ -28,6 +28,7 @@ with sync_playwright() as p:
         mode('intro');page.wait_for_timeout(1000);page.keyboard.press('Space');mode('play')
     click('Continue / New game');mode('slots');click('Victory study');mode('continue');click('Continue');skip_intro()
     page.keyboard.down('Space');page.wait_for_function('snowSnapshot.mode==="won" && !snowSnapshot.result_visible',timeout=30000);page.keyboard.up('Space')
+    capture('spring-growing-crown')
     page.wait_for_function('snowSnapshot.flower_progress===1 && snowSnapshot.ending_time<6',timeout=30000)
     assert not snap()['result_visible'];capture('finale-flowers-complete')
     mode('victory_outro');assert not snap()['result_visible']

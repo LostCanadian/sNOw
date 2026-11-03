@@ -29,7 +29,7 @@ Use a separate cosmetic random seed, independent of the leaf simulation. Select 
 
 `world_profile.gd` derives each week's cosmetic variation from the already-saved campaign ID and week, independently of the gameplay RNG. Retries/reloads keep the chosen sun position, moon phase and rare wildlife. The sequence is sunny, sunny, overcast, dusk, rain, night, sunny, night storm, fog, dusk, rain, sunny, then the cloudy daytime North Wind.
 
-`ambient_world.gd` draws behind the tree; separate paper paintings replace the sunny valley for overcast, twilight and night. Sun/moon, paper storm clouds, soft gradient fog, stars, rain and feathered rays form independent layers. Rays remain behind the tree/player. Wind bends a bounded sample of attached leaves at 15 Hz by less than a pixel; it never changes an attachment, force or miss. Pause freezes all clocks; the internal reduced-effects mode stops extra animal/rustle motion and suppresses lightning.
+`ambient_world.gd` draws behind the tree; separate paper paintings replace the sunny valley for overcast, twilight and night. Sun/moon, paper storm clouds, soft gradient fog, stars, rain and feathered rays form independent layers. Rays remain behind the tree/player. Wind bends independently phased leaves throughout the crown at 15 Hz by less than a pixel, with stronger intermittent finale rustles; it never changes an attachment, force or miss. Pause freezes all clocks; the internal reduced-effects mode stops extra animal/rustle motion and suppresses lightning.
 
 Four textured paper animation atlases now contain seventy-two poses: sixteen squirrel frames, sixteen front-view owl frames, three eight-frame rabbit coats, and eight poses each for the wolf and bat. Rabbit coats crossfade gradually. Full moon (one of eight phases, night only) replaces the rabbit with a wolf and bat. At most three species appear together. A directly held blower can trigger one owl wing beat per twelve seconds; creatures never interact with leaf physics.
 
@@ -37,7 +37,7 @@ Explore the seasons now has previous/next week arrows to review all thirteen atm
 
 ## Branch residents and animal routines
 
-The unchanged tree now has a paper earth-and-meadow bank in front of its lower root fan. Bark draws first, then tree residents, then the meadow; foliage and the player draw above them. Ground visitors stay in the valley.
+The unchanged tree now has a fully planted paper meadow bank in front of its lower root fan. Bark draws first, then tree residents, then the meadow; foliage and the player draw above them. Ground visitors stay in the valley.
 
 The owl chooses among verified painted boughs, favoring fewer nearby occupied leaf positions at the level boundary. It remains on that branch through the attempt while leaves can obscure it naturally. Five front-view head directions track the player, with blinks, a relaxed pose and an eight-frame perched wingbeat. Occasional flaps happen independently of blower reactions; reaction cooldowns and all animation clocks freeze on pause.
 

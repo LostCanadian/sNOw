@@ -177,6 +177,8 @@ func _ready() -> void:
 		var layer:=LeafLayer.new();layer.game=self;layer.lane=lane
 		layer.z_index=-1 if lane<2 else 0
 		add_child(layer);scenery_layers.append(layer)
+	var wind_art:=preload("res://scripts/wind_visual.gd").new()
+	wind_art.game=self;add_child(wind_art);scenery_layers.append(wind_art)
 	var snow_layer:=Node2D.new()
 	snow_layer.draw.connect(func():
 		if world.winter:draw_snow_cover(winter_fall.cover(),snow_layer))
@@ -1311,10 +1313,10 @@ func _draw() -> void:
 func draw_trees(canvas: Node2D) -> void:
 	canvas.draw_texture_rect(TREE, Rect2(Canopy.TREE_RECT.position + Vector2(2, 3), Canopy.TREE_RECT.size), false, Color(0.13, 0.14, 0.10, 0.16))
 	var tint:=Color.WHITE
-	if not world.victory:
-		if world.profile.time=="night":tint=Color(0.65,0.72,0.86)
-		elif world.profile.time=="dusk":tint=Color(0.98,0.84,0.82)
-		elif world.profile.weather in ["rain","storm"]:tint=Color(0.88,0.93,0.97)
+	if world.profile.time=="night":tint=Color(0.65,0.72,0.86)
+	elif world.profile.time=="dusk":tint=Color(0.98,0.84,0.82)
+	elif world.profile.weather in ["rain","storm"]:tint=Color(0.88,0.93,0.97)
+	if world.victory:tint=tint.lerp(Color.WHITE,world.spring)
 	canvas.draw_texture_rect(TREE, Canopy.TREE_RECT, false,tint)
 	if not world.winter:
 		for i in range(Canopy.PREVIOUS_COUNT):
@@ -1466,6 +1468,11 @@ func draw_snow(cold: float, winter: bool) -> void:
 
 
 func draw_snowflake(p: Vector2, size_px: float, angle: float, colour: Color) -> void:
+	# At this size six crossing strokes shimmer; a soft shaded crystal reads better.
+	if size_px<3.5:
+		draw_circle(p+Vector2(0.4,0.6),size_px,Color(0.27,0.40,0.53,colour.a*0.22),true,-1,true)
+		draw_circle(p,size_px*0.85,colour,true,-1,true)
+		return
 	for arm in range(6):
 		var a := angle + arm * TAU / 6.0
 		var tip := p + Vector2.from_angle(a) * size_px
@@ -1669,36 +1676,28 @@ func draw_pause_button() -> void:
 
 
 func draw_boss() -> void:
-	var wind = Loop.NorthWind
-	var phase: String = sim.boss_phase()
-	if phase == "rest": return
-	var direction: float = wind.direction(sim.week_time)
-	var center: Vector2 = wind.center(sim.week_time,sim.wind_lane)
-	var strength := 1.0
-	if phase == "warning":
-		center.x = -18 if direction>0 else 378
-		strength = 0.4 + wind.progress(sim.week_time)*0.2
-	# Forward streaks and rolling curls share the physical sweep's center.
-	var trails := 8 if not reduced_effects else 4
-	for trail in range(trails):
-		var radius := 9.0 + trail*1.6
-		var lane := (trail-(trails-1)*0.5)*8.5
-		var length := 135.0 + trail*7.0
-		var path := PackedVector2Array()
-		for sample in range(42):
-			var t := sample/41.0
-			var local: Vector2
-			if t<0.68:
-				var u := t/0.68
-				local=Vector2(lerpf(-length,-18,u),lane+sin(u*TAU+sim.week_time*13+trail)*5*sin(u*PI))
-			else:
-				var u := (t-0.68)/0.32
-				var curl := u*TAU*1.15
-				local=Vector2(-18+u*48+sin(curl)*radius*u,lane+(1-cos(curl))*radius*(1-u*0.35))
-			path.append(center+Vector2(local.x*direction,local.y))
-		draw_polyline(path,Color(0.47,0.66,0.73,strength*0.25),3.4,true)
-		draw_polyline(path,Color(1,0.97,0.85,strength*0.78),1.15,true)
-
+	var wind=Loop.NorthWind
+	var time:float=sim.week_time
+	var phase:String=wind.phase(time)
+	# Fine airborne chaff persists between gusts. No scoring identities or RNG.
+	if not reduced_effects:
+		for i in range(28):
+			var p:=Vector2(fposmod(i*73.7+time*(32+i%7*3),420)-30,130+fposmod(i*47.1+sin(time*1.4+i)*18,290))
+			var drift:=Vector2(4+sin(time*2+i)*2,sin(time*3+i)*2)
+			draw_line(p,p+drift,Color(0.83,0.76,0.54,0.25),0.8,true)
+	if phase=="warning":
+		var side:float=wind.direction(time)
+		var x:float=4 if side>0 else 356
+		for i in range(4):
+			var p:=Vector2(x,sim.wind_lane+(i-1.5)*13)
+			draw_arc(p,10+i*4,-PI*0.7,PI*0.55,22,Color(0.95,0.96,0.91,0.28),0.9,true)
+	elif phase=="blast" and not reduced_effects:
+		var center:Vector2=wind.center(time,sim.wind_lane)
+		for i in range(17):
+			var angle:=time*7*wind.direction(time)+i*2.39996
+			var radius:=18+fmod(i*13.7,59)
+			var p:=center+Vector2(cos(angle)*radius,sin(angle)*radius*0.7)
+			draw_line(p,p+Vector2.from_angle(angle+PI*0.5)*4,Color(0.63,0.48,0.26,0.42),1.2,true)
 
 
 func draw_fan(p: Vector2, radius: float, angle: float, colour: Color) -> void:
