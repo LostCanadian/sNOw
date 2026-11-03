@@ -6,11 +6,10 @@ var world
 func _ready() -> void:
 	var shader:=Shader.new()
 	shader.code="""shader_type canvas_item;
-	varying vec4 paper_tint;
-	void vertex() { paper_tint = COLOR; }
 	void fragment() {
 		vec4 ink = texture(TEXTURE, UV);
-		COLOR = vec4(ink.rgb * paper_tint.rgb, smoothstep(0.24, 0.88, ink.a) * paper_tint.a);
+		float opacity = COLOR.a / max(ink.a, 0.0001);
+		COLOR = vec4(COLOR.rgb, smoothstep(0.24, 0.88, ink.a) * opacity);
 	}"""
 	var paper:=ShaderMaterial.new();paper.shader=shader;material=paper
 func _draw() -> void:
