@@ -2,6 +2,7 @@ extends Node2D
 ## Bounded cosmetic presentation behind the playable tree. No simulation reference.
 const Profile=preload("res://scripts/world_profile.gd")
 const Wildlife=preload("res://scripts/wildlife.gd")
+const Motion=preload("res://scripts/wildlife_motion.gd")
 const Moon=preload("res://scripts/moon.gd")
 const DAY=preload("res://assets/art/autumn_stage.png")
 const SKIES=preload("res://assets/art/weather_stages.png")
@@ -13,8 +14,8 @@ var victory:=false
 var winter:=false
 var reduced:=false
 var cold:=0.0
-var reaction_until:=-1.0
-var reaction_ready:=0.0
+var motion=Motion.new()
+var viewing_preview:=false
 var animals:Node2D
 var haze:GradientTexture2D
 var beam:GradientTexture2D
@@ -31,50 +32,34 @@ func _ready() -> void:
 	beam.gradient.colors=PackedColorArray([Color(1,1,1,0),Color(1,1,1,0.5),Color.WHITE,Color(1,1,1,0.5),Color(1,1,1,0)])
 	moon=Moon.new();add_child(moon)
 	animals=Wildlife.new();animals.world=self;add_child(animals)
-func configure(campaign_id:String,week:int) -> void:
-	var next:="%s:%d"%[campaign_id,week]
+func configure(campaign_id:String,week:int,preview:=false) -> void:
+	var next:="%s:%d:%s"%[campaign_id,week,preview]
 	if key==next:return
-	key=next;profile=Profile.choose(campaign_id,week);clock=0;reaction_until=-1;reaction_ready=0
+	key=next;profile=Profile.choose(campaign_id,week);clock=0;viewing_preview=preview
+	motion.reset(profile.seed)
 	queue_redraw()
 func advance(dt:float,paused:bool,soft:bool,won:bool,lost:bool,pressure:float,blowing:=false,player_x:=180.0) -> void:
 	if paused:return
 	reduced=soft;victory=won;winter=lost;cold=pressure
 	moon.refresh(profile,won)
 	clock+=dt
-	if profile.time=="night" and blowing and absf(player_x-55)<22 and clock>=reaction_ready and not soft:
-		reaction_until=clock+0.65;reaction_ready=clock+12
+	motion.advance(dt,clock,player_x,blowing,soft,profile.time=="night" and not won)
 	queue_redraw()
 	if is_instance_valid(animals):animals.queue_redraw()
+func set_canopy(slots:Array,variant:=-1.0) -> void:
+	motion.select_perches(slots,variant)
+func preview_full_moon() -> void:
+	if not viewing_preview or profile.time!="night":return
+	profile.moon=0;profile.rare=true;clock=0;motion.reset(profile.seed)
 func animal_poses() -> Array[Dictionary]:
 	var result:Array[Dictionary]=[]
-	var time:=0.0 if reduced else clock
-	if profile.time!="night" or victory:
-		var cycle:=fmod(time+float(profile.seed%11),36)
-		if cycle<12 or cycle>=24:
-			var x:=lerpf(-30,115,cycle/12) if cycle<12 else lerpf(115,390,(cycle-24)/12)
-			result.append({"kind":"squirrel","frame":(1+int(time*7)%2) if not reduced else 0,"position":Vector2(x,457),"height":14.0,"direction":1,"alpha":0.90})
-		else:
-			var climb:=cycle-12 if cycle<18 else 24-cycle
-			result.append({"kind":"squirrel","frame":3,"position":Vector2(115,449-climb*9),"height":22.0,"direction":1,"alpha":0.90})
+	if profile.time!="night" or victory:result.append(motion.squirrel(clock,reduced))
 	if profile.rare and not victory:
-		var walk:=fmod(time,26)
-		result.append({"kind":"wolf","frame":12 if walk>18 or reduced else 13,"position":Vector2(lerpf(30,330,minf(walk/18,1)),465),"height":24.0,"direction":1,"alpha":0.78})
-		result.append({"kind":"bat","frame":14+int(time*6)%2,"position":Vector2(180+sin(time*0.4)*150,115+sin(time*0.8)*25),"height":12.0,"direction":1 if cos(time*0.4)>0 else -1,"alpha":0.65})
+		result.append(motion.wolf(clock,reduced));result.append(motion.bat(clock,reduced))
 	else:
-		var routine:=time+float(profile.seed%5)
-		var step:=fmod(routine,8)
-		var hopping:=step<2 and not reduced
-		var travel:=floorf(routine/8)*23+minf(step/2,1)*23
-		var x:=245+sin(travel/90)*75
-		var position:=Vector2(x,468-(absf(sin(step*TAU))*4 if hopping else 0.0))
 		var coat:=0.0 if victory else (2.0 if winter else clampf((profile.week-2)/4.5,0,2))
-		var first:=mini(1,floori(coat));var mix:=coat-first
-		for layer in range(2):
-			var alpha:=1-mix if layer==0 else mix
-			if alpha<0.001:continue
-			result.append({"kind":"rabbit","frame":4+(first+layer)*2+int(hopping),"position":position,"height":15.0 if hopping else 19.0,"direction":1 if cos(travel/90)>0 else -1,"alpha":alpha*0.9})
-	if profile.time=="night" and not victory:
-		result.append({"kind":"owl","frame":11 if clock<reaction_until else 10,"position":Vector2(55,362),"height":24.0,"direction":1,"alpha":0.88})
+		result.append_array(motion.rabbit(clock,coat,reduced))
+	if profile.time=="night" and not victory:result.append(motion.owl(clock,reduced))
 	return result
 func rustle(slot:int,position:Vector2) -> Vector3:
 	if reduced or winter:return Vector3.ZERO

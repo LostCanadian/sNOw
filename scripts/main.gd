@@ -167,6 +167,9 @@ func _ready() -> void:
 	var tree_layer:=Node2D.new();tree_layer.z_index=-2
 	tree_layer.draw.connect(func():draw_trees(tree_layer))
 	add_child(tree_layer);scenery_layers.append(tree_layer)
+	var tree_animals:=AmbientWorld.Wildlife.new()
+	tree_animals.world=world;tree_animals.plane="tree";tree_animals.z_index=-2
+	add_child(tree_animals);scenery_layers.append(tree_animals)
 	var meadow:=RootMeadow.new();meadow.world=world;meadow.z_index=-2
 	add_child(meadow);scenery_layers.append(meadow)
 	for lane in [1,0,3,2]:
@@ -263,9 +266,10 @@ func _physics_process(dt: float) -> void:
 		for spark in sparks:
 			spark.time += dt
 		sparks = sparks.filter(func(spark: Dictionary) -> bool: return spark.time < 0.8)
-	world.configure(sim.run_id,world_preview_week if preview_mode else sim.week)
+	world.configure(sim.run_id,world_preview_week if preview_mode else sim.week,preview_mode)
+	world.set_canopy(sim.slots,preview_weather if preview_mode else -1.0)
 	var ambient_scene:=visual_mode()
-	world.advance(dt,mode=="paused",reduced_effects,ambient_scene=="won" or preview_victory,ambient_scene=="lost" or (preview_mode and preview_weather>=1.0),weather(),mode=="play" and sim.blowing,sim.x)
+	world.advance(dt,mode=="paused",reduced_effects,ambient_scene=="won" or preview_victory,ambient_scene=="lost" or (preview_mode and preview_weather>=1.0),weather(),mode=="play" and sim.blowing,180.0 if ambient_scene in ["title","preview"] else sim.x)
 	queue_redraw()
 	for layer in scenery_layers:layer.queue_redraw()
 	fill_audio(dt)
@@ -275,7 +279,7 @@ func _physics_process(dt: float) -> void:
 		telemetry_tick += 1
 		if telemetry_tick % 6 == 0:
 			var snapshot := {
-				"world": {"name":world.profile.name,"time":world.profile.time,"weather":world.profile.weather,"moon":world.profile.moon,"rare":world.profile.rare,"clock":world.clock,"animals":world.animal_poses().map(func(a):return {"kind":a.kind,"frame":a.frame,"x":a.position.x,"y":a.position.y})},
+				"world": {"name":world.profile.name,"time":world.profile.time,"weather":world.profile.weather,"moon":world.profile.moon,"rare":world.profile.rare,"clock":world.clock,"animals":world.animal_poses().map(func(a):return {"kind":a.kind,"sheet":a.sheet,"frame":a.frame,"x":a.position.x,"y":a.position.y,"plane":a.plane,"action":a.action,"direction":a.direction,"look":a.get("look",0)})},
 				"debug_pointer": [debug_pointer.x,debug_pointer.y], "mouse_down": Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT), "ui_buttons": overlay.find_children("*","Button",true,false).map(func(b): return {"text":b.text,"name":b.name,"rect":[b.global_position.x,b.global_position.y,b.size.x,b.size.y]}) if is_instance_valid(overlay) else [],
 				"ending_phase": winter_fall.phase, "ending_attached": winter_fall.attached, "ending_air": winter_fall.airborne, "ending_ground": winter_fall.grounded, "snow_cover": winter_fall.cover(),
 				"mode": mode, "score": sim.score, "week": sim.week, "x": sim.x, "charge": sim.charge,
@@ -924,6 +928,8 @@ func build_season_lab() -> void:
 	button(overlay,"›",Rect2(314,76,34,32),func():world_preview_week=wrapi(world_preview_week+1,1,14);build_season_lab(),true)
 	var scene_name:String=AmbientWorld.Profile.DAYS[world_preview_week-1][0]
 	text_label(overlay,"Week %d · %s"%[world_preview_week,scene_name],Rect2(48,76,264,32),10,CREAM,true)
+	if AmbientWorld.Profile.DAYS[world_preview_week-1][1]=="night":
+		button(overlay,"Full moon",Rect2(128,501,104,28),func():set_preview(0);world.preview_full_moon(),true)
 	var labels := ["Autumn", "Warning", "Winter", "Victory"]
 	for i in range(4):
 		button(overlay, labels[i], Rect2(10 + i * 87, 542, 79, 39), func(): set_preview(i), true)

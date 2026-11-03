@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Nineteen headless regression scripts pass 873 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 24 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Twenty headless regression scripts pass 893 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 24 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -108,3 +108,12 @@ Release Web validation also uses `tests/browser_release_atmospheres.py`, since t
 ## Planted tree base and smooth moon
 
 A separate textured paper meadow bank covers the bottom root fan, behind the player and leaf piles. Its dirt, grass, clover and low plants overlap the unchanged tree painting. The moon now has a feathered circular edge and phase terminator; its dark side lets the actual sky show through instead of painting a second hard-edged circle over it. The original paper-leaf texture provides faint grain. [Tree-base review](images/planted-roots.png).
+
+
+## Wildlife animation and branch placement
+
+Four paper motion atlases replace the sixteen-pose reference sheet with seventy-two poses. The owl sits on verified main-tree bark in a less crowded leaf area, tracks the player's horizontal position through front-view head poses, and occasionally plays an eight-frame wingbeat. The squirrel draws over the trunk, climbs once, jumps onto a branch and remains there to nibble. Grass/soil, leaves and the player draw in front of tree residents. Rabbits hop and graze, disappear offscreen and return facing the other way; wolves trot and sniff; bats use a full eight-frame wingbeat. Pausing freezes all clocks.
+
+The nighttime **Full moon** preview action makes rare visitors easy to inspect and cannot change campaign weather or saves. Review captures: [squirrel climbing](images/squirrel-climbing.png), [branch resident](images/squirrel-perched.png), [owl gaze](images/owl-gaze.png), [full-moon visitors](images/full-moon-visitors.png). Motion and asset checks live in `tests/test_wildlife_polish.gd`; `tests/browser_wildlife_polish.py` uses real buttons/keys and read-only frame observations.
+
+Run native regressions with `python3 tools/check_godot_tests.py`. It rejects engine/script errors even when Godot returns a successful exit code, in addition to checking each script's reported failures. Test teardown gives the mixer time to release its last sample before quitting.

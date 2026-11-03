@@ -148,5 +148,12 @@ func _initialize() -> void:
 	var continuity_studies:={"version":1,"slots":[{"name":"Early outfit study","checkpoint":Campaign.snapshot(early_outfit)}, {"name":"Mid outfit study","checkpoint":Campaign.snapshot(mid_outfit)}, {"name":"Next level study","checkpoint":Campaign.snapshot(transition)}]}
 	if not Campaign.valid_document(continuity_studies):push_error("Invalid continuity studies");quit(1);return
 	file=FileAccess.open("res://test-results/continuity-fixture.json",FileAccess.WRITE);file.store_string(JSON.stringify(continuity_studies));file.close()
+	var night_wildlife=Loop.new(641023,0)
+	night_wildlife.run_id="wildlife-night-study-2026-11-03"
+	for completed in range(5):
+		night_wildlife.spawned=night_wildlife.week_leaf_count();night_wildlife.step(1.0/60,0,false);night_wildlife.next_week()
+	var animal_studies:={"version":1,"slots":[{"name":"Night wildlife","checkpoint":Campaign.snapshot(night_wildlife)},null,null]}
+	if not Campaign.valid_document(animal_studies):push_error("Invalid wildlife study");quit(1);return
+	file=FileAccess.open("res://test-results/wildlife-fixture.json",FileAccess.WRITE);file.store_string(JSON.stringify(animal_studies));file.close()
 	print("Created validated late-week, boss and workshop UI fixtures.")
 	quit()

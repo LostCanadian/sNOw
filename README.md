@@ -64,3 +64,5 @@ This build includes the beta polish pass; balance and native-device performance 
 Completed weeks open results with the week, temperature and animated totals. Enter initials there when a score qualifies; later improvements retain them. Open Upgrades, then close back to results before choosing Next Week or Main Menu. Gameplay keeps only the score, growing winter snowflake, battery icon and pause at the top.
 
 The valley now has textured paper squirrels, seasonally changing rabbits, nocturnal owls and rare full-moon visitors. Weeks vary between sunny days, rain, dusk, moonlight, mist and a night storm. Gentle background rays, fog and attached-leaf rustling add motion without changing difficulty. In Explore the seasons, use the week arrows to review each atmosphere and its music.
+
+Wildlife now has seventy-two paper animation poses, main-tree perches and grazing/nibbling routines. Nighttime scene previews include **Full moon** to review the rare wolf and bat. Run the native regression suite with `python3 tools/check_godot_tests.py`; this also checks for engine errors.

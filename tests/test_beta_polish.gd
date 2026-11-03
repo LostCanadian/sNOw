@@ -49,6 +49,8 @@ func run() -> void:
 	weak.status="workshop";weak.step(1,0,true)
 	check(weak.charge==frozen_charge and not weak.blowing and not weak.low_power,"non-playing scenes cannot run or recharge the blower")
 	var main=Main.instantiate();root.add_child(main);main.set_physics_process(false)
+	# This suite checks workshop state; playback has its own integration coverage.
+	main.muted=true;main.sounds.muted=true
 	main.leaf_renderer.clear()
 	var id:int=game.shedding_order[0]
 	var slot:Dictionary=game.slots[game.find_attached_leaf(id)]
@@ -113,4 +115,6 @@ func run() -> void:
 	for suffix in ["",".bak",".tmp"]:
 		if FileAccess.file_exists(path+suffix):DirAccess.remove_absolute(path+suffix)
 	main.queue_free();await process_frame
+	# Let the mixer release the last upgrade sample after queued scene teardown.
+	await create_timer(0.15).timeout
 	print("Beta polish: %d checks, %d failures"%[checks,failures]);quit(1 if failures else 0)

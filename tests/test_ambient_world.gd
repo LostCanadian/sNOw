@@ -21,15 +21,15 @@ func run() -> void:
 	var restored=Campaign.restore(before)
 	check(World.Profile.choose(game.run_id,6)==World.Profile.choose(restored.run_id,6),"cosmetic selection survives save/restore without adding a save field")
 	world.configure(game.run_id,6);var profile:Dictionary=world.profile.duplicate(true)
-	world.advance(4,false,false,false,false,0,true,55)
+	world.advance(4,false,false,false,false,0,true,world.motion.owl_perch.x)
 	check(Campaign.snapshot(game)==before,"ambient animation and owl reactions never consume the simulation RNG or change a checkpoint")
 	world.configure(game.run_id,6)
 	check(world.clock==4 and world.profile==profile,"repeated configuration does not reset ambient movement")
-	var clock:float=world.clock;var reaction:float=world.reaction_until
-	world.advance(5,true,false,false,false,0,true,55)
-	check(world.clock==clock and world.reaction_until==reaction,"pause freezes movement, weather and reaction timers")
-	world.advance(0.1,false,false,false,false,0,true,55)
-	check(world.reaction_until==reaction,"holding the blower cannot retrigger the owl during its cooldown")
+	var clock:float=world.clock;var reaction:float=world.motion.flap_start
+	world.advance(5,true,false,false,false,0,true,world.motion.owl_perch.x)
+	check(world.clock==clock and world.motion.flap_start==reaction,"pause freezes movement, weather and reaction timers")
+	world.advance(0.1,false,false,false,false,0,true,world.motion.owl_perch.x)
+	check(world.motion.flap_start==reaction,"holding the blower cannot retrigger the owl during its cooldown")
 	var rare_id:=""
 	for i in range(100):
 		if World.Profile.choose("moon-study-%d"%i,6).rare:rare_id="moon-study-%d"%i;break
@@ -44,16 +44,16 @@ func run() -> void:
 			world.advance(0.5,false,false,false,false,0)
 			var species:={}
 			for a in world.animal_poses():
-				species[a.kind]=true;bounded=bounded and a.frame>=0 and a.frame<16 and a.position.y<480
+				species[a.kind]=true;bounded=bounded and a.frame>=0 and a.frame<World.Wildlife.Sprites.RECTS[a.sheet].size() and a.position.y<480
 			bounded=bounded and species.size()<=3
 	check(bounded,"at most three species remain behind the playable path and use bounded atlas frames")
 	world.configure("coat-study",5);world.advance(0,false,false,false,false,0)
 	var coats:=world.animal_poses().filter(func(a):return a.kind=="rabbit")
 	check(coats.size()==2 and coats.all(func(a):return a.alpha>0 and a.alpha<0.9),"the rabbit gradually blends painted coats rather than switching colors abruptly")
 	world.advance(0,false,false,false,true,1)
-	check(world.animal_poses().any(func(a):return a.kind=="rabbit" and a.frame in [8,9]),"loss uses the white rabbit coat")
+	check(world.animal_poses().any(func(a):return a.kind=="rabbit" and a.coat==2),"loss uses the white rabbit coat")
 	world.advance(0,false,false,true,false,0)
-	check(world.animal_poses().any(func(a):return a.kind=="rabbit" and a.frame in [4,5]),"victory restores the summer coat")
+	check(world.animal_poses().any(func(a):return a.kind=="rabbit" and a.coat==0),"victory restores the summer coat")
 	world.advance(1,false,true,false,false,0)
 	check(world.rustle(7,Vector2(200,200))==Vector3.ZERO,"reduced effects stops leaf rustling")
 	var main=Main.instantiate();root.add_child(main);main.set_physics_process(false);main.start_run();main.finish_story()
