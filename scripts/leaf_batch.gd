@@ -40,7 +40,7 @@ func restore() -> void:
 	palette_bytes=cached_palette.duplicate()
 	for data in cached:buffers.append(data.duplicate())
 
-func leaf(id: int, position: Vector2, angle: float, colour: Color, roll:=1.0, grounded:=false) -> void:
+func leaf(id: int, position: Vector2, angle: float, colour: Color, roll:=1.0, grounded:=false, size:=1.0) -> void:
 	if id<0 or id>=rank.size():return
 	var offset:=rank[id]*STRIDE
 	var pixel:=rank[id]*4
@@ -48,8 +48,8 @@ func leaf(id: int, position: Vector2, angle: float, colour: Color, roll:=1.0, gr
 	palette_bytes[pixel+2]=colour.b8;palette_bytes[pixel+3]=colour.a8
 	var front:=grounded and Piles.in_front(id)
 	var lane:=2 if front else 0
-	var c:=cos(angle)*Canopy.RADIUS
-	var s:=sin(angle)*Canopy.RADIUS
+	var c:=cos(angle)*Canopy.RADIUS*size
+	var s:=sin(angle)*Canopy.RADIUS*size
 	for shadow in range(2):
 		var data:=buffers[lane+shadow]
 		data[offset]=c*roll;data[offset+1]=-s;data[offset+3]=position.x+shadow

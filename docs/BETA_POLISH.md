@@ -117,3 +117,9 @@ Four paper motion atlases replace the sixteen-pose reference sheet with seventy-
 The nighttime **Full moon** preview action makes rare visitors easy to inspect and cannot change campaign weather or saves. Review captures: [squirrel climbing](images/squirrel-climbing.png), [branch resident](images/squirrel-perched.png), [owl gaze](images/owl-gaze.png), [full-moon visitors](images/full-moon-visitors.png). Motion and asset checks live in `tests/test_wildlife_polish.gd`; `tests/browser_wildlife_polish.py` uses real buttons/keys and read-only frame observations.
 
 Run native regressions with `python3 tools/check_godot_tests.py`. It rejects engine/script errors even when Godot returns a successful exit code, in addition to checking each script's reported failures. Test teardown gives the mixer time to release its last sample before quitting.
+
+### November 2026: planted ground and spring transition
+
+The root bank is now completely vegetated paper artwork, with a feathered lower edge and lighting/colour treatments for autumn, rain, dusk, night and winter. Victory sends a short warm light pulse through the tree. Missing leaves grow from their stems in a staggered branch wave; the existing crown changes colour, the meadow greens over 5.5 seconds, and the current winter outfit dissolves into the summer celebration pose. The landscape crossfades into sunlight. These are presentation effects and do not change saved leaf identities, rewards or RNG. Settled snow has a smooth highlighted rim and soft shaded folds.
+
+Validation: seven growth/render-buffer checks, the existing finale timing tests, and the browser finale flow. Ambient rustle now reaches independently timed leaves throughout the crown; the attachment regression allows its small cosmetic motion after a leaf has settled.

@@ -3,6 +3,7 @@ extends Node2D
 
 const SPEAKER_ICON = preload("res://assets/art/speaker.svg")
 const AmbientWorld = preload("res://scripts/ambient_world.gd")
+const SpringGrowth = preload("res://scripts/spring_growth.gd")
 const RootMeadow = preload("res://scripts/root_meadow.gd")
 const AudioDirector = preload("res://scripts/audio_director.gd")
 const LeafBatch = preload("res://scripts/leaf_batch.gd")
@@ -269,6 +270,7 @@ func _physics_process(dt: float) -> void:
 	world.configure(sim.run_id,world_preview_week if preview_mode else sim.week,preview_mode)
 	world.set_canopy(sim.slots,preview_weather if preview_mode else -1.0)
 	var ambient_scene:=visual_mode()
+	world.spring=1.0 if preview_victory else SpringGrowth.greening(ending_time)
 	world.advance(dt,mode=="paused",reduced_effects,ambient_scene=="won" or preview_victory,ambient_scene=="lost" or (preview_mode and preview_weather>=1.0),weather(),mode=="play" and sim.blowing,180.0 if ambient_scene in ["title","preview"] else sim.x)
 	queue_redraw()
 	for layer in scenery_layers:layer.queue_redraw()
@@ -1276,6 +1278,7 @@ func _draw() -> void:
 		draw_clouds(cold, ending if winter else 0.4)
 	draw_snow(cold, winter and winter_fall.phase in ["snow", "done"])
 	if victory:
+		draw_spring_light()
 		draw_flowers(ending)
 	if sim.is_boss() and scene_mode == "play": draw_boss()
 	if sim.blowing and mode == "play": draw_gust()
@@ -1342,6 +1345,7 @@ func make_canopy_batch() -> MultiMesh:
 
 func update_canopy_batches(victory := false) -> void:
 	var stamp := "%s:%d:%d:%s:%.3f" % [sim.run_id, sim.canopy_revision, sim.week, victory, preview_weather if preview_mode else -1.0]
+	if victory:stamp+=":%d"%floori(ending_time*30)
 	var changed:=stamp!=canopy_stamp
 	if changed:
 		canopy_stamp = stamp
@@ -1356,21 +1360,27 @@ func update_canopy_batches(victory := false) -> void:
 			var colour_week: int = 11 if preview_mode and preview_weather > 0.5 else sim.week
 			if victory: colour_week = 1
 			var colour: Color = sim.leaf_colour(slot.leaf_id if slot.leaf_id >= 0 else i, colour_week)
-			if keep:leaf_renderer.leaf(slot.leaf_id if slot.leaf_id>=0 else i,slot.position,slot.angle,colour)
+			if keep:
+				if victory:
+					var growth:=1.0 if preview_victory or slot.leaf_id>=0 else SpringGrowth.bud(i,slot.position,ending_time)
+					var green:=1.0 if preview_victory else SpringGrowth.greening(ending_time)
+					colour=sim.leaf_colour(slot.leaf_id if slot.leaf_id>=0 else i,sim.week).lerp(colour,green)
+					leaf_renderer.leaf(i,slot.stem.lerp(slot.position,growth),slot.angle+(1-growth)*0.5,colour,1,false,growth)
+				else:leaf_renderer.leaf(slot.leaf_id,slot.position,slot.angle,colour)
 			if not keep:
 				var cell := Vector2i(slot.position / 16.0)
 				if not marked.has(cell):
 					marked[cell] = true
 					canopy_gap_markers.append(slot.position)
 		leaf_renderer.cache()
-	var dynamic:bool=mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty() or not sim.attachment_motions.is_empty())
+	var dynamic:bool=not victory and mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty() or not sim.attachment_motions.is_empty())
 	var tick:=floori(world.clock*15)
 	var moving:=not reduced_effects and tick!=rustle_tick
 	if changed or dynamic or moving:
 		rustle_tick=tick
 		leaf_renderer.restore()
-		if not reduced_effects:
-			for index in range(0,sim.slots.size(),7):
+		if not reduced_effects and not victory:
+			for index in range(sim.slots.size()):
 				var slot:Dictionary=sim.slots[index]
 				if slot.leaf_id<0 or sim.attachment_motions.has(index):continue
 				if preview_mode and not victory and fmod(index*0.61803398875,1.0)<preview_weather*0.80:continue
@@ -1474,11 +1484,33 @@ func draw_snow_cover(amount: float, canvas: Node2D) -> void:
 		var top:=minf(472.0-sin(i*0.6)*4.0,surface)
 		pts.append(Vector2(x,lerpf(508,top,amount)))
 	pts.append(Vector2(360, 640))
-	canvas.draw_colored_polygon(pts, Color(0.88, 0.93, 0.96, amount))
+	canvas.draw_colored_polygon(pts, Color(0.83, 0.89, 0.94, amount))
+	var rim:=PackedVector2Array()
+	for i in range(2,pts.size()-1):rim.append(pts[i])
+	canvas.draw_polyline(rim,Color(0.34,0.46,0.57,amount*0.18),9.0,true)
+	canvas.draw_polyline(rim,Color(0.94,0.97,0.99,amount),5.5,true)
+	canvas.draw_polyline(rim,Color(1,0.99,0.95,amount*0.7),1.2,true)
+	# Small soft folds stay fixed as the snow builds, rather than flickering.
+	for i in range(16):
+		var x:=fmod(i*71.7,360)
+		var y:=510+fmod(i*29.3,110)
+		canvas.draw_texture_rect(world.haze,Rect2(x-20,y,45,10),false,Color(0.42,0.56,0.68,amount*0.12))
 	# Snow rests on the painted branches, not on every leaf in a dense spray.
 	for i in range(Canopy.PREVIOUS_COUNT):
 		var p: Vector2 = sim.slots[i].stem
 		canvas.draw_arc(p + Vector2(0, -2), 3.0, PI, TAU, 12, Color(0.95, 0.97, 0.98, amount * 0.8), 2.0, true)
+
+
+func draw_spring_light() -> void:
+	var power:=SpringGrowth.flash(ending_time)
+	if preview_victory or power<=0:return
+	var radius:=lerpf(55,230,clampf(ending_time/1.4,0,1))
+	draw_texture_rect(world.haze,Rect2(Vector2(180,270)-Vector2.ONE*radius,Vector2.ONE*radius*2),false,Color(1,0.93,0.61,power*0.72))
+	for i in range(36 if not reduced_effects else 10):
+		var angle:=i*2.39996
+		var distance:=ending_time*(40+fmod(i*17.3,85))
+		var p:=Vector2(180,320)+Vector2.from_angle(angle)*distance+Vector2(0,-ending_time*20)
+		draw_circle(p,1.0+fmod(i*0.7,1.2),Color(1,0.96,0.72,power*0.7),true,-1,true)
 
 
 func draw_flowers(amount: float) -> void:
@@ -1538,11 +1570,13 @@ func draw_character(winter: bool, victory: bool) -> void:
 	if not victory:
 		draw_playing_character(px)
 		return
+	var blend:=1.0 if preview_victory else SpringGrowth.wardrobe(ending_time)
+	if blend<1:draw_playing_character(px,1-blend)
 	var region:Rect2=ending_regions[0]
 	var bob:=sin(elapsed*4.0)*1.5 if not reduced_effects else 0.0
 	var height:=76.0
 	var width:=height*region.size.x/region.size.y
-	draw_texture_rect_region(ENDINGS,Rect2(px-width*0.48,Loop.GROUND-height+bob,width,height),region)
+	draw_texture_rect_region(ENDINGS,Rect2(px-width*0.48,Loop.GROUND-height+bob,width,height),region,Color(1,1,1,blend))
 
 
 func draw_gust() -> void:

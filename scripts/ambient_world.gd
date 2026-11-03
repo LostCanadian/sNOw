@@ -11,6 +11,7 @@ var key:=""
 var profile:Dictionary=Profile.choose("title",1)
 var clock:=0.0
 var victory:=false
+var spring:=0.0
 var winter:=false
 var reduced:=false
 var cold:=0.0
@@ -64,10 +65,11 @@ func animal_poses() -> Array[Dictionary]:
 func rustle(slot:int,position:Vector2) -> Vector3:
 	if reduced or winter:return Vector3.ZERO
 	var phase:=clock*(1.4+float(slot%7)*0.08)+position.x*0.055+position.y*0.021
-	var strength:float=profile.wind
+	var gust:=pow(maxf(0,sin(clock*0.7+slot*2.39996)),8)
+	var strength:float=profile.wind*gust*(2.6 if profile.week==13 else 1.5)
 	return Vector3(sin(phase)*0.55*strength,cos(phase*0.8)*0.3*strength,sin(phase)*0.055*strength)
 func _draw() -> void:
-	var sunny:bool=victory or (profile.time=="day" and profile.weather=="sun")
+	var sunny:bool=profile.time=="day" and profile.weather=="sun"
 	if sunny:
 		draw_texture_rect(DAY,Rect2(0,0,360,640),false)
 	else:
@@ -75,8 +77,9 @@ func _draw() -> void:
 		var size:=Vector2(SKIES.get_size());var left:=floorf(size.x*panel/3)
 		var right:=floorf(size.x*(panel+1)/3)
 		draw_texture_rect_region(SKIES,Rect2(0,0,360,640),Rect2(left,0,right-left,size.y))
+	if victory and not sunny:draw_texture_rect(DAY,Rect2(0,0,360,640),false,Color(1,1,1,spring))
 	if profile.time=="night" and not victory:draw_night()
-	if sunny:draw_rays()
+	if sunny or victory:draw_rays()
 	if not victory:
 		draw_rain()
 		if profile.weather=="storm":
@@ -97,7 +100,7 @@ func draw_night() -> void:
 	draw_texture_rect(haze,Rect2(profile.sun-Vector2(28,28),Vector2(56,56)),false,Color(0.8,0.86,1,0.08))
 func draw_rays() -> void:
 	var sun:Vector2=Vector2(78,90) if victory else profile.sun
-	var strength:float=(0.18 if victory else 0.11)*clampf(1-cold*1.2,0,1)
+	var strength:float=(0.18*spring if victory else 0.11)*clampf(1-cold*1.2,0,1)
 	for i in range(5):
 		var drift:=0.0 if reduced else sin(clock*0.12+i)*8
 		var target:=Vector2(30+i*82+drift,520)

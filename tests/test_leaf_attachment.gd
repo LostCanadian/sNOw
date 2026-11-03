@@ -88,8 +88,8 @@ func run() -> void:
 	main.resume_game()
 	for frame in range(25): main._physics_process(1.0 / 60)
 	main.update_canopy_batches()
-	check(main.sim.attachment_motions.is_empty() and rendered_position(main, incoming.id).is_equal_approx(target),
-		"the last moving instance reaches the static canopy even when no airborne or ground leaves remain")
+	check(main.sim.attachment_motions.is_empty() and rendered_position(main, incoming.id).distance_to(target)<2.0,
+		"the last moving instance reaches its branch and may rustle after airborne and ground leaves are gone")
 
 	game = Loop.new(77)
 	incoming = capture(game)
