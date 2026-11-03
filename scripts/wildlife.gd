@@ -1,17 +1,8 @@
 extends Node2D
-## A separate material removes the generator's faint transparent matte at render time.
+## Original textured paper cutouts, using the standard canvas material.
 const ART=preload("res://assets/art/wildlife.png")
 const REGIONS=preload("res://scripts/wildlife_regions.gd").RECTS
 var world
-func _ready() -> void:
-	var shader:=Shader.new()
-	shader.code="""shader_type canvas_item;
-	void fragment() {
-		vec4 ink = texture(TEXTURE, UV);
-		float opacity = COLOR.a / max(ink.a, 0.0001);
-		COLOR = vec4(COLOR.rgb, smoothstep(0.24, 0.88, ink.a) * opacity);
-	}"""
-	var paper:=ShaderMaterial.new();paper.shader=shader;material=paper
 func _draw() -> void:
 	if world==null:return
 	for animal in world.animal_poses():

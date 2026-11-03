@@ -12,12 +12,14 @@ func run() -> void:
 	var audio = Director.new()
 	audio.preferences_path = "user://audio-test-%d.json" % Time.get_ticks_usec()
 	root.add_child(audio)
-	check(audio.streams.size() == 19, "nine music scores and ten event effects are available offline, plus the separate motor loop")
-	check(audio.scene_track("play",1) == "spring" and audio.scene_track("play",6) == "autumn" and audio.scene_track("play",12) == "frost" and audio.scene_track("play",13) == "boss", "music follows the campaign season and final encounter")
+	check(audio.streams.size() == 28, "eighteen music scores and ten event effects are available offline, plus the separate motor loop")
+	var weekly:={}
+	for week in range(1,13):weekly[audio.scene_track("play",week)]=true
+	check(weekly.size()==12 and audio.scene_track("play",13)=="boss", "every level has its own score alongside the final encounter")
 	check(audio.scene_track("workshop",9) == "workshop" and audio.scene_track("results",9) == "results" and audio.scene_track("won",13) == "victory" and audio.scene_track("lost",7) == "winter", "workshop, results and both endings have distinct scores")
 	var loops := true
-	for name in audio.MUSIC: loops = loops and audio.streams[name].loop and audio.streams[name].get_length() > 14
-	check(loops, "all original score renderings are loopable and long enough to contain their eight-bar composition")
+	for name in audio.MUSIC: loops = loops and audio.streams[name].loop and audio.streams[name].get_length() > 25
+	check(loops, "all original score renderings are loopable and long enough to contain their sixteen-bar composition")
 	audio.play_cue("upgrade")
 	check(audio.cue_counts.is_empty(), "no sound starts before user interaction")
 	audio.unlock()

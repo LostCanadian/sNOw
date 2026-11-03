@@ -1,7 +1,9 @@
 extends Node
 ## Original rendered MIDI score plus layered effects; no runtime synthesis dependency.
 ## Short Web effects use Godot samples; long Web music uses compressed media streaming.
-const MUSIC := ["menu", "workshop", "spring", "autumn", "frost", "boss", "results", "victory", "winter"]
+const MUSIC := ["menu", "workshop", "boss", "results", "victory", "winter",
+	"week_01", "week_02", "week_03", "week_04", "week_05", "week_06",
+	"week_07", "week_08", "week_09", "week_10", "week_11", "week_12"]
 const EFFECTS := ["menu_tap", "menu_focus", "upgrade", "reset", "shuffle", "whirlwind", "leaf_saved", "leaf_fallen", "battery_low", "week_clear"]
 const SETTINGS_KEY := "snow.audio.v1"
 var preferences_path := "user://audio.json"
@@ -85,7 +87,7 @@ func scene_track(mode: String, week: int) -> String:
 	if mode == "won": return "victory"
 	if mode == "lost": return "winter"
 	if mode in ["play", "intro", "continue"]:
-		return "boss" if week == 13 else ("spring" if week <= 4 else ("autumn" if week <= 8 else "frost"))
+		return "boss" if week == 13 else "week_%02d"%clampi(week,1,12)
 	return "menu"
 
 func play_cue(name: String, volume := 1.0) -> void:

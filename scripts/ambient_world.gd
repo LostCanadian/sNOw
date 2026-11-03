@@ -115,17 +115,17 @@ func draw_night() -> void:
 		draw_circle(moon+Vector2(side*offset,-1).rotated(profile.moon_turn),7.8,Color("1c345a"))
 func draw_rays() -> void:
 	var sun:Vector2=Vector2(78,90) if victory else profile.sun
-	var strength:=0.18 if victory else 0.11
+	var strength:float=(0.18 if victory else 0.11)*clampf(1-cold*1.2,0,1)
 	for i in range(5):
 		var drift:=0.0 if reduced else sin(clock*0.12+i)*8
 		var target:=Vector2(30+i*82+drift,520)
 		var top:=sun+Vector2((i-2)*6,0)
 		var pts:=PackedVector2Array([top-Vector2(3,0),top+Vector2(3,0),target+Vector2(30,0),target-Vector2(30,0)])
 		draw_polygon(pts,PackedColorArray([Color(1,0.91,0.64,strength)]),PackedVector2Array([Vector2(0,0),Vector2(1,0),Vector2(1,1),Vector2(0,1)]),beam)
-	for i in range(5,0,-1):draw_circle(sun,11+i*5,Color(1,0.9,0.57,0.018))
+	for i in range(5,0,-1):draw_circle(sun,11+i*5,Color(1,0.9,0.57,strength*0.16))
 func draw_rain() -> void:
-	if profile.rain<=0:return
-	var count:=8 if reduced else int(80*profile.rain)
+	if profile.rain<=0 or winter:return
+	var count:=int((8 if reduced else 80*profile.rain)*(1-cold))
 	for i in range(count):
 		var y:=fmod(clock*(165+i%9*4)+i*47.3,490)-30
 		var x:=fposmod(i*83.7-y*0.16,400)-20

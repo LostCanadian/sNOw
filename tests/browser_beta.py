@@ -71,7 +71,7 @@ with sync_playwright() as p:
     capture('locked-branch');print('PASS: initials and branching workshop purchases/locks.',flush=True)
     click(260,526);mode('results');click(250,477);mode('intro')
     page.wait_for_timeout(800);page.keyboard.press('Space');mode('play')
-    assert snap()['week']==10 and snap()['audio_track']=='frost'
+    assert snap()['week']==10 and snap()['audio_track']=='week_10'
     page.keyboard.down('d');page.wait_for_timeout(470);capture('walk-right');page.keyboard.up('d')
     page.keyboard.down('a');page.wait_for_timeout(470);capture('walk-left');page.keyboard.up('a')
     assert snap()['audio_cues'].get('shuffle',0)>0
@@ -89,7 +89,7 @@ with sync_playwright() as p:
     assert snap()['time']==0
     print('PASS: saved level offers Continue.',flush=True)
     capture('continue');click(180,314);mode('intro');page.wait_for_timeout(800);page.keyboard.press('Space');mode('play')
-    assert snap()['surge_unlocked'] and snap()['audio_track']=='autumn'
+    assert snap()['surge_unlocked'] and snap()['audio_track']=='week_06'
     page.wait_for_function('window.snowSnapshot.grounded>=20',timeout=60000)
     leaves=snap()['ground_positions'];target=max(29,min(331,sum(l[1] for l in leaves)/len(leaves)))
     if abs(snap()['x']-target)>5:
