@@ -4,10 +4,15 @@ extends RefCounted
 const Canopy = preload("res://scripts/canopy.gd")
 const Piles = preload("res://scripts/leaf_piles.gd")
 const STRIDE := 12
+const PALETTE_WIDTH:=128
+const PALETTE_HEIGHT:=ceili(Canopy.SLOT_COUNT/128.0)
 var rank := PackedInt32Array()
 var batches: Array[MultiMesh] = []
 var buffers: Array[PackedFloat32Array] = []
 var cached: Array[PackedFloat32Array] = []
+var palette_bytes:=PackedByteArray()
+var cached_palette:=PackedByteArray()
+var palette_texture:ImageTexture
 
 func _init(meshes: Array[MultiMesh]) -> void:
 	batches=meshes
@@ -16,24 +21,31 @@ func _init(meshes: Array[MultiMesh]) -> void:
 	rank.resize(Canopy.SLOT_COUNT)
 	for i in range(order.size()):rank[order[i]]=i
 	clear()
+	palette_texture=ImageTexture.create_from_image(palette_image())
 
 func clear() -> void:
 	buffers.clear()
+	palette_bytes.resize(PALETTE_WIDTH*PALETTE_HEIGHT*4);palette_bytes.fill(0)
 	for i in range(4):
 		var data:=PackedFloat32Array();data.resize(Canopy.SLOT_COUNT*STRIDE);data.fill(0)
 		buffers.append(data)
 
 func cache() -> void:
 	cached.clear()
+	cached_palette=palette_bytes.duplicate()
 	for data in buffers:cached.append(data.duplicate())
 
 func restore() -> void:
 	buffers.clear()
+	palette_bytes=cached_palette.duplicate()
 	for data in cached:buffers.append(data.duplicate())
 
 func leaf(id: int, position: Vector2, angle: float, colour: Color, roll:=1.0, grounded:=false) -> void:
 	if id<0 or id>=rank.size():return
 	var offset:=rank[id]*STRIDE
+	var pixel:=rank[id]*4
+	palette_bytes[pixel]=colour.r8;palette_bytes[pixel+1]=colour.g8
+	palette_bytes[pixel+2]=colour.b8;palette_bytes[pixel+3]=colour.a8
 	var front:=grounded and Piles.in_front(id)
 	var lane:=2 if front else 0
 	var c:=cos(angle)*Canopy.RADIUS
@@ -49,6 +61,10 @@ func leaf(id: int, position: Vector2, angle: float, colour: Color, roll:=1.0, gr
 
 func upload() -> void:
 	for i in range(4):batches[i].buffer=buffers[i]
+	palette_texture.update(palette_image())
+
+func palette_image() -> Image:
+	return Image.create_from_data(PALETTE_WIDTH,PALETTE_HEIGHT,false,Image.FORMAT_RGBA8,palette_bytes)
 
 func move_air(id: int, position: Vector2) -> void:
 	var offset:=rank[id]*STRIDE

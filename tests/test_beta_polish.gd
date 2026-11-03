@@ -55,6 +55,8 @@ func run() -> void:
 	main.leaf_renderer.leaf(id,slot.position,slot.angle,game.leaf_colour(id))
 	main.leaf_renderer.upload()
 	var rank:int=main.leaf_renderer.rank[id]
+	var palette:Image=main.leaf_renderer.palette_image()
+	check(palette.get_pixel(rank%128,rank/128).is_equal_approx(game.leaf_colour(id)),"the GPU palette retains the exact identity tint before detachment")
 	var pose:PackedFloat32Array=main.leaf_renderer.buffers[0].slice(rank*12,rank*12+12)
 	game.spawn_leaf()
 	var leaf:Dictionary=game.leaves[0]
@@ -66,6 +68,9 @@ func run() -> void:
 	main.leaf_renderer.upload()
 	check(main.leaf_renderer.buffers[2][main.leaf_renderer.rank[0]*12]>0 and main.leaf_renderer.buffers[0][main.leaf_renderer.rank[0]*12]==0,"front ground leaves transfer to the pass after the player")
 	check(main.leaf_renderer.buffers[0][main.leaf_renderer.rank[1]*12]>0 and main.leaf_renderer.buffers[2][main.leaf_renderer.rank[1]*12]==0,"rear ground leaves remain in the pass before the player")
+	palette=main.leaf_renderer.palette_image()
+	var front_rank:int=main.leaf_renderer.rank[0]
+	check(palette.get_pixel(front_rank%128,front_rank/128)==Color.WHITE,"front/rear transfer retains the identity's tint in the shared GPU palette")
 	main.preview_mode=true;main.preview_weather=1
 	for flake in main.snow:flake.active=false
 	main.snow_clock=1;main.advance_snow(0.01)

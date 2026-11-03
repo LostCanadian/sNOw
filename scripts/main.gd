@@ -5,6 +5,7 @@ const SPEAKER_ICON = preload("res://assets/art/speaker.svg")
 const AmbientWorld = preload("res://scripts/ambient_world.gd")
 const AudioDirector = preload("res://scripts/audio_director.gd")
 const LeafBatch = preload("res://scripts/leaf_batch.gd")
+const LeafLayer = preload("res://scripts/leaf_layer.gd")
 const WinterFall = preload("res://scripts/winter_fall.gd")
 const WORKSHOP_PAPER = preload("res://assets/art/workshop_paper.png")
 const WORKSHOP_TOKENS = preload("res://assets/art/workshop_tokens.png")
@@ -63,6 +64,7 @@ var keys: Dictionary = {}
 var pointer_positions: Dictionary = {}
 var elapsed := 0.0
 var world: Node2D
+var scenery_layers: Array[Node2D] = []
 var world_preview_week := 1
 var rustle_tick := -1
 var ending_time := 0.0
@@ -159,7 +161,19 @@ func _ready() -> void:
 	ending_regions = atlas_regions(ENDINGS, 2, 1)
 	defeat_regions.assign(preload("res://scripts/defeat_regions.gd").RECTS)
 	world=AmbientWorld.new()
+	world.z_index=-3
 	add_child(world)
+	var tree_layer:=Node2D.new();tree_layer.z_index=-2
+	tree_layer.draw.connect(func():draw_trees(tree_layer))
+	add_child(tree_layer);scenery_layers.append(tree_layer)
+	for lane in [1,0,3,2]:
+		var layer:=LeafLayer.new();layer.game=self;layer.lane=lane
+		layer.z_index=-1 if lane<2 else 0
+		add_child(layer);scenery_layers.append(layer)
+	var snow_layer:=Node2D.new()
+	snow_layer.draw.connect(func():
+		if world.winter:draw_snow_cover(winter_fall.cover(),snow_layer))
+	add_child(snow_layer);scenery_layers.append(snow_layer)
 	update_actor_mesh()
 	for i in range(65):
 		snow.append({"x": ambient_rng.randf_range(0, 360), "y": -20.0, "active": false, "size": ambient_rng.randf_range(1.0, 3.6), "phase": ambient_rng.randf_range(0, TAU)})
@@ -250,6 +264,7 @@ func _physics_process(dt: float) -> void:
 	var ambient_scene:=visual_mode()
 	world.advance(dt,mode=="paused",reduced_effects,ambient_scene=="won" or preview_victory,ambient_scene=="lost" or (preview_mode and preview_weather>=1.0),weather(),mode=="play" and sim.blowing,sim.x)
 	queue_redraw()
+	for layer in scenery_layers:layer.queue_redraw()
 	fill_audio(dt)
 	if OS.has_feature("web"):
 		JavaScriptBridge.get_interface("window").snowShouldConfirmExit = active_slot >= 0 and sim.status == "playing" and sim.week_time > 0
@@ -1245,12 +1260,9 @@ func _draw() -> void:
 		draw_rect(Rect2(0, 0, 360, 640), Color(0.12, 0.24, 0.38, (cold - 0.45) * 0.65))
 	if sim.week > 1 and mode != "title" and not victory:
 		draw_rect(Rect2(0, 0, 360, 640), Color(0.25, 0.38, 0.52, (mini(sim.week, 12) - 1) * 0.012))
-	draw_trees()
 	draw_canopy(winter, ending, victory)
 	if winter:
 		update_winter_batch()
-		draw_multimesh(winter_shadows, PAPER_LEAF)
-		draw_multimesh(winter_batch, PAPER_LEAF)
 	if cold > 0.55:
 		draw_clouds(cold, ending if winter else 0.4)
 	draw_snow(cold, winter and winter_fall.phase in ["snow", "done"])
@@ -1260,13 +1272,6 @@ func _draw() -> void:
 	if sim.blowing and mode == "play": draw_gust()
 	if sim.surge_left > 0: draw_surge()
 	draw_character(winter, victory)
-	if winter:
-		draw_multimesh(winter_front_shadows,PAPER_LEAF)
-		draw_multimesh(winter_front,PAPER_LEAF)
-	else:
-		draw_multimesh(front_shadows,PAPER_LEAF)
-		draw_multimesh(front_batch,PAPER_LEAF)
-	if winter: draw_snow_cover(winter_fall.cover())
 	for spark in sparks:
 		var alpha: float = 1.0 - spark.time / 0.8
 		if spark.saved:
@@ -1291,14 +1296,18 @@ func _draw() -> void:
 	draw_pause_button()
 
 
-func draw_trees() -> void:
-	draw_texture_rect(TREE, Rect2(Canopy.TREE_RECT.position + Vector2(2, 3), Canopy.TREE_RECT.size), false, Color(0.13, 0.14, 0.10, 0.16))
+func draw_trees(canvas: Node2D) -> void:
+	canvas.draw_texture_rect(TREE, Rect2(Canopy.TREE_RECT.position + Vector2(2, 3), Canopy.TREE_RECT.size), false, Color(0.13, 0.14, 0.10, 0.16))
 	var tint:=Color.WHITE
 	if not world.victory:
 		if world.profile.time=="night":tint=Color(0.65,0.72,0.86)
 		elif world.profile.time=="dusk":tint=Color(0.98,0.84,0.82)
 		elif world.profile.weather in ["rain","storm"]:tint=Color(0.88,0.93,0.97)
-	draw_texture_rect(TREE, Canopy.TREE_RECT, false,tint)
+	canvas.draw_texture_rect(TREE, Canopy.TREE_RECT, false,tint)
+	if not world.winter:
+		for i in range(Canopy.PREVIOUS_COUNT):
+			var slot:Dictionary=sim.slots[i]
+			canvas.draw_line(slot.stem,slot.position+Vector2(0,5).rotated(slot.angle),Color("886341"),0.7,true)
 
 
 func make_canopy_batch() -> MultiMesh:
@@ -1310,6 +1319,7 @@ func make_canopy_batch() -> MultiMesh:
 	arrays.resize(Mesh.ARRAY_MAX)
 	var aspect := leaf_region.size.y / leaf_region.size.x
 	arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3(-1, -aspect, 0), Vector3(1, -aspect, 0), Vector3(1, aspect, 0), Vector3(-1, aspect, 0)])
+	arrays[Mesh.ARRAY_COLOR] = PackedColorArray([Color.WHITE,Color.WHITE,Color.WHITE,Color.WHITE])
 	var tex_size := Vector2(PAPER_LEAF.get_size())
 	var uv := leaf_region.position / tex_size
 	var end := leaf_region.end / tex_size
@@ -1372,14 +1382,6 @@ func update_canopy_batches(victory := false) -> void:
 func draw_canopy(winter: bool, ending: float, victory: bool) -> void:
 	if winter: return
 	update_canopy_batches(victory)
-	# Authored branch connections stay visible beneath each denser twig spray.
-	canopy_batch.visible_instance_count = -1
-	canopy_shadows.visible_instance_count = -1
-	for i in range(Canopy.PREVIOUS_COUNT):
-		var slot: Dictionary = sim.slots[i]
-		draw_line(slot.stem, slot.position + Vector2(0, 5).rotated(slot.angle), Color("886341"), 0.7, true)
-	draw_multimesh(canopy_shadows, PAPER_LEAF)
-	draw_multimesh(canopy_batch, PAPER_LEAF)
 	if mode == "play":
 		for i in range(mini(64, canopy_gap_markers.size())):
 			var point: Vector2 = canopy_gap_markers[i]
@@ -1455,7 +1457,7 @@ func draw_snowflake(p: Vector2, size_px: float, angle: float, colour: Color) -> 
 				draw_line(middle, middle + Vector2.from_angle(a + side * 0.8) * size_px * 0.32, colour, 1.0, true)
 
 
-func draw_snow_cover(amount: float) -> void:
+func draw_snow_cover(amount: float, canvas: Node2D) -> void:
 	var pts := PackedVector2Array([Vector2(0, 640), Vector2(0, 508)])
 	for i in range(37):
 		var x:=i*10.0
@@ -1463,11 +1465,11 @@ func draw_snow_cover(amount: float) -> void:
 		var top:=minf(472.0-sin(i*0.6)*4.0,surface)
 		pts.append(Vector2(x,lerpf(508,top,amount)))
 	pts.append(Vector2(360, 640))
-	draw_colored_polygon(pts, Color(0.88, 0.93, 0.96, amount))
+	canvas.draw_colored_polygon(pts, Color(0.88, 0.93, 0.96, amount))
 	# Snow rests on the painted branches, not on every leaf in a dense spray.
 	for i in range(Canopy.PREVIOUS_COUNT):
 		var p: Vector2 = sim.slots[i].stem
-		draw_arc(p + Vector2(0, -2), 3.0, PI, TAU, 12, Color(0.95, 0.97, 0.98, amount * 0.8), 2.0, true)
+		canvas.draw_arc(p + Vector2(0, -2), 3.0, PI, TAU, 12, Color(0.95, 0.97, 0.98, amount * 0.8), 2.0, true)
 
 
 func draw_flowers(amount: float) -> void:
@@ -1689,10 +1691,14 @@ func fill_audio(dt: float) -> void:
 	if not is_instance_valid(sounds): return
 	sounds.muted = muted
 	var audio_mode := mode
+	var audio_week:int=sim.week
+	if mode=="preview":
+		audio_week=world_preview_week
+		audio_mode="won" if preview_victory else ("lost" if preview_weather>=1 else "play")
 	if mode == "scores" and scores_return_to_result: audio_mode = sim.status if sim.status in ["lost","won"] else "results"
 	if mode == "victory_outro": audio_mode = "won"
 	if mode == "initials": audio_mode = sim.status if sim.status in ["lost","won"] else "results"
-	sounds.update(audio_mode, sim.week, sim.blowing, sim.charge, actor.gait_distance, actor.movement > 0.05, sim.surge_left > 0, dt, sim.low_power)
+	sounds.update(audio_mode, audio_week, sim.blowing, sim.charge, actor.gait_distance, actor.movement > 0.05, sim.surge_left > 0, dt, sim.low_power)
 
 
 func show_audio_options() -> void:
