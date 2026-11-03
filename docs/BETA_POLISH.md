@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Twenty-two headless regression scripts pass 909 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Twenty-four headless regression scripts pass 925 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -120,7 +120,7 @@ Run native regressions with `python3 tools/check_godot_tests.py`. It rejects eng
 
 ### November 2026: planted ground and spring transition
 
-The root bank is now completely vegetated paper artwork, with a feathered lower edge and lighting/colour treatments for autumn, rain, dusk, night and winter. Victory sends a short warm light pulse through the tree. Missing leaves grow from their stems in a staggered branch wave; the existing crown changes colour, the meadow greens over 5.5 seconds, and the current winter outfit dissolves into the summer celebration pose. The landscape crossfades into sunlight. These are presentation effects and do not change saved leaf identities, rewards or RNG. Settled snow has a smooth highlighted rim and soft shaded folds.
+The root bank is now completely vegetated paper artwork, with a feathered lower edge and lighting/colour treatments for autumn, rain, dusk, night and winter. Victory sends a short warm light pulse through the tree. Missing leaves grow from their stems in a staggered branch wave; the existing crown changes colour, the meadow greens over 5.5 seconds, and the current winter outfit dissolves into the summer celebration pose. The landscape crossfades into sunlight. These are presentation effects and do not change saved leaf identities, rewards or RNG. Settled snow has a smooth highlighted rim and shaded banks.
 
 Validation: seven growth/render-buffer checks, the existing finale timing tests, and the browser finale flow. Ambient rustle now reaches independently timed leaves throughout the crown; the attachment regression allows its small cosmetic motion after a leaf has settled.
 
@@ -141,7 +141,7 @@ The eighteen original sixteen-bar scores retain their hooks and contrasting sect
 Regenerate just the music with `python3 tools/generate_audio.py --music-only`; this preserves every existing sound effect. The catalog records each instrumentation palette and measured output levels. Five composition tests cover form, register, breathing room, instrument contrast, encoding and headroom. Debug finale and release atmosphere checks cover actual packaged playback; native-device listening and final mix remain playtest work.
 
 
-The final snow contour uses a cached, smooth blanket over both actual pile lanes, so tall stacks create rounded drifts rather than polygon teeth. A sampled paper grain, a soft rim shadow and shallow folds define the snow. Four geometry checks verify coverage, smooth curvature, determinism and unchanged pile supports. Victory also preserves the final leaf's unfinished attachment and the caretaker's facing through the outfit dissolve; the growth suite covers that terminal capture.
+The snow samples both actual leaf-pile lanes. A fine coating follows their surfaces before accumulating into at most two rounded banks fitted to the piles. Bank slopes, the valley between them and paper grain define the shading; no independent marks are scattered over the snow. Geometry checks verify coverage, curvature, determinism, unchanged pile supports and accumulation from the leaves rather than from below. Victory also preserves the final leaf's unfinished attachment and the caretaker's facing through the outfit dissolve; the growth suite covers that terminal capture.
 
 
 ### Canopy performance regression fix
@@ -151,3 +151,14 @@ The November rustle change accidentally rewrote all 2,160 leaf transforms and co
 `bash tools/godot.sh --headless --script tools/profile_canopy.gd` measures CPU presentation work, excluding GPU rendering. On this executor, 50 airborne leaves fell from 6.66 to 0.10 ms per update, 100 grounded leaves from 6.75 to 0.19 ms, and completed victory from 3.82 to 0.002 ms. These are component timings, not whole-game FPS. `tools/benchmark_browser.py` uses real menu/game input and CDP thread CPU timing: Chromium gameplay main-thread work fell from 120.88 to 20.38 ms per sampled frame. SwiftShader remained GPU-bound near 5 FPS in both versions, so this does not establish physical-device frame rates. The same 360×640 viewport, release template and input sequence were used.
 
 Six native regressions cover stationary-canopy uploads, attached/detached breeze masks, unchanged palette colours and completed victory/preview caching. Browser release checks retain the thirteen-scene colour regression and ending previews.
+
+
+### Snow accumulation and flake sizes
+
+Snow begins with a thin white coating on the settled leaf silhouettes. Coverage builds gradually while the contour joins into broad banks, preserving the relationship to the piles instead of lifting a sheet from below. Empty ground receives a shallow coat. Shading follows the banks' slopes and shared valley, computed per vertex on narrow contour strips; the settled canvas commands stay cached once accumulation ends. The old sixteen scattered shading streaks are removed.
+
+All flakes now share a continuous 0.65–6 logical-pixel radius distribution, weighted toward smaller flakes. Crystal detail fades in through the middle sizes, and larger flakes move faster to suggest depth. This replaces the old split between tiny dots and every ninth flake rendered up to roughly 29 pixels across. Mipmaps and soft shadows preserve smooth edges. Emission still starts above the screen and waits until the existing danger threshold.
+
+Validation adds ten snow geometry/accumulation checks, four size/distribution checks, and `tests/browser_snowfall.py`, which follows an actual saved level through loss, first coating, growing banks, the final hold and Results. These are real input/render checks over a validated checkpoint, not a complete human campaign playtest.
+
+Review captures: [coating on the real leaf piles](images/snow-first-coating.png), [release preview bank shading](images/snow-banks.png). Final verification: 24 native scripts / 925 checks, 26 Python tests, real-input snowfall accumulation, and release rendering across all thirteen atmospheres and both ending previews.

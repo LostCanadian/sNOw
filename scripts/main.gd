@@ -36,6 +36,7 @@ const Upgrades = preload("res://scripts/upgrades.gd")
 const WARDROBE = preload("res://assets/art/wardrobe.png")
 const DEFEAT_WARDROBE = preload("res://assets/art/defeat_wardrobe.png")
 const ENDINGS = preload("res://assets/art/endings.png")
+const Snowflakes = preload("res://scripts/snowflakes.gd")
 const SNOWFLAKE = preload("res://assets/art/snowflake.svg")
 const BODY_FONT = preload("res://assets/fonts/DejaVuSans.ttf")
 const TITLE_FONT = preload("res://assets/fonts/DejaVuSerif.ttf")
@@ -88,8 +89,11 @@ var surge_requested := false
 var ambient_rng := RandomNumberGenerator.new()
 var snow: Array[Dictionary] = []
 var snow_clock := 0.0
+var snow_layer:Node2D
+var snow_cover_stamp:=""
 var snow_bank_revision:=-1
-var snow_bank:=PackedVector2Array()
+var snow_bank:Dictionary={}
+var snow_mesh:ArrayMesh
 var sparks: Array[Dictionary] = []
 var reduced_effects := false
 var muted := false
@@ -180,15 +184,15 @@ func _ready() -> void:
 		add_child(layer);scenery_layers.append(layer)
 	var wind_art:=preload("res://scripts/wind_visual.gd").new()
 	wind_art.game=self;add_child(wind_art);scenery_layers.append(wind_art)
-	var snow_layer:=Node2D.new()
+	snow_layer=Node2D.new()
 	var snow_paper:=ShaderMaterial.new();snow_paper.shader=preload("res://scripts/snow_paper.gdshader")
 	snow_paper.set_shader_parameter("paper",BACKDROP);snow_layer.material=snow_paper
 	snow_layer.draw.connect(func():
 		if world.winter:draw_snow_cover(winter_fall.cover(),snow_layer))
-	add_child(snow_layer);scenery_layers.append(snow_layer)
+	add_child(snow_layer)
 	update_actor_mesh()
 	for i in range(65):
-		snow.append({"x": ambient_rng.randf_range(0, 360), "y": -20.0, "active": false, "size": ambient_rng.randf_range(1.0, 3.6), "phase": ambient_rng.randf_range(0, TAU)})
+		snow.append({"x": ambient_rng.randf_range(0, 360), "y": -20.0, "active": false, "size": Snowflakes.radius(ambient_rng.randf()), "phase": ambient_rng.randf_range(0, TAU)})
 	ui = Control.new()
 	ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -277,6 +281,9 @@ func _physics_process(dt: float) -> void:
 	var ambient_scene:=visual_mode()
 	world.spring=1.0 if preview_victory else SpringGrowth.greening(ending_time)
 	world.advance(dt,mode=="paused",reduced_effects,ambient_scene=="won" or preview_victory,ambient_scene=="lost" or (preview_mode and preview_weather>=1.0),weather(),mode=="play" and sim.blowing,180.0 if ambient_scene in ["title","preview"] else sim.x)
+	var snow_stamp:="%d:%.5f"%[winter_fall.revision,winter_fall.cover()] if world.winter else "clear"
+	if snow_stamp!=snow_cover_stamp:
+		snow_cover_stamp=snow_stamp;snow_layer.queue_redraw()
 	queue_redraw()
 	for layer in scenery_layers:layer.queue_redraw()
 	fill_audio(dt)
@@ -1446,58 +1453,45 @@ func advance_snow(dt: float) -> void:
 			break
 
 
-func draw_snow(cold: float, winter: bool) -> void:
+func draw_snow(cold: float, _winter: bool) -> void:
 	if cold<=0.55:return
-	for i in range(snow.size()):
-		var f: Dictionary = snow[i]
-		if not f.active:continue
-		var p := Vector2(f.x + sin(elapsed * 0.8 + f.phase) * 12.0, f.y)
-		if winter and i % 9 == 0:
-			draw_set_transform(p, f.phase + elapsed * 0.15)
-			var size_px: float = f.size * 4.0
-			draw_texture_rect(SNOWFLAKE, Rect2(-size_px, -size_px, size_px * 2, size_px * 2), false, Color(1, 1, 1, 0.9))
-			draw_set_transform(Vector2.ZERO)
-		else:
-			draw_snowflake(p, f.size * 0.75, f.phase, Color(0.95, 0.98, 1, 0.6))
+	for flake in snow:
+		if not flake.active:continue
+		var p:=Vector2(flake.x+sin(elapsed*0.8+flake.phase)*12,flake.y)
+		var opacity:=lerpf(0.55,0.88,(flake.size-Snowflakes.MIN_RADIUS)/(Snowflakes.MAX_RADIUS-Snowflakes.MIN_RADIUS))
+		draw_snowflake(p,flake.size,flake.phase+elapsed*0.15,Color(0.96,0.985,1,opacity))
 
 
-func draw_snowflake(p: Vector2, size_px: float, angle: float, colour: Color) -> void:
-	# At this size six crossing strokes shimmer; a soft shaded crystal reads better.
-	if size_px<3.5:
-		draw_circle(p+Vector2(0.4,0.6),size_px,Color(0.27,0.40,0.53,colour.a*0.22),true,-1,true)
-		draw_circle(p,size_px*0.85,colour,true,-1,true)
-		return
-	for arm in range(6):
-		var a := angle + arm * TAU / 6.0
-		var tip := p + Vector2.from_angle(a) * size_px
-		draw_line(p, tip, colour, maxf(0.6, size_px * 0.12), true)
-		if size_px > 4:
-			var middle := p + Vector2.from_angle(a) * size_px * 0.58
-			for side in [-1, 1]:
-				draw_line(middle, middle + Vector2.from_angle(a + side * 0.8) * size_px * 0.32, colour, 1.0, true)
+func draw_snowflake(p: Vector2, radius: float, angle: float, colour: Color) -> void:
+	var detail:=Snowflakes.detail(radius)
+	if detail<1:
+		var mote:=Color(colour,colour.a*(1-detail))
+		draw_circle(p+Vector2(0.3,0.5),radius,Color(0.27,0.40,0.53,mote.a*0.15),true,-1,true)
+		draw_circle(p,radius*0.85,mote,true,-1,true)
+	if detail>0:
+		draw_set_transform(p,angle)
+		var rect:=Rect2(-Vector2.ONE*radius,Vector2.ONE*radius*2)
+		draw_texture_rect(SNOWFLAKE,Rect2(rect.position+Vector2(0.3,0.5),rect.size),false,Color(0.30,0.42,0.55,colour.a*detail*0.15))
+		draw_texture_rect(SNOWFLAKE,rect,false,Color(colour,colour.a*detail))
+		draw_set_transform(Vector2.ZERO)
 
 
 func draw_snow_cover(amount: float, canvas: Node2D) -> void:
 	if amount<=0:return
+	var model=preload("res://scripts/snow_bank.gd")
+	var paper:ShaderMaterial=canvas.material
 	if snow_bank_revision!=winter_fall.revision:
-		snow_bank=preload("res://scripts/snow_bank.gd").contour(winter_fall.surface)
+		snow_bank=model.build(winter_fall.surface)
 		snow_bank_revision=winter_fall.revision
-	var pts:=PackedVector2Array([Vector2(0,640)])
-	var rim:=PackedVector2Array()
-	var shade:=PackedVector2Array()
-	for point in snow_bank:
-		var p:=Vector2(point.x,lerpf(508,point.y,amount))
-		pts.append(p);rim.append(p);shade.append(p+Vector2(0,4))
-	pts.append(Vector2(360,640))
-	canvas.draw_colored_polygon(pts,Color(0.88,0.93,0.96,amount))
-	canvas.draw_polyline(shade,Color(0.47,0.59,0.70,amount*0.16),8.0,true)
-	canvas.draw_polyline(rim,Color(0.98,0.99,1,amount*0.85),3.5,true)
-	canvas.draw_polyline(rim,Color(1,1,0.98,amount*0.35),0.8,true)
-	# Small soft folds stay fixed as the snow builds, rather than flickering.
-	for i in range(16):
-		var x:=fmod(i*71.7,360)
-		var y:=510+fmod(i*29.3,110)
-		canvas.draw_texture_rect(world.haze,Rect2(x-20,y,45,10),false,Color(0.42,0.56,0.68,amount*0.12))
+		paper.set_shader_parameter("bank_centers",snow_bank.centers)
+		paper.set_shader_parameter("bank_widths",snow_bank.widths)
+		paper.set_shader_parameter("bank_crests",snow_bank.crests)
+	paper.set_shader_parameter("accumulation",amount)
+	var shape:Dictionary=model.layers(snow_bank,amount)
+	if shape.body_alpha>0:
+		snow_mesh=model.mesh(shape.upper,shape.body_alpha)
+		canvas.draw_mesh(snow_mesh,null)
+	canvas.draw_polyline(shape.upper,Color(1,0.995,0.98,shape.coating_alpha*0.8),lerpf(0.5,2.0,amount),true)
 	# Snow rests on the painted branches, not on every leaf in a dense spray.
 	for i in range(Canopy.PREVIOUS_COUNT):
 		var p: Vector2 = sim.slots[i].stem
