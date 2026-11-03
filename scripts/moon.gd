@@ -4,6 +4,7 @@ const PAPER=preload("res://assets/art/paper_leaf.png")
 const MOON_SHADER=preload("res://scripts/moon.gdshader")
 var ink:ShaderMaterial
 func _ready() -> void:
+	visible=false
 	ink=ShaderMaterial.new();ink.shader=MOON_SHADER;material=ink
 func refresh(profile:Dictionary,won:bool) -> void:
 	visible=profile.time=="night" and not won
