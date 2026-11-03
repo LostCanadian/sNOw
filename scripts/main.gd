@@ -89,6 +89,8 @@ var surge_requested := false
 var ambient_rng := RandomNumberGenerator.new()
 var snow: Array[Dictionary] = []
 var snow_clock := 0.0
+var snow_bank_revision:=-1
+var snow_bank:=PackedVector2Array()
 var sparks: Array[Dictionary] = []
 var reduced_effects := false
 var muted := false
@@ -180,6 +182,8 @@ func _ready() -> void:
 	var wind_art:=preload("res://scripts/wind_visual.gd").new()
 	wind_art.game=self;add_child(wind_art);scenery_layers.append(wind_art)
 	var snow_layer:=Node2D.new()
+	var snow_paper:=ShaderMaterial.new();snow_paper.shader=preload("res://scripts/snow_paper.gdshader")
+	snow_paper.set_shader_parameter("paper",BACKDROP);snow_layer.material=snow_paper
 	snow_layer.draw.connect(func():
 		if world.winter:draw_snow_cover(winter_fall.cover(),snow_layer))
 	add_child(snow_layer);scenery_layers.append(snow_layer)
@@ -1367,7 +1371,10 @@ func update_canopy_batches(victory := false) -> void:
 					var growth:=1.0 if preview_victory or slot.leaf_id>=0 else SpringGrowth.bud(i,slot.position,ending_time)
 					var green:=1.0 if preview_victory else SpringGrowth.greening(ending_time)
 					colour=sim.leaf_colour(slot.leaf_id if slot.leaf_id>=0 else i,sim.week).lerp(colour,green)
-					leaf_renderer.leaf(i,slot.stem.lerp(slot.position,growth),slot.angle+(1-growth)*0.5,colour,1,false,growth)
+					if not preview_victory and sim.attachment_motions.has(i):
+						var pose:Dictionary=sim.attachment_pose(i)
+						leaf_renderer.leaf(i,pose.position,pose.angle,colour,pose.roll)
+					else:leaf_renderer.leaf(i,slot.stem.lerp(slot.position,growth),slot.angle+(1-growth)*0.5,colour,1,false,growth)
 				else:leaf_renderer.leaf(slot.leaf_id,slot.position,slot.angle,colour)
 			if not keep:
 				var cell := Vector2i(slot.position / 16.0)
@@ -1484,19 +1491,21 @@ func draw_snowflake(p: Vector2, size_px: float, angle: float, colour: Color) -> 
 
 
 func draw_snow_cover(amount: float, canvas: Node2D) -> void:
-	var pts := PackedVector2Array([Vector2(0, 640), Vector2(0, 508)])
-	for i in range(37):
-		var x:=i*10.0
-		var surface:=minf(winter_fall.surface.surface(x,0),winter_fall.surface.surface(x,1))-Loop.LEAF_RADIUS*1.4
-		var top:=minf(472.0-sin(i*0.6)*4.0,surface)
-		pts.append(Vector2(x,lerpf(508,top,amount)))
-	pts.append(Vector2(360, 640))
-	canvas.draw_colored_polygon(pts, Color(0.83, 0.89, 0.94, amount))
+	if amount<=0:return
+	if snow_bank_revision!=winter_fall.revision:
+		snow_bank=preload("res://scripts/snow_bank.gd").contour(winter_fall.surface)
+		snow_bank_revision=winter_fall.revision
+	var pts:=PackedVector2Array([Vector2(0,640)])
 	var rim:=PackedVector2Array()
-	for i in range(2,pts.size()-1):rim.append(pts[i])
-	canvas.draw_polyline(rim,Color(0.34,0.46,0.57,amount*0.18),9.0,true)
-	canvas.draw_polyline(rim,Color(0.94,0.97,0.99,amount),5.5,true)
-	canvas.draw_polyline(rim,Color(1,0.99,0.95,amount*0.7),1.2,true)
+	var shade:=PackedVector2Array()
+	for point in snow_bank:
+		var p:=Vector2(point.x,lerpf(508,point.y,amount))
+		pts.append(p);rim.append(p);shade.append(p+Vector2(0,4))
+	pts.append(Vector2(360,640))
+	canvas.draw_colored_polygon(pts,Color(0.88,0.93,0.96,amount))
+	canvas.draw_polyline(shade,Color(0.47,0.59,0.70,amount*0.16),8.0,true)
+	canvas.draw_polyline(rim,Color(0.98,0.99,1,amount*0.85),3.5,true)
+	canvas.draw_polyline(rim,Color(1,1,0.98,amount*0.35),0.8,true)
 	# Small soft folds stay fixed as the snow builds, rather than flickering.
 	for i in range(16):
 		var x:=fmod(i*71.7,360)
@@ -1583,7 +1592,9 @@ func draw_character(winter: bool, victory: bool) -> void:
 	var bob:=sin(elapsed*4.0)*1.5 if not reduced_effects else 0.0
 	var height:=76.0
 	var width:=height*region.size.x/region.size.y
-	draw_texture_rect_region(ENDINGS,Rect2(px-width*0.48,Loop.GROUND-height+bob,width,height),region,Color(1,1,1,blend))
+	draw_set_transform(Vector2(px,Loop.GROUND),0,Vector2(actor.direction,1))
+	draw_texture_rect_region(ENDINGS,Rect2(-width*0.48,-height+bob,width,height),region,Color(1,1,1,blend))
+	draw_set_transform(Vector2.ZERO)
 
 
 func draw_gust() -> void:

@@ -38,5 +38,17 @@ func run() -> void:
 			progressive=progressive and amount>=last and amount-last<0.04;last=amount
 		progressive=progressive and last==1
 	check(progressive,"new leaves expand continuously from buds without a single-frame size jump")
+	main.sim=main.Loop.new()
+	main.sim.spawn_leaf()
+	var returning:Dictionary=main.sim.leaves[-1]
+	var slot_index:int=returning.home_slot
+	returning.position=main.sim.slots[slot_index].position+Vector2(-11,10)
+	var incoming:Vector2=returning.position
+	main.sim.resolve_leaf(returning,true,slot_index);main.sim.leaves.clear()
+	main.sim.status="won";main.ending_time=0;main.canopy_stamp=""
+	main.update_canopy_batches(true)
+	var offset:int=main.leaf_renderer.rank[slot_index]*12
+	var buffer:PackedFloat32Array=main.leaf_renderer.buffers[0]
+	check(Vector2(buffer[offset+3],buffer[offset+7]).is_equal_approx(incoming),"the final rescued leaf keeps settling through victory instead of snapping to its branch")
 	main.queue_free();await process_frame;await create_timer(0.15).timeout
 	print("Spring growth: %d checks, %d failures"%[checks,failures]);quit(1 if failures else 0)

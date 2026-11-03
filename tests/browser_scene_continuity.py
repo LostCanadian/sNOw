@@ -43,6 +43,7 @@ with sync_playwright() as p:
         capture('defeat-outfit-'+str(outfit))
         page.wait_for_function('snowSnapshot.ending_phase==="done"',timeout=45000)
         assert not snap()['result_visible']
+        capture('defeat-settled-snow-'+str(outfit))
         frozen_score=snap()['score'];page.wait_for_function('snowSnapshot.result_visible',timeout=20000)
         assert snap()['defeat_hold_time']>=3 and snap()['score']==frozen_score
         page.wait_for_function('snowSnapshot.result_tallied');click('Main menu');mode('title')
