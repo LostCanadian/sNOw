@@ -14,9 +14,9 @@ This is an articulated cutout animation using the existing twelve costumes. Addi
 
 Week one is approximately **94% green / 6% yellow**, with no orange or red. Week two introduces some orange; red begins in week three. Colours advance monotonically for each stable leaf identity. By week twelve, the canopy is approximately 3% green, 10% yellow, 25% orange and 62% red. The finale shifts a little further toward red. Full profiles are in `Loop.SEASONS`. Victory gradually changes every leaf to the green palette, including newly grown leaves; it does not reuse week one’s remaining yellow mix.
 
-Selection uses a seeded weighted permutation without replacement: green weight **0.15**, yellow **1**, orange **3**, red **7**. Later falling foliage is therefore mostly red, with orange/yellow mixed in and rare green leaves. The same identity cannot be scheduled repeatedly within a week. Its colour stays attached to it when it falls or returns to another branch.
+Selection uses a seeded weighted permutation without replacement: green weight **0.15**, yellow **1**, orange **3**, red **7**. Later falling foliage is therefore mostly red, with orange/yellow mixed in and rare green leaves. The same identity cannot be pending or airborne twice at once. Once reattached, it may be selected again when the fall queue refills. Its colour stays attached to it when it falls or returns to another branch.
 
-The seasonal colour mix also determines shedding intensity. Week one releases **four** leaves per event, with a slightly longer interval. Late weeks reach ten per event at the former interval. Total weekly schedules and miss limits still support substantial ground piles; a gentler first week takes longer to finish. Difficulty modifies the interval as before. Numbers remain subject to human playtesting.
+The seasonal colour mix also determines shedding intensity. Week one releases **four** leaves per event, with a slightly longer interval. Late weeks reach ten per event at the former interval. Fixed weekly quotas and miss limits still support substantial ground piles; a gentler first week takes longer to finish. Difficulty modifies the interval as before. Numbers remain subject to human playtesting.
 
 ## Detachment and targets
 

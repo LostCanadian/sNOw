@@ -39,7 +39,7 @@ func run() -> void:
 	check(main.mode == "title", "score screen returns to menu")
 	main.start_run()
 	main.finish_story()
-	main.sim.spawned = main.sim.week_leaf_count()
+	main.sim.week_handled = main.sim.week_leaf_count()
 	main._physics_process(1.0 / 60)
 	main.finish_story()
 	main.show_workshop()

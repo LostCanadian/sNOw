@@ -273,7 +273,9 @@ func _physics_process(dt: float) -> void:
 		if result_time >= TALLY_DURATION and not result_tallied: finish_tally()
 		update_result_tally()
 	if mode != "paused":
-		if not stepped and sim.status != "lost": sim.advance_attachments(dt)
+		if not stepped and sim.status != "lost":
+			sim.advance_attachments(dt)
+			sim.advance_completed_leaves(dt)
 		if mode in ["outro", "results", "workshop"]: actor.advance(0, dt, false, reduced_effects, sim.facing, 0)
 		if mode != "play": update_actor_mesh()
 		elapsed += dt
@@ -307,7 +309,7 @@ func _physics_process(dt: float) -> void:
 				"ground_positions": sim.ground_leaves.map(func(leaf): return [leaf.id, leaf.position.x, leaf.position.y, leaf.velocity.x]),
 				"defeat_hold_time":defeat_hold_time,"outfit_index":outfit_index(),"snow_active":snow.filter(func(f):return f.active).size(),"ending_time": ending_time, "flower_progress":clampf(ending_time/FLOWER_DURATION,0,1), "story_time": story_time, "grounded": sim.ground_leaves.size(), "surge_charge": sim.surge_charge, "surge_active": sim.surge_left > 0, "surge_unlocked": sim.surge_unlocked(),
 				"result_time": result_time, "result_tallied": result_tallied, "result_new_high": result_new_high,
-				"week_rescued": sim.week_rescued, "week_points": sim.score - sim.week_start_score if sim.week_start_score >= 0 else -1,
+				"level_quota":sim.week_leaf_count(),"week_handled":sim.week_handled,"week_rescued": sim.week_rescued, "week_points": sim.score - sim.week_start_score if sim.week_start_score >= 0 else -1,
 				"result_display": result_numbers.map(func(label): return label.text if is_instance_valid(label) else ""),
 				"low_power":sim.low_power,"blowing": sim.blowing, "rescued": sim.rescued, "missed": sim.missed,
 				"audio_track": sounds.track, "audio_cues": sounds.cue_counts, "audio_unlocked": sounds.unlocked, "audio_muted": sounds.muted,
@@ -1396,13 +1398,16 @@ func update_canopy_batches(victory := false) -> void:
 				else:leaf_renderer.leaf(slot.leaf_id,slot.position,slot.angle,colour,1,false,1,true)
 			if not keep and sim.anchors.active.has(i):canopy_gap_markers.append(i)
 		gap_glints.set_candidates(canopy_gap_markers)
+		if sim.status=="workshop" and sim.closing_settled and not victory:
+			for leaf in sim.ground_leaves+sim.leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0),true)
 		leaf_renderer.cache()
-	var dynamic:bool=not victory and mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty() or not sim.attachment_motions.is_empty())
+	var static_closing:bool=sim.status=="workshop" and sim.closing_settled and sim.attachment_motions.is_empty()
+	var dynamic:bool=not static_closing and not victory and mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty() or not sim.attachment_motions.is_empty())
 	if changed or dynamic:
 		leaf_renderer.restore()
 		if dynamic:
 			for leaf in sim.ground_leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0),true)
-			for leaf in sim.leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0))
+			for leaf in sim.leaves:leaf_renderer.leaf(leaf.id,leaf.position,leaf.angle,leaf.colour,leaf.get("roll",1.0),leaf.get("closing_grounded",false))
 			for index in sim.attachment_motions:
 				var pose: Dictionary = sim.attachment_pose(index)
 				var id: int = sim.slots[index].leaf_id

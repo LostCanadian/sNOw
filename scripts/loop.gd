@@ -4,7 +4,7 @@ extends RefCounted
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
-const RULES := 11
+const RULES := 12
 const AttachmentAnchors=preload("res://scripts/attachment_anchors.gd")
 const NorthWind = preload("res://scripts/north_wind.gd")
 const CROWN_CEILINGS := [2160,2080,2000,1900,1800,1680,1560,1440,1320,1200,1080,960,960]
@@ -70,6 +70,7 @@ var wind_next_packet:=0.0
 var spawned := 0
 var week_rescued := 0
 var week_missed := 0
+var week_handled := 0
 var week_time := 0.0
 var spawn_timer := 0.5
 var status := "playing"
@@ -86,6 +87,10 @@ var canopy_revision := 0
 var attachment_motions := {}
 var anchors=AttachmentAnchors.new()
 var shedding_order: Array[int] = []
+var falling_order: Array[int] = []
+var stream_empty_at_rescue := -1
+var closing_surface=PileSurface.new()
+var closing_settled := true
 var piles: Array[int] = []
 var points := 0
 var earned_points := 0
@@ -133,6 +138,7 @@ func pressure() -> float:
 	return clampf(float(week_missed) / capacity(), 0.0, 1.0)
 
 
+## The fixed completion quota; the live falling stream may exceed this plan.
 func week_leaf_count() -> int:
 	return shedding_order.size()
 
@@ -185,37 +191,50 @@ func shedding_interval() -> float:
 
 
 func prepare_shedding() -> void:
-	# A weighted permutation without replacement: each scheduled identity is real.
-	var candidates: Array = []
-	var remaining := {}
-	var coverers := Canopy.foreground_coverers(slots)
-	for index in range(slots.size()):
-		var slot: Dictionary = slots[index]
+	for slot in slots:
 		slot.attached_at = -10.0
 		slot.capture_after = 0.0
-		if slot.leaf_id >= 0:
-			var weight: float = COLOUR_WEIGHTS[leaf_category(slot.leaf_id)]
-			candidates.append([index, -log(maxf(0.000001, rng.randf())) / weight])
-			remaining[index] = true
-	candidates.sort_custom(func(a, b): return a[1] < b[1])
-	shedding_order.clear()
-	var count := mini(candidates.size(), int(DIFFICULTIES[difficulty].leaves) + int(DIFFICULTIES[difficulty].increment) * (week - 1) + (90 if is_boss() else 0))
-	for i in range(count):
-		# Peel visible leaves off each spray before releasing the leaves behind them.
-		for j in range(candidates.size()):
-			var index: int = candidates[j][0]
-			var blocked := false
-			for front in coverers[index]:
-				if remaining.has(front):
-					blocked = true
-					break
-			if blocked: continue
-			shedding_order.append(int(slots[index].leaf_id))
-			remaining.erase(index)
-			candidates.remove_at(j)
-			break
-
+	var count := int(DIFFICULTIES[difficulty].leaves) + int(DIFFICULTIES[difficulty].increment) * (week - 1) + (90 if is_boss() else 0)
+	shedding_order = plan_shedding(count)
+	falling_order.clear();stream_empty_at_rescue=-1
 	anchors.rebuild(slots,week)
+
+
+func plan_shedding(count:int,excluded:Dictionary={}) -> Array[int]:
+	# Weighted visible-first identities; refills use real occupied branches too.
+	var candidates:Array=[]
+	var remaining:Dictionary={}
+	var coverers:=Canopy.foreground_coverers(slots)
+	for index in range(slots.size()):
+		var slot:Dictionary=slots[index]
+		if slot.leaf_id<0 or excluded.has(slot.leaf_id):continue
+		var weight:float=COLOUR_WEIGHTS[leaf_category(slot.leaf_id)]
+		candidates.append([index,-log(maxf(0.000001,rng.randf()))/weight])
+		remaining[index]=true
+	candidates.sort_custom(func(a,b):return a[1]<b[1])
+	var order:Array[int]=[]
+	for i in range(mini(count,candidates.size())):
+		for j in range(candidates.size()):
+			var index:int=candidates[j][0]
+			var blocked:=false
+			for front in coverers[index]:
+				if remaining.has(front):blocked=true;break
+			if blocked:continue
+			order.append(int(slots[index].leaf_id));remaining.erase(index)
+			candidates.remove_at(j);break
+	return order
+
+
+func ensure_falling_order(minimum:int=1) -> void:
+	if falling_order.is_empty():falling_order.assign(shedding_order)
+	if falling_order.size()-spawned>=minimum or stream_empty_at_rescue==rescued:return
+	var pending:Dictionary={}
+	for i in range(spawned,falling_order.size()):pending[falling_order[i]]=true
+	var extra:=plan_shedding(64,pending)
+	falling_order.append_array(extra)
+	# Once all available branches are queued, retry only after a real rescue.
+	if extra.size()<64:stream_empty_at_rescue=rescued
+
 
 func temperature() -> int:
 	return 22 - 2 * (mini(week, MAIN_WEEKS) - 1) - (2 if is_boss() else 0)
@@ -234,7 +253,9 @@ func boss_phase() -> String:
 
 
 func step_north_wind(previous_time: float) -> void:
-	if spawned >= week_leaf_count() or leaves.size() >= MAX_ACTIVE: return
+	if leaves.size() >= MAX_ACTIVE: return
+	ensure_falling_order(64)
+	if spawned >= falling_order.size():return
 	var cycle := NorthWind.cycle(week_time)
 	if cycle != wind_cycle:
 		wind_cycle = cycle
@@ -246,8 +267,8 @@ func step_north_wind(previous_time: float) -> void:
 	if wind_released >= quota: return
 	var path := NorthWind.segment(previous_time, week_time, wind_lane)
 	var candidates: Array[int] = []
-	for pending in range(spawned, shedding_order.size()):
-		var id := shedding_order[pending]
+	for pending in range(spawned, falling_order.size()):
+		var id := falling_order[pending]
 		var index := find_attached_leaf(id)
 		if index < 0: continue
 		var point: Vector2 = slots[index].position
@@ -255,9 +276,9 @@ func step_north_wind(previous_time: float) -> void:
 			candidates.append(id)
 	candidates.sort_custom(func(a,b):return Canopy.depth(a)>Canopy.depth(b))
 	for id in candidates.slice(0,mini(4,quota-wind_released)):
-		var pending := shedding_order.find(id,spawned)
-		shedding_order[pending] = shedding_order[spawned]
-		shedding_order[spawned] = id
+		var pending := falling_order.find(id,spawned)
+		falling_order[pending] = falling_order[spawned]
+		falling_order[spawned] = id
 		if not spawn_leaf(): break
 		var radial:Vector2=leaves[-1].position-NorthWind.center(week_time,wind_lane)
 		leaves[-1].velocity+=NorthWind.tangent(week_time,wind_lane)*135+radial.orthogonal().normalized()*NorthWind.direction(week_time)*90
@@ -272,11 +293,12 @@ func choose_wind_lane() -> float:
 	const LANES:=16
 	const FIRST:=110.0
 	const STEP:=15.0
+	var order:Array[int]=falling_order if not falling_order.is_empty() else shedding_order
 	var counts:=PackedInt32Array();counts.resize(LANES);counts.fill(0)
 	var path:=PackedVector2Array()
 	for sample in range(25):path.append(NorthWind.point(sample/24.0,0,NorthWind.direction(week_time)))
-	for pending in range(spawned,shedding_order.size()):
-		var index:=find_attached_leaf(shedding_order[pending])
+	for pending in range(spawned,order.size()):
+		var index:=find_attached_leaf(order[pending])
 		if index<0:continue
 		var point:Vector2=slots[index].position
 		var lanes:=0
@@ -404,6 +426,8 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		blowing = false
 		low_power=false
 		return
+	if week_handled>=week_leaf_count():
+		complete_level();return
 	advance_attachments(dt)
 	var s := stats()
 	surge_left = maxf(0, surge_left - dt)
@@ -441,7 +465,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 	week_time += dt
 	# Ordinary shedding continues in the finale, sharing the same finite schedule.
 	spawn_timer -= dt
-	if spawn_timer<=0 and spawned<week_leaf_count() and leaves.size()<MAX_ACTIVE:
+	if spawn_timer<=0 and leaves.size()<MAX_ACTIVE:
 		for i in range(3 if is_boss() else shed_batch_size()):
 			if not spawn_leaf():break
 		spawn_timer+=shedding_interval()*(2.4 if is_boss() else 1.0)
@@ -523,21 +547,57 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 			# Missing a real gap never scores. Let the leaf fall back into reach.
 			leaf.position.y = 75.0
 			leaf.velocity.y = maxf(8.0, -leaf.velocity.y * 0.25)
-		if status == "lost":
+		if status == "lost" or week_handled>=week_leaf_count():
 			break
 	leaves = leaves.filter(func(leaf: Dictionary) -> bool: return leaf.state == "air")
-	if status == "playing" and spawned >= week_leaf_count() and leaves.is_empty():
-		score += 50 + 5 * (capacity() - week_missed)
-		blowing = false
-		low_power=false
-		surge_left = 0
-		if is_boss():
-			score += 500
-			status = "won"
-		else:
-			points += 2
-			earned_points += 2
-			status = "workshop"
+	if status == "playing" and week_handled>=week_leaf_count():complete_level()
+
+
+func complete_level() -> void:
+	if status!="playing":return
+	score += 50 + 5 * (capacity() - week_missed)
+	leaves=leaves.filter(func(leaf):return leaf.state=="air")
+	canopy_revision+=1
+	blowing=false;low_power=false;surge_left=0
+	closing_surface.heights=pile_surface.heights.duplicate()
+	closing_settled=leaves.is_empty()
+	if is_boss():score+=500;status="won"
+	else:points+=2;earned_points+=2;status="workshop"
+
+
+func checkpoint_leaf_ids() -> Array:
+	# Unfinished falls do not become free rescues or late frost penalties.
+	# Keep their identities on the next checkpoint's tree without changing the
+	# live closing scene, where they can finish falling as decoration.
+	var ids:Array=slots.map(func(slot):return slot.leaf_id)
+	if status not in ["workshop","won"]:return ids
+	var empty:=0
+	for leaf in leaves:
+		if leaf.state!="air":continue
+		var home:int=leaf.home_slot
+		if home<0 or home>=ids.size() or ids[home]>=0:
+			while empty<ids.size() and ids[empty]>=0:empty+=1
+			home=empty
+		if home<ids.size():ids[home]=leaf.id
+	return ids
+
+
+func advance_completed_leaves(dt:float) -> void:
+	if status!="workshop" or closing_settled:return
+	var moving:=false
+	for leaf in leaves:
+		if leaf.get("closing_grounded",false):continue
+		leaf.velocity.x*=exp(-0.8*dt)
+		leaf.velocity.y=minf(70,leaf.velocity.y+GRAVITY*dt)
+		leaf.position+=leaf.velocity*dt
+		leaf.position.x=clampf(leaf.position.x,-22,382)
+		leaf.angle+=float(leaf.get("spin",0))*dt
+		if leaf.position.y>=closing_surface.surface(leaf.position.x,leaf.id):
+			leaf.position.y=closing_surface.deposit(leaf.position.x,leaf.id)
+			leaf.closing_grounded=true;leaf.velocity=Vector2.ZERO
+		else:moving=true
+	if not moving:
+		closing_settled=true;canopy_revision+=1
 
 
 static func leaf_lift_response(id:int) -> float:
@@ -551,8 +611,10 @@ static func leaf_lift_response(id:int) -> float:
 
 
 func spawn_leaf() -> bool:
-	if spawned >= shedding_order.size() or leaves.size() >= MAX_ACTIVE: return false
-	var id := shedding_order[spawned]
+	if leaves.size() >= MAX_ACTIVE:return false
+	ensure_falling_order()
+	if spawned>=falling_order.size():return false
+	var id := falling_order[spawned]
 	var slot_index := find_attached_leaf(id)
 	if slot_index < 0: return false
 	var slot: Dictionary = slots[slot_index]
@@ -650,6 +712,8 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 			blowing = false
 			low_power=false
 			surge_left = 0
+	if not leaf.get("quota_counted",false):
+		week_handled+=1;leaf.quota_counted=true
 	events.append({"position": leaf.position, "saved": saved})
 
 
@@ -683,6 +747,9 @@ func refund_build() -> void:
 func next_week() -> bool:
 	if status != "workshop":
 		return false
+	var ids:=checkpoint_leaf_ids()
+	for i in range(slots.size()):slots[i].leaf_id=ids[i]
+	index_canopy()
 	week += 1
 	week_start_score = score
 	x = 180.0
@@ -699,6 +766,8 @@ func next_week() -> bool:
 	spawned = 0
 	week_rescued = 0
 	week_missed = 0
+	week_handled = 0
+	closing_settled=true;closing_surface.clear()
 	week_time = 0.0
 	spawn_timer = 0.5
 	piles.fill(0)

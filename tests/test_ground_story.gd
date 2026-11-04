@@ -113,7 +113,7 @@ func run() -> void:
 	skip.pressed = true
 	main._input(skip)
 	check(main.mode == "play" and main.keys.is_empty() and main.sim.week_time == 0, "Space dismisses the panel without accidentally starting the blower")
-	main.sim.spawned = main.sim.week_leaf_count()
+	main.sim.week_handled = main.sim.week_leaf_count()
 	main._physics_process(1.0 / 60)
 	check(main.mode == "outro" and main.sim.points == 2, "a completed week presents its congratulations before the workshop")
 	var saved_time: float = main.sim.week_time

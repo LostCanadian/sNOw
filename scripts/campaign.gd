@@ -71,11 +71,10 @@ static func read_document(text: String):
 
 static func snapshot(game) -> Dictionary:
 	if game.status == "playing" and game.week_time > 0.0: return {}
-	var ids: Array = []
-	for slot in game.slots: ids.append(slot.leaf_id)
+	var ids: Array = game.checkpoint_leaf_ids()
 	return {"rules": Loop.RULES, "seasonal_fallen": game.seasonal_fallen, "regrown": game.regrown, "week_regrown": game.week_regrown, "difficulty": game.difficulty, "run_id": game.run_id, "week": game.week, "phase": game.status, "score": game.score,
 		"week_start_score": game.week_start_score,
-		"combo": game.combo, "week_rescued": game.week_rescued, "week_missed": game.week_missed,
+		"week_handled":game.week_handled, "combo": game.combo, "week_rescued": game.week_rescued, "week_missed": game.week_missed,
 		"rescued": game.rescued, "missed": game.missed, "points": game.points,
 		"earned_points": game.earned_points, "tiers": game.tiers.duplicate(), "owned": game.owned.duplicate(),
 		"leaf_ids": ids, "order": game.shedding_order.duplicate(),
@@ -114,6 +113,8 @@ static func valid_checkpoint(data) -> bool:
 	if not whole(data.get("combo", 0), 0, int(data.rescued)): return false
 	if not whole(data.get("week_rescued", 0), 0, count) or not whole(data.get("week_missed", 0), 0, mini(count, int(data.missed))): return false
 	if data.phase == "playing" and (data.get("week_missed", 0) != 0 or data.get("week_rescued", 0) != 0): return false
+	if not whole(data.get("week_handled",0),0,count):return false
+	if data.phase=="playing" and data.get("week_handled",0)!=0:return false
 	var branching: bool = data.get("rules", 1) >= 6
 	var budget: int = Loop.MAIN_WEEKS * (2 if branching else 1)
 	if not whole(data.earned_points, 0, budget) or not whole(data.points, 0, budget): return false
@@ -166,6 +167,7 @@ static func restore(data):
 	game.combo = int(data.get("combo", 0))
 	game.week_rescued = int(data.get("week_rescued", 0))
 	game.week_missed = int(data.get("week_missed", 0))
+	game.week_handled = int(data.get("week_handled",game.week_rescued+game.week_missed))
 	game.rescued = int(data.rescued)
 	game.missed = int(data.missed)
 	game.regrown = int(data.get("regrown", 0))
@@ -190,7 +192,7 @@ static func restore(data):
 		# Preserve the fraction of gaps and counters across canopy densities. IDs
 		# are reassigned uniquely, so restored campaigns still conserve leaves.
 		var ratio:=float(Loop.Canopy.SLOT_COUNT)/old_count
-		for field in ["missed","rescued","regrown","week_regrown","week_rescued","week_missed"]:
+		for field in ["missed","rescued","regrown","week_regrown","week_rescued","week_missed","week_handled"]:
 			game.set(field,roundi(float(game.get(field))*ratio))
 		var missing:int=game.missed-game.regrown
 		var gaps:=0

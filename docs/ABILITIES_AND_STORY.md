@@ -21,7 +21,7 @@ The normal battery recharge remains separate and quick. Holding E does not autom
 
 **Recovery is real:** lifting a ground leaf removes it from the ground pile and its current-week frost penalty while it is back in play. It earns no points merely for being lifted. It must reach a real empty branch position to earn its one rescue. If it lands again, its miss returns. Existing duplicate-score/identity guards remain in place. The accounting invariant is `attached + airborne + unrecovered misses − regrown = 2160`; grounded leaves are already represented in unrecovered misses, so they are not counted twice.
 
-All scores share one top ten per difficulty, with no archived versions. Current rules version 11 includes the branching progression, Gold Leaves, positional airflow, seasonal thinning, the North Wind schedule, decreasing active-anchor limits and a two-second detached-leaf cooldown. Existing campaign checkpoints migrate without losing their leaves, completed weeks or earned-week ledger and mapped equipment; the extra Gold Leaves for completed weeks are credited.
+All scores share one top ten per difficulty, with no archived versions. Current rules version 12 includes the branching progression, Gold Leaves, positional airflow, seasonal thinning, the North Wind schedule, decreasing active-anchor limits, a two-second detached-leaf cooldown, and completion quotas independent of the continuing fall queue. Existing campaign checkpoints migrate without losing their leaves, completed weeks or earned-week ledger and mapped equipment; the extra Gold Leaves for completed weeks are credited.
 
 ## Quiet gameplay UI
 
@@ -37,7 +37,7 @@ The text suggests unusual warmth, old roots, shadows and sounds, leaving the exp
 
 ## Validation and capture boundaries
 
-Native tests cover identity conservation, layering, foot disturbance, drag, surge transfer/refund, no duplicate score, long cooldown and upgrades, held/quick input, pause, interlude timing, autosave order, unique subtle text and unified high-score migration. Browser checks use real input over validated saved loadouts. The ability study begins at week 6 with earned equipment; the closing-panel study uses an explicitly shortened saved schedule to isolate the UI. Neither is a claim of a human-completed campaign.
+Native tests cover identity conservation, layering, foot disturbance, drag, surge transfer/refund, no duplicate score, long cooldown and upgrades, held/quick input, pause, interlude timing, autosave order, unique subtle text and unified high-score migration. Browser checks use real input over validated saved loadouts. The ability study begins at week 6 with earned equipment; the closing-panel study uses an explicitly shortened saved quota to isolate the UI. Neither is a claim of a human-completed campaign.
 
 The motion clip and selected stills come from that recorded browser session. Frame timestamps are reviewed because video encoding and browser-wall clocks need not align exactly. Captured candidate frames are kept in ignored test-results, not automatically treated as approved artwork. Physical Android/iOS performance and final gameplay balance still require device playtests.
 

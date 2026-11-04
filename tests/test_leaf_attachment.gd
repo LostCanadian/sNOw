@@ -77,7 +77,7 @@ func run() -> void:
 	main.update_canopy_batches()
 	check(rendered_position(main, incoming.id).is_equal_approx(incoming.position),
 		"the captured identity overrides its cached target instead of drawing a second leaf there")
-	main.sim.spawned = main.sim.week_leaf_count()
+	main.sim.week_handled = main.sim.week_leaf_count()
 	main._physics_process(1.0 / 60)
 	check(main.mode == "outro" and not main.sim.attachment_motions.is_empty(),
 		"the final capture can continue settling during the closing interlude")

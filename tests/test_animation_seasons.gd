@@ -128,7 +128,7 @@ func run() -> void:
 	game.resolve_leaf(game.leaves[0],true,game.leaves[0].home_slot)
 	check(game.score == 10,"one rescued leaf now earns ten points")
 	game.leaves.clear()
-	game.spawned = game.week_leaf_count()
+	game.week_handled = game.week_leaf_count()
 	game.step(1.0 / 60,0,false)
 	check(game.score == 10 + 50 + 5 * game.capacity(),"completion bonuses use the same tenfold score reduction")
 	var old: Dictionary = Campaign.snapshot(game)

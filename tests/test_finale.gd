@@ -52,7 +52,7 @@ func run() -> void:
 		var game=Loop.new(55,difficulty)
 		var valid:=true
 		for week in range(12):
-			game.spawned=game.week_leaf_count();game.step(1.0/60,0,false)
+			game.week_handled=game.week_leaf_count();game.step(1.0/60,0,false)
 			game.next_week()
 			valid=valid and Campaign.valid_checkpoint(Campaign.snapshot(game)) and game.attached_count()+game.seasonal_fallen+game.missed-game.regrown==Loop.Canopy.SLOT_COUNT
 		check(valid and game.attached_count()==960 and game.seasonal_fallen==1200 and game.missed==0 and game.regrown==0,"healthy difficulty %d visibly thins through the campaign without charging player misses or repeat rewards"%difficulty)
@@ -62,17 +62,19 @@ func run() -> void:
 		check(restored.seasonal_fallen==game.seasonal_fallen and restored.slots==game.slots and restored.points==game.points,"seasonal gaps and upgrade budgets survive a retry exactly")
 		var rejected:=checkpoint.duplicate(true);rejected.seasonal_fallen+=1
 		check(not Campaign.valid_checkpoint(rejected),"mismatched seasonal gap history is rejected")
-		# A perfect-response study checks finite scheduling and duplicate protection,
+		# A perfect-response study checks quota completion and identity protection,
 		# not whether a human can rescue every gust on a device.
-		var seen:={};var duplicate:=false
+		var duplicate:=false
 		for frame in range(9000):
 			game.step(1.0/60,0,false)
-			for leaf in game.leaves:
-				duplicate=duplicate or seen.has(leaf.id);seen[leaf.id]=true
-				game.resolve_leaf(leaf,true,leaf.home_slot)
-			game.leaves.clear()
 			if game.status!="playing":break
-		check(game.status=="won" and not duplicate and seen.size()==game.week_leaf_count(),"all scheduled identities in difficulty %d can be stripped exactly once and the encounter finishes"%difficulty)
+			var active_ids:Dictionary={}
+			for leaf in game.leaves:
+				if game.week_handled>=game.week_leaf_count():break
+				duplicate=duplicate or active_ids.has(leaf.id);active_ids[leaf.id]=true
+				game.resolve_leaf(leaf,true,leaf.home_slot)
+			game.leaves=game.leaves.filter(func(leaf):return leaf.state=="air")
+		check(game.status=="won" and not duplicate and game.week_handled==game.week_leaf_count() and game.week_rescued==game.week_leaf_count(),"the quota in difficulty %d completes without waiting on extra airborne identities"%difficulty)
 		var depleted=Campaign.restore(checkpoint)
 		var missing:=0
 		for slot in depleted.slots:

@@ -35,5 +35,19 @@ func run() -> void:
 	main.preview_victory=true;main.update_canopy_batches(true);uploads=batch.uploads
 	for frame in range(30):main.ending_time+=1.0/60;main.update_canopy_batches(true)
 	check(batch.uploads==uploads,"the static victory preview also keeps its canopy cache")
+	main.sim=main.Loop.new(77);main.sim.shedding_order.resize(1);main.sim.spawn_timer=999
+	main.preview_victory=false;main.mode="play"
+	main.sim.spawn_leaf();main.sim.spawn_leaf()
+	main.sim.leaves[0].position.y=main.Loop.GROUND
+	main.sim.step(1.0/60,0,false);main.mode="outro";main.update_canopy_batches()
+	var pending:Dictionary=main.sim.leaves[0]
+	main.pause_game();var frozen:Vector2=pending.position
+	main._physics_process(2)
+	check(pending.position==frozen,"pausing a quota ending freezes its remaining decorative leaves")
+	main.resume_game()
+	for frame in range(900):main.sim.advance_completed_leaves(1.0/60);main.update_canopy_batches()
+	uploads=batch.uploads
+	for frame in range(60):main.update_canopy_batches()
+	check(main.sim.closing_settled and batch.uploads==uploads,"a completed weekly ending caches its decorative piles instead of uploading forever")
 	main.queue_free();await process_frame;await create_timer(.3).timeout
 	print("Canopy updates: %d checks, %d failures"%[checks,failures]);quit(1 if failures else 0)

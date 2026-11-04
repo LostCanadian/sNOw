@@ -24,7 +24,7 @@ func complete_week(main, saved: int, fallen: int) -> void:
 		var leaf: Dictionary = main.sim.leaves[-1]
 		main.sim.resolve_leaf(leaf, i < saved, leaf.home_slot)
 	main.sim.leaves.clear()
-	main.sim.spawned = main.sim.week_leaf_count()
+	main.sim.week_handled = main.sim.week_leaf_count()
 	main._physics_process(1.0 / 60)
 	main.finish_story()
 

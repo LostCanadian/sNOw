@@ -1,4 +1,4 @@
-"""Real-input capture and visual review using a validated one-leaf study checkpoint."""
+"""Real-input capture and visual review using a validated one-leaf-quota study checkpoint."""
 import argparse
 import json
 from pathlib import Path
@@ -39,6 +39,7 @@ with sync_playwright() as p:
         page.keyboard.up('d');page.keyboard.up('a')
     page.wait_for_function('Math.abs(snowSnapshot.aim)<0.01')
     page.wait_for_function('target=>snowSnapshot.airborne.some(leaf=>leaf[1]>target[1]+0.5)',arg=study['target'])
+    page.wait_for_function('snowSnapshot.time>=3.0')
     page.keyboard.down('Space')
     try:
         page.wait_for_function('window.settleSamples.length>=2',timeout=30000)
@@ -48,12 +49,15 @@ with sync_playwright() as p:
         raise
     page.keyboard.up('Space')
     mode('outro')
+    completed=snap()
+    assert completed['week_handled']==completed['level_quota']==1 and completed['air']>0,completed
+    assert not completed['save_error'],completed['save_error']
     page.wait_for_function('snowSnapshot.attachments.length===0')
     samples=page.evaluate('window.settleSamples')
     assert len({tuple(record[4:6]) for record in samples})>=2,samples
     assert any(abs(record[4]-record[6])+abs(record[5]-record[7])>1 for record in samples),samples
     assert snap()['rescued']==1 and snap()['missed']==0
-    print('PASS: a real blower capture travels through multiple intermediate poses before resting, including on the final leaf.',flush=True)
+    print('PASS: a real blower capture travels through multiple intermediate poses before resting, including the quota-completing leaf with other leaves still falling.',flush=True)
     mode('results');page.wait_for_function('snowSnapshot.result_tallied')
     button=next(b for b in snap()['ui_buttons'] if b['text']=='Upgrades')
     x,y,w,h=button['rect'];canvas=page.locator('canvas').bounding_box()

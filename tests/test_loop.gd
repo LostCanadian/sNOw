@@ -52,7 +52,7 @@ func _initialize() -> void:
 	check(game.missed == 1, "ground outcomes are exactly once")
 	game = Loop.new()
 	game.week = Loop.BOSS_STAGE
-	game.spawned = game.week_leaf_count()
+	game.week_handled = game.week_leaf_count() - 1
 	game.week_missed = game.capacity() - 1
 	game.missed = game.week_missed
 	game.leaves.append({"id": 99, "position": Vector2(180, Loop.GROUND), "velocity": Vector2.ZERO, "state": "air", "lifted": false, "age": 0.0, "angle": 0.0, "colour": Color.WHITE})
@@ -62,7 +62,7 @@ func _initialize() -> void:
 	game.step(1, 1, true)
 	check(game.score == before and game.x == 180.0, "ending freezes score and gameplay")
 	game = Loop.new()
-	game.spawned = game.week_leaf_count()
+	game.week_handled = game.week_leaf_count()
 	game.step(1.0 / 60.0, 0, false)
 	check(game.status == "workshop" and game.points == 2, "week completion awards two Gold Leaves")
 	for i in range(20): game.step(1.0 / 60.0, 0, false)
@@ -92,7 +92,7 @@ func _initialize() -> void:
 	check(first.leaves == second.leaves and first.score == second.score and first.x == second.x, "same seed and fixed-step inputs reproduce state")
 	game = Loop.new()
 	game.week = Loop.BOSS_STAGE
-	game.spawned = game.week_leaf_count()
+	game.week_handled = game.week_leaf_count()
 	game.step(1.0 / 60.0, 0, false)
 	check(game.status == "won" and game.score == 550 + 5 * game.capacity() and game.points == 0, "final-week success awards the win bonus and no unusable upgrade point")
 	game = Loop.new()
@@ -132,7 +132,7 @@ func test_canopy() -> void:
 	check(first.state == "air" and game.rescued == 1, "an already-filled spot rejects a second leaf and score")
 	game.resolve_leaf(first, false)
 	game.leaves.clear()
-	game.spawned = game.week_leaf_count()
+	game.week_handled = game.week_leaf_count()
 	game.step(1.0 / 60.0, 0, false)
 	var remaining: int = game.attached_count()
 	var gap: int = second.home_slot
@@ -152,7 +152,7 @@ func test_weeks() -> void:
 		check(game.week == stage and not game.is_boss(), "campaign includes main week %d" % stage)
 		check(game.temperature() < previous, "temperature drops in week %d" % stage)
 		previous = game.temperature()
-		game.spawned = game.week_leaf_count()
+		game.week_handled = game.week_leaf_count()
 		game.step(1.0 / 60, 0, false)
 		check(game.status == "workshop" and game.earned_points == stage * 2, "main week %d completes once and awards its workshop point" % stage)
 		game.next_week()
@@ -178,6 +178,6 @@ func test_weeks() -> void:
 	check(boss.leaves[0].velocity.y > normal.leaves[0].velocity.y, "the boss gust actually accelerates leaves downward")
 	game.week_time = 3.5
 	check(game.boss_phase() == "rest", "boss gives a predictable recovery window")
-	game.spawned = game.week_leaf_count()
+	game.week_handled = game.week_leaf_count()
 	game.step(1.0 / 60, 0, false)
 	check(game.status == "won" and game.earned_points == 24, "only the boss completes the campaign without an extra unusable point")
