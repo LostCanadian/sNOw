@@ -34,7 +34,7 @@ const KNEE_HEIGHT := 14.0
 const PILE_HEIGHT := 10.0
 const COLOUR_WEIGHTS := [0.15, 1.0, 3.0, 7.0] # Green, yellow, orange, red.
 const SEASONS := [
-	[0.84,0.16,0.00,0.00], [0.70,0.25,0.05,0.00], [0.48,0.32,0.17,0.03],
+	[0.94,0.06,0.00,0.00], [0.70,0.25,0.05,0.00], [0.48,0.32,0.17,0.03],
 	[0.30,0.30,0.29,0.11], [0.20,0.26,0.32,0.22], [0.12,0.20,0.32,0.36],
 	[0.08,0.16,0.29,0.47], [0.05,0.14,0.28,0.53], [0.04,0.13,0.27,0.56],
 	[0.03,0.12,0.27,0.58], [0.03,0.11,0.26,0.60], [0.03,0.10,0.25,0.62],
@@ -154,9 +154,13 @@ func leaf_category(id: int, season_week := 0) -> int:
 	return 3
 
 
+func green_leaf_colour(id: int) -> Color:
+	return Color("8fa65c") if id % 2 == 0 else Color("bbc16b")
+
+
 func leaf_colour(id: int, season_week: int = 0) -> Color:
 	var category := leaf_category(id, season_week)
-	if category == 0: return Color("8fa65c") if id % 2 == 0 else Color("bbc16b")
+	if category == 0: return green_leaf_colour(id)
 	return LEAF_COLOURS[category - 1]
 
 

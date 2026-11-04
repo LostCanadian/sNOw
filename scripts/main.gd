@@ -1382,8 +1382,8 @@ func update_canopy_batches(victory := false) -> void:
 			if preview_mode: keep = fmod(i * 0.61803398875, 1.0) >= preview_weather * 0.80
 			if victory: keep = true
 			var colour_week: int = 11 if preview_mode and preview_weather > 0.5 else sim.week
-			if victory: colour_week = 1
-			var colour: Color = sim.leaf_colour(slot.leaf_id if slot.leaf_id >= 0 else i, colour_week)
+			var leaf_id: int = slot.leaf_id if slot.leaf_id >= 0 else i
+			var colour: Color = sim.green_leaf_colour(leaf_id) if victory else sim.leaf_colour(leaf_id, colour_week)
 			if keep:
 				if victory:
 					var growth:=1.0 if preview_victory or slot.leaf_id>=0 else SpringGrowth.bud(i,slot.position,ending_time)
@@ -1825,9 +1825,6 @@ func draw_story_card(kind: String) -> void:
 	var lines: PackedStringArray = str(chapter[1 if kind == "intro" else 2]).split("\n")
 	for i in range(lines.size()):
 		write_center(lines[i], 180, rect.position.y + 87 + i * 23, 15, Color(INK, alpha), true)
-
-	if kind=="intro":
-		write_center("Max %d anchors · New leaves drift for %ss"%[sim.anchors.limit,str(sim.LEAF_ATTACH_DELAY)],180,rect.position.y+146,9,Color(RUST,alpha))
 
 
 func draw_surge() -> void:

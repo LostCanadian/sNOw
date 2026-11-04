@@ -16,6 +16,14 @@ func visible_area(main) -> float:
 			var o:=i*12
 			total+=absf(data[o]*data[o+5]-data[o+1]*data[o+4])
 	return total
+func green_crown(main) -> bool:
+	var palette:Image=main.leaf_renderer.palette_image()
+	var shades:=[main.sim.green_leaf_colour(0),main.sim.green_leaf_colour(1)]
+	for i in range(main.Canopy.SLOT_COUNT):
+		var rank:int=main.leaf_renderer.rank[i]
+		var colour:=palette.get_pixel(rank%128,rank/128)
+		if not colour.is_equal_approx(shades[0]) and not colour.is_equal_approx(shades[1]):return false
+	return true
 func run() -> void:
 	check(Growth.flash(0)==0 and Growth.flash(0.2)>0.9 and Growth.flash(1.5)==0,"tree light is a short smooth burst")
 	check(Growth.wardrobe(0)==0 and Growth.wardrobe(2)>0 and Growth.wardrobe(2)<1 and Growth.wardrobe(3.5)==1,"winter and summer outfits overlap through the transition")
@@ -23,11 +31,16 @@ func run() -> void:
 	var main=Main.instantiate();root.add_child(main);main.set_physics_process(false);main.muted=true
 	main.sim.week=13;main.sim.retire_seasonal_foliage();main.sim.status="won";main.mode="won"
 	var before:Dictionary=Campaign.snapshot(main.sim)
-	main.ending_time=0;main.update_canopy_batches(true);var start:=visible_area(main)
+	main.ending_time=0;main.update_canopy_batches(true);var start:=visible_area(main);var green_at_start:=green_crown(main)
 	main.ending_time=1.5;main.update_canopy_batches(true);var middle:=visible_area(main)
 	main.ending_time=3.5;main.update_canopy_batches(true);var full:=visible_area(main)
 	check(start>0 and start<middle and middle<full,"the actual render buffers grow a sparse crown into a full crown over multiple frames")
 	check(is_equal_approx(full,main.Canopy.SLOT_COUNT*main.Canopy.RADIUS*main.Canopy.RADIUS),"each branch receives exactly one full-size leaf after growth completes")
+	main.ending_time=6;main.update_canopy_batches(true)
+	check(not green_at_start and green_crown(main),"the actual victory palette fades from autumn colours to green on every branch, without week one's yellow leaves")
+	main.preview_victory=true;main.canopy_stamp="";main.update_canopy_batches(true)
+	check(green_crown(main),"the victory preview also renders only green leaves")
+	main.preview_victory=false
 	check(Campaign.snapshot(main.sim)==before,"the victory growth cannot mutate gameplay, score, leaf identities or RNG")
 	var progressive:=true
 	for i in range(200):

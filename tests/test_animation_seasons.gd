@@ -32,7 +32,7 @@ func run() -> void:
 	for id in range(Loop.Canopy.SLOT_COUNT):
 		colours[game.leaf_category(id)] += 1
 		for week in range(1,12): monotonic = monotonic and game.leaf_category(id,week + 1) >= game.leaf_category(id,week)
-	check(colours[2] == 0 and colours[3] == 0 and colours[0] > 1650 and colours[1] > 300,"week one is predominantly green with yellow and no orange/red")
+	check(colours[2] == 0 and colours[3] == 0 and colours[0] > 2000 and colours[1] >= 80 and colours[1] < 160,"week one is almost all green with a small scattering of yellow and no orange/red")
 	check(monotonic,"each identity progresses through seasonal colours without turning green again")
 	var initial_yellow: int = game.shedding_order.filter(func(id): return game.leaf_category(id) == 1).size()
 	check(float(initial_yellow) / game.week_leaf_count() > float(colours[1]) / 2160 * 1.05,"among visible foreground candidates, yellow foliage is more likely to shed than the much larger green population")

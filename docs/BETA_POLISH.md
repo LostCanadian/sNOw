@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Twenty-seven headless regression scripts pass 986 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Twenty-seven headless regression scripts pass 988 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -181,10 +181,14 @@ Validation includes the cooldown and clump study, seven glint scheduling checks,
 
 Rules 11 limits the active empty attachment pool to 64 / 60 / 56 / 52 / 48 / 44 / 40 / 36 / 32 / 28 / 24 / 20 / 16 over the thirteen stages, without removing any foliage. Targets stay fixed until filled; replacements spread across bare branches, with a short history discouraging immediate reuse of the same area. Cooling targets count toward the cap. A newly emptied position need not become active while the pool is full. Only ready active positions appear in the existing five-glint cycle; unlit active positions still work.
 
-Every detached leaf waits two seconds before it can attach anywhere, independently of the five-second cooldown on its former spot. Blower lift and steering still work immediately. The timer follows the original detachment rather than animation age, so a later ground recovery does not restart it. Intro cards display the current limit and delay. Existing saves derive the pool on restore; unified score tables and all leaf identities remain intact.
+Every detached leaf waits two seconds before it can attach anywhere, independently of the five-second cooldown on its former spot. Blower lift and steering still work immediately. The timer follows the original detachment rather than animation age, so a later ground recovery does not restart it. Existing saves derive the pool on restore; unified score tables and all leaf identities remain intact.
 
 Twenty-nine new checks cover decreasing limits, unchanged foliage and simulation randomness, spatial spread, inactive gaps, stable targets and replacement, independent spot/leaf timing, real blower captures, a twenty-leaf gust and old-save/retry compatibility. Density-index and glint checks use the same eligibility rules. The complete suite passes 27 scripts / 986 checks and 26 Python tests. A native headless sample of 150 finale rescues averaged 0.265 ms for settlement and target replenishment (95th percentile 0.297 ms); this is not a device frame-rate measurement. Full-campaign balance still requires human playtesting.
 
 Browser input checks confirm a delayed capture still interpolates through multiple poses, the finale exposes exactly sixteen targets, North Wind passes work in both directions, and victory remains behind the manual Continue flow. These use validated study saves, not a human campaign completion.
 
 The release Web build also passes the thirteen-atmosphere and two-ending render smoke check, with packaged music playing, no browser errors and no exposed debug hooks.
+
+### Greener opening and victory canopy
+
+Week one starts with approximately 94% green and 6% yellow foliage. Victory keeps its gradual seasonal colour transition but finishes with every leaf in the green palette, including regrowth and the victory preview. Intro cards retain their story text without the added anchor/cooldown caption. Native validation passes 27 scripts / 988 checks, including the actual victory render palette; the release browser smoke check passes all thirteen atmospheres and both endings.

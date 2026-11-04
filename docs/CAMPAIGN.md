@@ -44,7 +44,7 @@ The active pool counts empty attachment targets, independently of how many leave
 
 There can be fewer active anchors if fewer gaps exist. Existing targets stay in place until filled. Filling one replaces it with a spread-out empty target; the three most recently filled areas are also considered when choosing its replacement. A newly vacated spot joins the pool only when there is room, and its five-second spot cooldown still applies. Cooling targets count toward the cap, so cooling cannot open an unlimited second set of targets. A spot outside the pool can stay inactive even after its cooldown expires.
 
-The leaf’s separate two-second cooldown starts when it detaches and blocks all attachment, including at older ready gaps. It does not block lift or steering. Ground recovery does not restart this timer. Twinkles cycle through at most five ready active targets; an unlit active target still accepts an eligible leaf. The intro card states the current cap and leaf delay.
+The leaf’s separate two-second cooldown starts when it detaches and blocks all attachment, including at older ready gaps. It does not block lift or steering. Ground recovery does not restart this timer. Twinkles cycle through at most five ready active targets; an unlit active target still accepts an eligible leaf.
 
 The pool is derived deterministically at level preparation and checkpoint restore without consuming simulation randomness. Rules 11 retains older saves, foliage counts, earned upgrades and unified high scores. Live airborne state and anchor timers are not added to boundary checkpoints. The initial limits and cooldown need human campaign playtesting.
 

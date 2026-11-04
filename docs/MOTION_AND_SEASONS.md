@@ -12,7 +12,7 @@ This is an articulated cutout animation using the existing twelve costumes. Addi
 
 ## Colour and falling rate
 
-Week one is approximately **84% green / 16% yellow**, with no orange or red. Week two introduces some orange; red begins in week three. Colours advance monotonically for each stable leaf identity. By week twelve, the canopy is approximately 3% green, 10% yellow, 25% orange and 62% red. The finale shifts a little further toward red. Full profiles are in `Loop.SEASONS`.
+Week one is approximately **94% green / 6% yellow**, with no orange or red. Week two introduces some orange; red begins in week three. Colours advance monotonically for each stable leaf identity. By week twelve, the canopy is approximately 3% green, 10% yellow, 25% orange and 62% red. The finale shifts a little further toward red. Full profiles are in `Loop.SEASONS`. Victory gradually changes every leaf to the green palette, including newly grown leaves; it does not reuse week one’s remaining yellow mix.
 
 Selection uses a seeded weighted permutation without replacement: green weight **0.15**, yellow **1**, orange **3**, red **7**. Later falling foliage is therefore mostly red, with orange/yellow mixed in and rare green leaves. The same identity cannot be scheduled repeatedly within a week. Its colour stays attached to it when it falls or returns to another branch.
 
