@@ -92,11 +92,13 @@ var surge_requested := false
 var ambient_rng := RandomNumberGenerator.new()
 var snow: Array[Dictionary] = []
 var snow_clock := 0.0
+var branch_snow_layer:Node2D
+var rear_snow_layer:Node2D
 var snow_layer:Node2D
 var snow_cover_stamp:=""
 var snow_bank_revision:=-1
-var snow_bank:Dictionary={}
-var snow_mesh:ArrayMesh
+var snow_banks:Array[Dictionary]=[]
+var snow_meshes:Array[ArrayMesh]=[null,null]
 var sparks: Array[Dictionary] = []
 var reduced_effects := false
 var muted := false
@@ -188,12 +190,22 @@ func _ready() -> void:
 		add_child(layer);scenery_layers.append(layer)
 	var wind_art:=preload("res://scripts/wind_visual.gd").new()
 	wind_art.game=self;add_child(wind_art);scenery_layers.append(wind_art)
+	branch_snow_layer=Node2D.new();branch_snow_layer.z_index=-2
+	var branch_paper:=ShaderMaterial.new();branch_paper.shader=preload("res://scripts/branch_snow.gdshader")
+	branch_paper.set_shader_parameter("paper",WINTER_CLOUDS);branch_snow_layer.material=branch_paper
+	branch_snow_layer.draw.connect(func():
+		if world.winter and winter_fall.cover()>0:branch_snow_layer.draw_texture_rect(TREE,Canopy.TREE_RECT,false))
+	add_child(branch_snow_layer)
+	rear_snow_layer=Node2D.new();rear_snow_layer.z_index=-1
 	snow_layer=Node2D.new()
 	var snow_paper:=ShaderMaterial.new();snow_paper.shader=preload("res://scripts/snow_paper.gdshader")
-	snow_paper.set_shader_parameter("paper",BACKDROP);snow_layer.material=snow_paper
+	snow_paper.set_shader_parameter("paper",WINTER_CLOUDS)
+	rear_snow_layer.material=snow_paper;snow_layer.material=snow_paper
+	rear_snow_layer.draw.connect(func():
+		if world.winter:draw_snow_cover(winter_fall.cover(),rear_snow_layer,0))
 	snow_layer.draw.connect(func():
-		if world.winter:draw_snow_cover(winter_fall.cover(),snow_layer))
-	add_child(snow_layer)
+		if world.winter:draw_snow_cover(winter_fall.cover(),snow_layer,1))
+	add_child(rear_snow_layer);add_child(snow_layer)
 	update_actor_mesh()
 	for i in range(65):
 		snow.append({"x": ambient_rng.randf_range(0, 360), "y": -20.0, "active": false, "size": Snowflakes.radius(ambient_rng.randf()), "phase": ambient_rng.randf_range(0, TAU)})
@@ -292,7 +304,8 @@ func _physics_process(dt: float) -> void:
 	world.advance(dt,mode=="paused",reduced_effects,ambient_scene=="won" or preview_victory,ambient_scene=="lost" or (preview_mode and preview_weather>=1.0),weather(),mode=="play" and sim.blowing,180.0 if ambient_scene in ["title","preview"] else sim.x)
 	var snow_stamp:="%d:%.5f"%[winter_fall.revision,winter_fall.cover()] if world.winter else "clear"
 	if snow_stamp!=snow_cover_stamp:
-		snow_cover_stamp=snow_stamp;snow_layer.queue_redraw()
+		snow_cover_stamp=snow_stamp;snow_layer.queue_redraw();rear_snow_layer.queue_redraw();branch_snow_layer.queue_redraw()
+		branch_snow_layer.material.set_shader_parameter("accumulation",winter_fall.cover() if world.winter else 0.0)
 	queue_redraw()
 	for layer in scenery_layers:layer.queue_redraw()
 	fill_audio(dt)
@@ -1491,26 +1504,16 @@ func draw_snowflake(p: Vector2, radius: float, angle: float, colour: Color) -> v
 		draw_set_transform(Vector2.ZERO)
 
 
-func draw_snow_cover(amount: float, canvas: Node2D) -> void:
+func draw_snow_cover(amount: float, canvas: Node2D, depth_lane:int=1) -> void:
 	if amount<=0:return
 	var model=preload("res://scripts/snow_bank.gd")
-	var paper:ShaderMaterial=canvas.material
 	if snow_bank_revision!=winter_fall.revision:
-		snow_bank=model.build(winter_fall.surface)
+		snow_banks.assign([model.build(winter_fall.surface,0),model.build(winter_fall.surface,1)])
 		snow_bank_revision=winter_fall.revision
-		paper.set_shader_parameter("bank_centers",snow_bank.centers)
-		paper.set_shader_parameter("bank_widths",snow_bank.widths)
-		paper.set_shader_parameter("bank_crests",snow_bank.crests)
-	paper.set_shader_parameter("accumulation",amount)
-	var shape:Dictionary=model.layers(snow_bank,amount)
+	var shape:Dictionary=model.layers(snow_banks[depth_lane],amount)
 	if shape.body_alpha>0:
-		snow_mesh=model.mesh(shape.upper,shape.body_alpha)
-		canvas.draw_mesh(snow_mesh,null)
-	canvas.draw_polyline(shape.upper,Color(1,0.995,0.98,shape.coating_alpha*0.8),lerpf(0.5,2.0,amount),true)
-	# Snow rests on the painted branches, not on every leaf in a dense spray.
-	for i in range(Canopy.PREVIOUS_COUNT):
-		var p: Vector2 = sim.slots[i].stem
-		canvas.draw_arc(p + Vector2(0, -2), 3.0, PI, TAU, 12, Color(0.95, 0.97, 0.98, amount * 0.8), 2.0, true)
+		snow_meshes[depth_lane]=model.mesh(shape.upper,shape.body_alpha)
+		canvas.draw_mesh(snow_meshes[depth_lane],null)
 
 
 func draw_spring_light() -> void:

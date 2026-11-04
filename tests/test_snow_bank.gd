@@ -16,7 +16,7 @@ func _initialize() -> void:
 	var covered:=true;var rounded:=true
 	for i in range(bank.size()):
 		var p:=bank[i]
-		covered=covered and p.y<minf(piles.surface(p.x,0),piles.surface(p.x,1))-8
+		covered=covered and p.y<minf(piles.surface(p.x,0),piles.surface(p.x,1))-2
 		if i>0 and i<bank.size()-1:rounded=rounded and absf(bank[i-1].y-2*p.y+bank[i+1].y)<0.5
 	check(covered,"snow stays above both lanes of piled leaves")
 	check(rounded,"pile peaks and valleys become continuous rounded drifts rather than angular teeth")
@@ -27,7 +27,7 @@ func _initialize() -> void:
 	var starts_on_leaves:=true
 	for i in range(first.upper.size()):
 		starts_on_leaves=starts_on_leaves and first.upper[i].distance_to(profile.support[i])<1
-	check(starts_on_leaves and first.body_alpha==0 and first.coating_alpha>0,"snow starts as a thin coat on the leaf pile instead of rising from underneath it")
+	check(starts_on_leaves and first.body_alpha>0 and first.body_alpha<0.02,"snow starts as a thin coat on the leaf pile instead of rising from underneath it")
 	check(last.upper==profile.top and last.lower[0].y==640,"the coating joins into complete banks as accumulation finishes")
 	var peaks:=0
 	for i in range(1,bank.size()-1):
@@ -46,4 +46,27 @@ func _initialize() -> void:
 		var a:float=vertices[triangles[i]].x;var b:float=vertices[triangles[i+1]].x;var c:float=vertices[triangles[i+2]].x
 		local=local and maxf(a,maxf(b,c))-minf(a,minf(b,c))<=2.01
 	check(local,"bank lighting triangles remain local instead of stretching diagonal shading seams across the snow")
+	var actual_top:=502.0;var snow_top:=502.0
+	for i in range(91):actual_top=minf(actual_top,minf(piles.surface(i*4.0,0),piles.surface(i*4.0,1)))
+	for point in bank:snow_top=minf(snow_top,point.y)
+	check(snow_top>=actual_top-14,"snow adds a restrained coat above the real piles instead of inflating tall artificial banks")
+	var shades:PackedColorArray=geometry[Mesh.ARRAY_COLOR]
+	check(shades[0].a==0 and shades[1].a==1 and vertices[1].y>vertices[0].y,"a transparent feather softens the filled bank edge without drawing an outline")
+	var gradual:=true;var previous:Dictionary=Snow.layers(profile,0)
+	for frame in range(1,61):
+		var next:Dictionary=Snow.layers(profile,frame/60.0)
+		gradual=gradual and next.body_alpha>=previous.body_alpha and next.body_alpha-previous.body_alpha<0.04
+		for i in range(bank.size()):gradual=gradual and next.upper[i].y<=previous.upper[i].y
+		previous=next
+	check(gradual,"the complete snow body builds upward and fades in continuously from the leaf supports")
+	var winter=preload("res://scripts/winter_fall.gd").new();winter.phase="snow"
+	for frame in range(120):winter.step(1.0/60)
+	check(not winter.finished() and winter.cover()<0.65,"snowfall is still building after two seconds instead of jumping to a finished bank")
+	for frame in range(180):winter.step(1.0/60)
+	check(winter.finished() and winter.cover()==1,"gradual snow accumulation still reaches a stable complete state")
+	var rear:Dictionary=Snow.build(piles,0);var front:Dictionary=Snow.build(piles,1)
+	var rear_top:=502.0;var front_top:=502.0
+	for point in rear.top:rear_top=minf(rear_top,point.y)
+	for point in front.top:front_top=minf(front_top,point.y)
+	check(front_top<rear_top-50,"front and rear snow sample their own leaf supports rather than copying the tallest combined pile")
 	print("Snow blanket: %d checks, %d failures"%[checks,failures]);quit(1 if failures else 0)

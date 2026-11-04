@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Twenty-nine headless regression scripts pass 1,021 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Twenty-nine headless regression scripts pass 1,027 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -120,7 +120,7 @@ Run native regressions with `python3 tools/check_godot_tests.py`. It rejects eng
 
 ### November 2026: planted ground and spring transition
 
-The root bank is now completely vegetated paper artwork, with a feathered lower edge and lighting/colour treatments for autumn, rain, dusk, night and winter. Victory sends a short warm light pulse through the tree. Missing leaves grow from their stems in a staggered branch wave; the existing crown changes colour, the meadow greens over 5.5 seconds, and the current winter outfit dissolves into the summer celebration pose. The landscape crossfades into sunlight. These are presentation effects and do not change saved leaf identities, rewards or RNG. Settled snow has a smooth highlighted rim and shaded banks.
+The root bank is now completely vegetated paper artwork, with a feathered lower edge and lighting/colour treatments for autumn, rain, dusk, night and winter. Victory sends a short warm light pulse through the tree. Missing leaves grow from their stems in a staggered branch wave; the existing crown changes colour, the meadow greens over 5.5 seconds, and the current winter outfit dissolves into the summer celebration pose. The landscape crossfades into sunlight. These are presentation effects and do not change saved leaf identities, rewards or RNG. Settled snow uses filled paper banks with soft edges and broad shading.
 
 Validation: seven growth/render-buffer checks, the existing finale timing tests, and the browser finale flow. Ambient rustle now reaches independently timed leaves throughout the crown; the attachment regression allows its small cosmetic motion after a leaf has settled.
 
@@ -129,7 +129,7 @@ Validation: seven growth/render-buffer checks, the existing finale timing tests,
 
 The finale uses a sixteen-frame paper wind atlas with interpolated poses, rolling motion and a curved, side-to-side route that travels completely offscreen. Its physical stripping capsule and local swirling force follow the same route. Gusts impart a rolling impulse to real leaves; regular three-leaf falls continue between gusts, sharing the existing finite schedule. Fine chaff and orbiting debris add motion without creating scoring leaves. Rules 10 retains earlier saves and the single high-score table.
 
-Validation: 38 finale checks include finite unique schedules on all difficulties, playable minimum foliage, ordinary falling during recovery, curved exit/reentry and swept-path stripping. The browser finale study shows textured gusts on both approaches and verifies pause and ending flow. Small falling snow crystals now use smooth shaded silhouettes; the settled snowbank has an antialiased highlighted rim and soft folds. [Wind return review](images/north-wind-sweep.png).
+Validation: 38 finale checks include finite unique schedules on all difficulties, playable minimum foliage, ordinary falling during recovery, curved exit/reentry and swept-path stripping. The browser finale study shows textured gusts on both approaches and verifies pause and ending flow. Small falling snow crystals now use smooth shaded silhouettes; the settled snowbank has a feathered filled edge and soft folds. [Wind return review](images/north-wind-sweep.png).
 
 
 ### Original score and story revision
@@ -197,7 +197,7 @@ Week one starts with approximately 94% green and 6% yellow foliage. Victory keep
 
 Full-power lift, sideways steering and the upward speed cap taper smoothly along the aimed cone, from full strength near the nozzle to 28% at maximum reach. A reach upgrade extends useful strength at the same world distance. Per-leaf response variation remains. The recharge draft retains gravity support while its small upward surplus and gentle speed limit fade with distance. Whirlwind keeps its separate force and speed allowance. No presentation captions were added.
 
-Nine physics checks cover actual near/middle/far acceleration and sustained speeds, the range boundary, reach upgrades, an angled cone, low-power holding and a freely rising leaf. The latter slows from approximately 139 to 59 logical units per second between the lower and upper parts of the cone. All 28 native scripts / 997 checks pass, and debug/release Web exports build. The attachment rendering study uses a lower naturally empty branch so it can inspect settling without relying on the old uniform lift.
+Nine physics checks cover actual near/middle/far acceleration and sustained speeds, the range boundary, reach upgrades, an angled cone, low-power holding and a freely rising leaf. The latter slows from approximately 139 to 59 logical units per second between the lower and upper parts of the cone. All 28 native scripts / 997 checks pass, and debug/release Web exports build. The attachment rendering study uses a naturally empty branch validated against the current physics.
 
 ### Completion without waiting on the last leaves
 
@@ -208,3 +208,13 @@ Unfinished leaves finish falling decoratively during the closing scene without c
 Twenty-two new quota checks cover continuous shedding, immediate completion with pending leaves, immutable goals, identity conservation, one-time progress and rewards, recovery, simultaneous loss, neutral checkpoints, reload, next-week reset and supply exhaustion. Two render checks cover closing-scene pause and completed-pile caching. All 29 native scripts / 1,021 checks and 26 Python tests pass; debug and release Web exports build. The real-input attachment study verifies a quota-completing rescue while other leaves remain airborne, fluid settling and a successful boundary save. Review fixtures validate candidate captures against the unmodified physics before exporting their saved study.
 
 The browser finale check also passes the full victory hold/card/Continue sequence and both North Wind directions with the new quota rules.
+
+### Natural snow accumulation and branch coating
+
+The contour stroke and repeated white branch arcs are removed. Snow builds as filled, feathered paper over 4.5 seconds, with local slope shading and a restrained ground depth of six logical pixels. Bank fitting no longer inflates its crests to cover distant outliers; a rounded coating follows the real pile supports. Front and rear banks sample their own leaf-pile lanes and render on the matching side of the caretaker.
+
+A plain 96-pixel region of the existing cloud artwork supplies fibrous grain, with mirrored sampling that avoids importing cloud silhouettes into the snow. Branch snow samples the original tree alpha to find upward-facing shelves, grows gradually, suppresses upright twig tips and shares the paper grain. The tree artwork is unchanged. Accumulation geometry and draw commands remain cached after the snow finishes.
+
+Six additional checks cover restrained height above real supports, a transparent feather without strokes, continuous accumulation, the longer buildup and separate depth lanes. Existing coverage, rounded contours, deterministic supports and local shading checks remain.
+
+Validation passes 29 native scripts / 1,027 checks, including the affected render-cache and pause checks after the lane split. The real-input loss study verifies gradual coating, completed banks, the current outfit, unchanged score and manual Continue without browser errors. Release checks cover all thirteen atmospheres and both endings; the final grain shader also passes a separate release winter render with debug hooks absent. Review: [first coating on the leaf piles](images/snow-first-coating.png) and [paper snowbanks and branch coating](images/snow-banks.png).

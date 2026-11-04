@@ -3,6 +3,7 @@ extends RefCounted
 const Loop = preload("res://scripts/loop.gd")
 const Piles = preload("res://scripts/leaf_piles.gd")
 const TICK := 1.0/30.0
+const SNOW_DURATION := 4.5
 var records: Array[Dictionary] = []
 var phase := "idle"
 var time := 0.0
@@ -42,7 +43,7 @@ func add_leaf(id: int, position: Vector2, velocity: Vector2, angle: float, colou
 	elif state==2:airborne+=1;active.append(index)
 	else:grounded+=1
 
-func cover() -> float:return smoothstep(0,2.2,cover_time)
+func cover() -> float:return smoothstep(0,SNOW_DURATION,cover_time)
 func finished() -> bool:return phase=="done"
 func blend() -> float:return clampf(accumulator/TICK,0,1)
 
@@ -57,7 +58,7 @@ func advance_tick(dt: float) -> void:
 	time+=dt
 	if phase=="snow":
 		cover_time+=dt
-		if cover_time>=2.2:phase="done"
+		if cover_time>=SNOW_DURATION:phase="done"
 		return
 	while pending_index<pending.size() and records[pending[pending_index]].release_at<=time:
 		var index:=pending[pending_index];pending_index+=1
@@ -90,4 +91,4 @@ func finish_preview() -> void:
 	for leaf in records:
 		leaf.state=3;leaf.position.y=surface.deposit(leaf.position.x,leaf.id)
 		leaf.previous=leaf.position;leaf.render_dirty=true
-	attached=0;airborne=0;grounded=records.size();phase="done";cover_time=2.2;revision+=1
+	attached=0;airborne=0;grounded=records.size();phase="done";cover_time=SNOW_DURATION;revision+=1
