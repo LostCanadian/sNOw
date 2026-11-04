@@ -21,6 +21,10 @@ static func nozzle_offset(facing: float, aim: float) -> Vector2:
 static func axis(aim: float) -> Vector2:
 	return Vector2.UP.rotated(aim)
 
+static func attenuation(distance: float, reach: float) -> float:
+	# Keep the nozzle strong, then soften smoothly along the expanding cone.
+	return lerpf(1.0, 0.28, smoothstep(0.0, maxf(reach, 1.0), maxf(distance, 0.0)))
+
 static func edge_force(x: float) -> float:
 	if x < 48.0: return (48.0 - x) * 5.0 + (120.0 if x < 0 else 0.0)
 	if x > 312.0: return -(x - 312.0) * 5.0 - (120.0 if x > 360 else 0.0)

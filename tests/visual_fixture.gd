@@ -119,7 +119,7 @@ func _initialize() -> void:
 			if returning.slots[index].leaf_id<0:continue
 			var source:Vector2=returning.slots[index].position
 			if absf(source.x-target.x)>12 or source.y>target.y+15:continue
-			var score:=pow(target.x-192,2)*10+pow(target.y-320,2)+source.distance_squared_to(target)*5
+			var score:=pow(target.x-192,2)+pow(target.y-320,2)*3+source.distance_squared_to(target)*5
 			if score<pair_score:pair_score=score;nearest=index;old_gap=gap
 	if nearest<0:push_error("No attachment study pair");quit(1);return
 	returning.shedding_order.assign([returning.slots[nearest].leaf_id])

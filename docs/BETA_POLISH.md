@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Twenty-seven headless regression scripts pass 988 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Twenty-eight headless regression scripts pass 997 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -192,3 +192,9 @@ The release Web build also passes the thirteen-atmosphere and two-ending render 
 ### Greener opening and victory canopy
 
 Week one starts with approximately 94% green and 6% yellow foliage. Victory keeps its gradual seasonal colour transition but finishes with every leaf in the green palette, including regrowth and the victory preview. Intro cards retain their story text without the added anchor/cooldown caption. Native validation passes 27 scripts / 988 checks, including the actual victory render palette; the release browser smoke check passes all thirteen atmospheres and both endings.
+
+### Blower distance falloff
+
+Full-power lift, sideways steering and the upward speed cap taper smoothly along the aimed cone, from full strength near the nozzle to 28% at maximum reach. A reach upgrade extends useful strength at the same world distance. Per-leaf response variation remains. The recharge draft retains gravity support while its small upward surplus and gentle speed limit fade with distance. Whirlwind keeps its separate force and speed allowance. No presentation captions were added.
+
+Nine physics checks cover actual near/middle/far acceleration and sustained speeds, the range boundary, reach upgrades, an angled cone, low-power holding and a freely rising leaf. The latter slows from approximately 139 to 59 logical units per second between the lower and upper parts of the cone. All 28 native scripts / 997 checks pass, and debug/release Web exports build. The attachment rendering study uses a lower naturally empty branch so it can inspect settling without relying on the old uniform lift.

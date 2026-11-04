@@ -468,20 +468,25 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		var drag_coefficient: float = leaf.get("drag", 0.65) * (0.75 + 0.25 * cos(flutter * 2))
 		v.y += (GRAVITY * float(DIFFICULTIES[difficulty].fall) - v.y * drag_coefficient + sin(flutter * 2) * 8.0) * dt
 		if is_boss(): v += NorthWind.force(p,week_time,wind_lane)*dt
+		var rise_limit:float=158.0*float(leaf.get("lift_response",1.0))
 		if in_gust:
 			if not low_power:leaf.lifted=true
+			var strength:=BlowerPose.attenuation(height,s.reach)
 			var spread: float = s.width * (0.7 + height / 340.0)
 			var normalized_across := clampf(across / spread, -1, 1)
 			# Fan out from the nozzle: standing to one side now steers a leaf that way.
 			# Each leaf carries independent, smooth turbulence rather than sharing lanes.
 			var turbulence: float = sin(flutter * 1.31 + leaf.id * 2.399) * 23.0 + sin(flutter * 2.17) * 9.0
-			var lift:float=(GRAVITY*float(DIFFICULTIES[difficulty].fall)+7.0)/maxf(0.7,-airflow.y) if low_power else float(s.force)*float(leaf.get("lift_response",1.0))
-			var force:Vector2=airflow*lift+lateral*(normalized_across*155.0*float(s.steering)+turbulence)*(0.25 if low_power else 1.0)
+			var lift:float=(GRAVITY*float(DIFFICULTIES[difficulty].fall)+7.0*strength)/maxf(0.7,-airflow.y) if low_power else float(s.force)*float(leaf.get("lift_response",1.0))*strength
+			var force:Vector2=airflow*lift+lateral*(normalized_across*155.0*float(s.steering)+turbulence)*strength*(0.25 if low_power else 1.0)
 			# At the borders a return breeze wins over outward-directed blower force.
 			if force.x < 0: force.x *= smoothstep(-8, 48, p.x)
 			if force.x > 0: force.x *= (1.0 - smoothstep(312, 368, p.x))
 			v+=force*dt
-			if low_power and v.y < -12.0:v.y=move_toward(v.y,-12.0,dt*180)
+			if low_power:
+				# Retain the recharge draft's gravity support; its small surplus fades.
+				if v.y < -12.0*strength:v.y=move_toward(v.y,-12.0*strength,dt*180)
+			else:rise_limit*=strength
 		if surge_left > 0:
 			var center := Vector2(x, GROUND - 35) + surge_offset()
 			var radial: Vector2 = p - center
@@ -494,7 +499,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 				leaf.surge_lift = 0.8
 		v.x += BlowerPose.edge_force(p.x) * dt
 		leaf.surge_lift = maxf(0, float(leaf.get("surge_lift", 0)) - dt)
-		v.y = clampf(v.y, -238.0 if leaf.surge_lift > 0 else -158.0*float(leaf.get("lift_response",1.0)), (45.0 + week * 1.5) * float(DIFFICULTIES[difficulty].fall))
+		v.y = clampf(v.y, -238.0 if leaf.surge_lift > 0 else -rise_limit, (45.0 + week * 1.5) * float(DIFFICULTIES[difficulty].fall))
 		v.x = clampf(v.x, -125.0, 125.0)
 		p += v * dt
 		# A short overshoot is allowed; the spring continuously draws leaves back in.

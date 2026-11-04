@@ -34,6 +34,8 @@ func _initialize() -> void:
 	game.week_time = Loop.BRANCH_COOLDOWN+0.01
 	game.spawn_timer = 999
 	leaf.position = home + Vector2(0, 90)
+	# Isolate swept capture from lateral flutter during the slower climb.
+	leaf.flutter_strength = 0
 	game.x = home.x - Loop.NOZZLE_OFFSET.x
 	for i in range(180): game.step(1.0 / 60.0, 0.0, true)
 	check(game.rescued >= 1 and game.score >= 10 and leaf.state == "rescued" and game.slots.any(func(slot): return slot.leaf_id == leaf.id), "a real gust reattaches a leaf to an actual empty branch position")
