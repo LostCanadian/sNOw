@@ -113,7 +113,7 @@ func _initialize() -> void:
 	returning.spawned=returning.week_leaf_count();returning.step(1.0/60,0,false);returning.next_week()
 	var nearest:=-1;var old_gap:=-1;var pair_score:=INF
 	for gap in range(returning.slots.size()):
-		if returning.slots[gap].leaf_id>=0:continue
+		if returning.slots[gap].leaf_id>=0 or not returning.anchors.active.has(gap):continue
 		var target:Vector2=returning.slots[gap].position
 		for index in range(returning.slots.size()):
 			if returning.slots[index].leaf_id<0:continue

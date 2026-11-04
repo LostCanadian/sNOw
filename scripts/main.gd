@@ -317,7 +317,7 @@ func _physics_process(dt: float) -> void:
 				"air_details": sim.leaves.map(func(leaf): return [leaf.id,leaf.home_slot,leaf.position.x,leaf.position.y,leaf.angle,leaf.colour.to_html(false),leaf.age]),
 				"attachments": attachment_telemetry(),
 				"time": sim.week_time, "weather": weather(), "victory": preview_victory,
-				"attached": sim.attached_count(), "slots": sim.slots.size(), "air": sim.leaves.size(),
+				"anchor_limit":sim.anchors.limit,"active_anchors":sim.anchors.active.keys(),"attached": sim.attached_count(), "slots": sim.slots.size(), "air": sim.leaves.size(),
 				"result_visible": mode in ["lost", "won"] and overlay != null,
 				"active_slot": active_slot, "phase": sim.status, "temperature": sim.temperature(), "boss_phase": sim.boss_phase(), "wind_center": [Loop.NorthWind.center(sim.week_time,sim.wind_lane).x,Loop.NorthWind.center(sim.week_time,sim.wind_lane).y], "wind_released":sim.wind_released, "seasonal_fallen":sim.seasonal_fallen,
 				"difficulty": sim.difficulty, "capacity": sim.capacity(),
@@ -1375,7 +1375,6 @@ func update_canopy_batches(victory := false) -> void:
 	if changed:
 		canopy_stamp = stamp
 		canopy_gap_markers.clear()
-		var marked := {}
 		leaf_renderer.clear()
 		for i in range(sim.slots.size()):
 			var slot: Dictionary = sim.slots[i]
@@ -1395,11 +1394,7 @@ func update_canopy_batches(victory := false) -> void:
 						leaf_renderer.leaf(i,pose.position,pose.angle,colour,pose.roll)
 					else:leaf_renderer.leaf(i,slot.stem.lerp(slot.position,growth),slot.angle+(1-growth)*0.5,colour,1,false,growth)
 				else:leaf_renderer.leaf(slot.leaf_id,slot.position,slot.angle,colour,1,false,1,true)
-			if not keep:
-				var cell := Vector2i(slot.position / 16.0)
-				if not marked.has(cell):
-					marked[cell] = true
-					canopy_gap_markers.append(i)
+			if not keep and sim.anchors.active.has(i):canopy_gap_markers.append(i)
 		gap_glints.set_candidates(canopy_gap_markers)
 		leaf_renderer.cache()
 	var dynamic:bool=not victory and mode not in ["title","preview"] and (not sim.leaves.is_empty() or not sim.ground_leaves.is_empty() or not sim.attachment_motions.is_empty())
@@ -1830,6 +1825,9 @@ func draw_story_card(kind: String) -> void:
 	var lines: PackedStringArray = str(chapter[1 if kind == "intro" else 2]).split("\n")
 	for i in range(lines.size()):
 		write_center(lines[i], 180, rect.position.y + 87 + i * 23, 15, Color(INK, alpha), true)
+
+	if kind=="intro":
+		write_center("Max %d anchors · New leaves drift for %ss"%[sim.anchors.limit,str(sim.LEAF_ATTACH_DELAY)],180,rect.position.y+146,9,Color(RUST,alpha))
 
 
 func draw_surge() -> void:

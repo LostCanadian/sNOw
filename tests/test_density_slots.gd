@@ -44,7 +44,7 @@ func run() -> void:
 		var expected := -1
 		var best := Loop.CAPTURE_RADIUS * Loop.CAPTURE_RADIUS
 		for j in range(game.slots.size()):
-			if game.slots[j].leaf_id >= 0 or game.week_time<float(game.slots[j].get("capture_after",0)): continue
+			if game.slots[j].leaf_id >= 0 or not game.anchors.active.has(j) or game.week_time<float(game.slots[j].get("capture_after",0)): continue
 			var point := Geometry2D.get_closest_point_to_segment(game.slots[j].position, from, to)
 			var distance := point.distance_squared_to(game.slots[j].position)
 			if distance < best:

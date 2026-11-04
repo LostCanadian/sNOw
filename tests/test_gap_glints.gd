@@ -28,6 +28,8 @@ func _initialize() -> void:
 	check(glints.lights.is_empty(),"cooling branches are not suggested as ready attachment spots")
 	glints.advance(1,slots,6);slots[0].leaf_id=7;glints.advance(.1,slots,6.1)
 	check(glints.lights.is_empty(),"a filled branch immediately stops twinkling")
+	glints.configure("inactive");slots[0].leaf_id=-1;slots[0].anchor_active=false;glints.set_candidates([0]);glints.advance(.1,slots,10)
+	check(glints.lights.is_empty(),"inactive bare spots cannot be advertised as attachment targets")
 	var game=Loop.new();game.spawn_leaf();game.week_time=5.01
 	var index:int=game.leaves[0].home_slot;var point:Vector2=game.slots[index].position
 	check(game.capture_slot(point,point)==index and glints.poses().is_empty(),"an unlit eligible spot can still capture leaves")

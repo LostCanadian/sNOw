@@ -17,14 +17,14 @@ func set_candidates(ids:Array[int]) -> void:
 	pool.sort_custom(func(a,b):return hash(key+":"+str(a))<hash(key+":"+str(b)))
 func advance(dt:float,slots:Array,time:float,reduced:=false) -> void:
 	for light in lights:light.age+=dt
-	lights=lights.filter(func(light):return light.age<LIFETIME and slots[light.slot].leaf_id<0)
+	lights=lights.filter(func(light):return light.age<LIFETIME and slots[light.slot].leaf_id<0 and slots[light.slot].get("anchor_active",true))
 	until_next-=dt
 	if until_next>0:return
 	until_next=INTERVAL
 	if lights.size()>=(2 if reduced else MAX_LIGHTS):return
 	for attempt in range(2):
 		for index in pool:
-			if seen.has(index) or slots[index].leaf_id>=0 or time<float(slots[index].get("capture_after",0)):continue
+			if seen.has(index) or slots[index].leaf_id>=0 or not slots[index].get("anchor_active",true) or time<float(slots[index].get("capture_after",0)):continue
 			if lights.any(func(light):return light.slot==index):continue
 			seen[index]=true
 			lights.append({"slot":index,"position":slots[index].position,"age":0.0})

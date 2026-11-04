@@ -41,6 +41,7 @@ with sync_playwright() as p:
     print('PASS: flowers finish and hold before a separate victory card, pause freezes it, and Results follow.',flush=True)
     click('Main menu');mode('title');click('Continue / New game');mode('slots');click('North Wind study');mode('continue');click('Continue');skip_intro()
     opening=snap()
+    assert len(opening['active_anchors'])==opening['anchor_limit']==16,opening
     assert opening['attached']+opening['air']+opening['missed']-opening['regrown']==960 and opening['seasonal_fallen']==1200,opening
     capture('north-wind-clean-approach')
     page.wait_for_function('snowSnapshot.boss_phase==="blast" && snowSnapshot.wind_center[0]>95 && snowSnapshot.wind_center[0]<280 && snowSnapshot.wind_released>0',timeout=30000)

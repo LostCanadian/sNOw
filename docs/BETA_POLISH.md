@@ -29,7 +29,7 @@ The [compact results](images/beta-results.png) and [Whirlwind workshop](images/b
 
 ## Validation status
 
-Twenty-six headless regression scripts pass 956 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
+Twenty-seven headless regression scripts pass 986 checks across simulation, leaf identity, positional airflow, detachment, progression prerequisites, save migration/storage, scores, UI, rigid animation, winter, scene continuity and audio routing. All 26 Python launcher/mobile-export/composition checks also pass. Godot 4.6.3 produces the release Web export successfully. Browser output measurements verify actual music, silence while paused/muted and recovery after unmuting; the browser suite also exercises the end-to-end game and workshop flow. These checks do not substitute for native phone frame-rate, subjective listening/mix review or full-campaign balance playtests.
 
 The final release was also launched in Chromium after switching browser streams to MP3 for codec compatibility: its packaged music produced a nonzero WebAudio output and `?test=1` exposed no debug snapshot. The complete debug browser flow passed with no runtime errors before that codec-only change; the streamed music adapter and controls are shared.
 
@@ -168,10 +168,23 @@ Review captures: [coating on the real leaf piles](images/snow-first-coating.png)
 
 The old approach arcs are removed; the North Wind uses only the paper gust artwork when it enters. Lane selection scores the whole curved path against pending leaves once per pass. Four-leaf packets spaced by at least 50 ms spread releases along the sweep. The finite weekly schedule, nearby-leaf stripping and ordinary falling leaves remain intact. Gameplay rules 10 retain existing saves and the unified score tables.
 
-Vacated spots cool for five seconds; older empty spots remain usable immediately. Full-power blower acceleration and upward speed vary per leaf, using an integer identity mix independent of canopy depth and colour. The recharge draft keeps its existing holding power. The wind/clump study covers four seeds and real capture eligibility.
+Vacated spots cool for five seconds; older active spots remain usable by leaves whose own cooldown has elapsed. Full-power blower acceleration and upward speed vary per leaf, using an integer identity mix independent of canopy depth and colour. The recharge draft keeps its existing holding power. The wind/clump study covers four seeds and real capture eligibility.
 
-Attachment suggestions now use at most five glints, with a shuffled cycle and complete fade-in/fade-out. The scheduler never changes capture eligibility, and unlit ready spots still accept leaves. It works on the cached candidate areas and a bounded active list, preserving the earlier canopy performance fix.
+Attachment suggestions now use at most five glints, with a shuffled cycle and complete fade-in/fade-out. The scheduler never changes capture eligibility, and unlit ready active spots still accept leaves. It works on the cached candidate areas and a bounded active list, preserving the earlier canopy performance fix.
 
 After losing, the snow finishes and the existing short hold completes before a bottom-right Continue action appears. Victory still finishes its regrowth/flower sequence and closing card, then offers Continue. Both scenes keep their wildlife, weather and music running until the player opens Results. Loaded completed campaigns replay that sequence without awarding anything again. Ordinary weekly interludes still lead directly to Results. The main-menu speaker icon is centered.
 
 Validation includes the cooldown and clump study, seven glint scheduling checks, manual victory/loss continuation, unchanged score on long ending holds, save compatibility and real-input browser captures. The one-leaf attachment study now starts in week two and uses a naturally old empty spot. [Watching the victory scene](images/ending-continue.png) · [Clean wind approach](images/wind-approach.png).
+
+
+### Progressively fewer anchors and detached-leaf cooldown
+
+Rules 11 limits the active empty attachment pool to 64 / 60 / 56 / 52 / 48 / 44 / 40 / 36 / 32 / 28 / 24 / 20 / 16 over the thirteen stages, without removing any foliage. Targets stay fixed until filled; replacements spread across bare branches, with a short history discouraging immediate reuse of the same area. Cooling targets count toward the cap. A newly emptied position need not become active while the pool is full. Only ready active positions appear in the existing five-glint cycle; unlit active positions still work.
+
+Every detached leaf waits two seconds before it can attach anywhere, independently of the five-second cooldown on its former spot. Blower lift and steering still work immediately. The timer follows the original detachment rather than animation age, so a later ground recovery does not restart it. Intro cards display the current limit and delay. Existing saves derive the pool on restore; unified score tables and all leaf identities remain intact.
+
+Twenty-nine new checks cover decreasing limits, unchanged foliage and simulation randomness, spatial spread, inactive gaps, stable targets and replacement, independent spot/leaf timing, real blower captures, a twenty-leaf gust and old-save/retry compatibility. Density-index and glint checks use the same eligibility rules. The complete suite passes 27 scripts / 986 checks and 26 Python tests. A native headless sample of 150 finale rescues averaged 0.265 ms for settlement and target replenishment (95th percentile 0.297 ms); this is not a device frame-rate measurement. Full-campaign balance still requires human playtesting.
+
+Browser input checks confirm a delayed capture still interpolates through multiple poses, the finale exposes exactly sixteen targets, North Wind passes work in both directions, and victory remains behind the manual Continue flow. These use validated study saves, not a human campaign completion.
+
+The release Web build also passes the thirteen-atmosphere and two-ending render smoke check, with packaged music playing, no browser errors and no exposed debug hooks.

@@ -8,7 +8,7 @@ Play twelve main weeks, followed by the separately named North Wind final encoun
 
 ## Persistent canopy with a recovery floor
 
-A new campaign begins with **2,160 individually attached leaves** on the supplied textured ancient tree. Leaves originate at occupied twig positions, drift under gravity, and reattach only when lifted into a real vacant position. Any empty position may accept a leaf. The exact identities and occupancy of every position are saved.
+A new campaign begins with **2,160 individually attached leaves** on the supplied textured ancient tree. Leaves originate at occupied twig positions, drift under gravity, and reattach only when lifted into a real vacant position. Only the level’s active empty anchors may accept a leaf; other bare positions remain unavailable until selected for the pool. The exact identities and occupancy of every position are saved.
 
 Healthy crowns now thin in twig clusters between weeks, from 2,160 leaves initially to a ceiling of 960 by week twelve and the finale. The ceilings are 2,160 / 2,080 / 2,000 / 1,900 / 1,800 / 1,680 / 1,560 / 1,440 / 1,320 / 1,200 / 1,080 / 960 / 960. Player misses can leave a sparser tree. Seasonal losses have their own saved counter, do not count toward weekly frost or award points, and do not repeat on Retry.
 
@@ -30,9 +30,23 @@ The final encounter adds 90 scheduled leaves. The North Wind crosses the crown e
 
 ## Direction and airflow
 
-The caretaker faces their movement direction and retains that facing when stopped. The barrel smoothly returns upright at rest and leans up to 32° while moving. The cutout pose, nozzle position, wind streaks, affected cone and force direction share geometry. Moving airflow can steer leaves sideways toward vacant branches. A freshly vacated attachment spot cools for five seconds before accepting any leaf; older gaps remain available. Each leaf has a deterministic lift response and upward speed limit, mixed independently of its colour/depth, so a clump spreads vertically in full-power airflow. The low-power holding draft remains unchanged. Pushing against a movement boundary does not count as running.
+The caretaker faces their movement direction and retains that facing when stopped. The barrel smoothly returns upright at rest and leans up to 32° while moving. The cutout pose, nozzle position, wind streaks, affected cone and force direction share geometry. Moving airflow can steer leaves sideways toward vacant branches. A freshly vacated attachment spot cools for five seconds before accepting any leaf; older active gaps remain available to eligible leaves. Newly detached leaves also wait two seconds before they can attach anywhere; airflow still affects them during that time. Each leaf has a deterministic lift response and upward speed limit, mixed independently of its colour/depth, so a clump spreads vertically in full-power airflow. The low-power holding draft remains unchanged. Pushing against a movement boundary does not count as running.
 
 Leaves flutter and tumble with seeded variation in drag, phase and spin. A return breeze grows near the vertical edges. Leaves may briefly leave the viewport, but outward blower force fades there and the breeze draws them back; a last-resort bound sits 22 logical pixels beyond each edge. This geometry is identical on all screen shapes.
+
+## Active anchors and leaf cooldowns (rules 11)
+
+The active pool counts empty attachment targets, independently of how many leaves remain on the tree. Its maximum decreases each week:
+
+| Week | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | North Wind |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Anchor limit | 64 | 60 | 56 | 52 | 48 | 44 | 40 | 36 | 32 | 28 | 24 | 20 | 16 |
+
+There can be fewer active anchors if fewer gaps exist. Existing targets stay in place until filled. Filling one replaces it with a spread-out empty target; the three most recently filled areas are also considered when choosing its replacement. A newly vacated spot joins the pool only when there is room, and its five-second spot cooldown still applies. Cooling targets count toward the cap, so cooling cannot open an unlimited second set of targets. A spot outside the pool can stay inactive even after its cooldown expires.
+
+The leaf’s separate two-second cooldown starts when it detaches and blocks all attachment, including at older ready gaps. It does not block lift or steering. Ground recovery does not restart this timer. Twinkles cycle through at most five ready active targets; an unlit active target still accepts an eligible leaf. The intro card states the current cap and leaf delay.
+
+The pool is derived deterministically at level preparation and checkpoint restore without consuming simulation randomness. Rules 11 retains older saves, foliage counts, earned upgrades and unified high scores. Live airborne state and anchor timers are not added to boundary checkpoints. The initial limits and cooldown need human campaign playtesting.
 
 ## Thirty upgrades, twenty-four Gold Leaves
 

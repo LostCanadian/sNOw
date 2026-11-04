@@ -21,7 +21,7 @@ The normal battery recharge remains separate and quick. Holding E does not autom
 
 **Recovery is real:** lifting a ground leaf removes it from the ground pile and its current-week frost penalty while it is back in play. It earns no points merely for being lifted. It must reach a real empty branch position to earn its one rescue. If it lands again, its miss returns. Existing duplicate-score/identity guards remain in place. The accounting invariant is `attached + airborne + unrecovered misses − regrown = 2160`; grounded leaves are already represented in unrecovered misses, so they are not counted twice.
 
-All scores share one top ten per difficulty, with no archived versions. Current rules version 10 includes the branching progression, Gold Leaves, positional airflow, seasonal thinning and the North Wind schedule. Existing campaign checkpoints migrate without losing their leaves, completed weeks or earned-week ledger and mapped equipment; the extra Gold Leaves for completed weeks are credited.
+All scores share one top ten per difficulty, with no archived versions. Current rules version 11 includes the branching progression, Gold Leaves, positional airflow, seasonal thinning, the North Wind schedule, decreasing active-anchor limits and a two-second detached-leaf cooldown. Existing campaign checkpoints migrate without losing their leaves, completed weeks or earned-week ledger and mapped equipment; the extra Gold Leaves for completed weeks are credited.
 
 ## Quiet gameplay UI
 

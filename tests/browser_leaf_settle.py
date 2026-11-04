@@ -39,9 +39,10 @@ with sync_playwright() as p:
         page.keyboard.up('d');page.keyboard.up('a')
     page.wait_for_function('Math.abs(snowSnapshot.aim)<0.01')
     page.wait_for_function('target=>snowSnapshot.airborne.some(leaf=>leaf[1]>target[1]+0.5)',arg=study['target'])
+    page.wait_for_function('snowSnapshot.time>=2.6')
     page.keyboard.down('Space')
     try:
-        page.wait_for_function('window.settleSamples.length>=2',timeout=15000)
+        page.wait_for_function('window.settleSamples.length>=2',timeout=30000)
     except Exception:
         print('CAPTURE DIAGNOSTIC',snap(),page.evaluate('window.settleSamples'),errors,flush=True)
         capture('attachment-study-failure')

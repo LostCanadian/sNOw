@@ -4,7 +4,8 @@ extends RefCounted
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
-const RULES := 10
+const RULES := 11
+const AttachmentAnchors=preload("res://scripts/attachment_anchors.gd")
 const NorthWind = preload("res://scripts/north_wind.gd")
 const CROWN_CEILINGS := [2160,2080,2000,1900,1800,1680,1560,1440,1320,1200,1080,960,960]
 const SURGE_DURATION := 1.15
@@ -27,6 +28,7 @@ const BOSS_STAGE := MAIN_WEEKS + 1
 const LEAF_RADIUS := Canopy.RADIUS
 const ATTACH_DURATION := 0.34
 const BRANCH_COOLDOWN := 5.0
+const LEAF_ATTACH_DELAY:=2.0
 const PileSurface=preload("res://scripts/leaf_piles.gd")
 const KNEE_HEIGHT := 14.0
 const PILE_HEIGHT := 10.0
@@ -82,6 +84,7 @@ var capture_grid := {}
 var attached_lookup := PackedInt32Array()
 var canopy_revision := 0
 var attachment_motions := {}
+var anchors=AttachmentAnchors.new()
 var shedding_order: Array[int] = []
 var piles: Array[int] = []
 var points := 0
@@ -208,6 +211,7 @@ func prepare_shedding() -> void:
 			candidates.remove_at(j)
 			break
 
+	anchors.rebuild(slots,week)
 
 func temperature() -> int:
 	return 22 - 2 * (mini(week, MAIN_WEEKS) - 1) - (2 if is_boss() else 0)
@@ -313,7 +317,8 @@ func retire_seasonal_foliage() -> int:
 	return count
 
 
-func capture_slot(from: Vector2, to: Vector2) -> int:
+func capture_slot(from: Vector2, to: Vector2, leaf:Dictionary={}) -> int:
+	if not leaf.is_empty() and week_time<float(leaf.get("attach_after",0)):return -1
 	var best := -1
 	var nearest := CAPTURE_RADIUS * CAPTURE_RADIUS
 	var start := Vector2i((from.min(to) - Vector2.ONE * CAPTURE_RADIUS) / 24.0)
@@ -321,7 +326,7 @@ func capture_slot(from: Vector2, to: Vector2) -> int:
 	for cx in range(start.x, end.x + 1):
 		for cy in range(start.y, end.y + 1):
 			for i in capture_grid.get(Vector2i(cx, cy), []):
-				if slots[i].leaf_id >= 0 or week_time < float(slots[i].get("capture_after",0)): continue
+				if slots[i].leaf_id >= 0 or not anchors.active.has(i) or week_time < float(slots[i].get("capture_after",0)): continue
 				var point := Geometry2D.get_closest_point_to_segment(slots[i].position, from, to)
 				var distance := point.distance_squared_to(slots[i].position)
 				if distance < nearest or (distance == nearest and best >= 0 and i < best):
@@ -341,6 +346,7 @@ func index_canopy() -> void:
 		capture_grid[cell].append(i)
 		if slots[i].leaf_id >= 0: attached_lookup[slots[i].leaf_id] = i
 
+	anchors.rebuild(slots,week)
 
 func find_attached_leaf(id: int) -> int:
 	var index := attached_lookup[id]
@@ -499,7 +505,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		var detach_blend := smoothstep(0, 0.8, leaf.age)
 		leaf.angle = leaf.get("rest_angle", 0.0) + (sin(flutter) * 0.65 + leaf.age * leaf.get("spin", 0.2)) * detach_blend
 		leaf.roll = lerpf(float(leaf.get("detach_roll", 1.0)), 0.62 + 0.38 * absf(cos(flutter * 0.7)), detach_blend)
-		var target := capture_slot(previous, p) if leaf.lifted and v.y < 0.0 else -1
+		var target := capture_slot(previous, p, leaf) if leaf.lifted and v.y < 0.0 else -1
 		if target >= 0:
 			resolve_leaf(leaf, true, target)
 		elif p.y >= pile_surface.surface(p.x, leaf.id):
@@ -545,12 +551,14 @@ func spawn_leaf() -> bool:
 	attachment_motions.erase(slot_index)
 	slot.leaf_id = -1
 	slot.capture_after = week_time+BRANCH_COOLDOWN
+	anchors.detached(slot_index,slots)
 	canopy_revision += 1
 	attached_lookup[id] = -1
 	leaves.append({
 		"id": id, "position": pose.position, "home_slot": slot_index,
 		"velocity": Vector2(rng.randf_range(-6, 6), 3.0),
 		"state": "air", "lifted": false, "age": 0.0,
+		"attach_after":week_time+LEAF_ATTACH_DELAY,
 		"lift_response": leaf_lift_response(id),
 		"angle": pose.angle, "rest_angle": pose.angle, "colour": leaf_colour(id), "category": leaf_category(id),
 		"flutter_phase": rng.randf_range(0, TAU), "flutter_rate": rng.randf_range(2.1, 3.8),
@@ -604,6 +612,7 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 		attachment_motions[slot_index] = {"id": leaf.id, "from": leaf.position,
 			"velocity": leaf.velocity, "angle": leaf.angle, "roll": leaf.get("roll", 1.0), "age": 0.0}
 		slots[slot_index].leaf_id = leaf.id
+		anchors.captured(slot_index,slots)
 		canopy_revision += 1
 		attached_lookup[leaf.id] = slot_index
 		slots[slot_index].attached_at = week_time
