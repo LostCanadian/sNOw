@@ -40,16 +40,16 @@ func run() -> void:
 		check(game.challenge and game.tiers == [10,10,10] and game.owned.size() == 30 and game.surge_unlocked(), "Challenge starts fully upgraded on difficulty %d" % difficulty)
 		check(not game.can_upgrade() and not game.buy(0) and Campaign.snapshot(game).is_empty(), "Challenge cannot edit equipment or become a campaign checkpoint")
 		var first: float = game.shedding_interval()
-		game.week_time = 120
+		game.week_time = 30
 		var later: float = game.shedding_interval()
 		game.week_time = 600
-		check(first > later and later > game.shedding_interval(), "leaf arrival rate keeps accelerating")
+		check(first==later and later==game.shedding_interval() and game.challenge_wave_quota() in [30,40,50], "waves retain a bounded packet cadence instead of escalating leaf volume")
 		game.week_time = 0
 		# A perfect-response study resolves real falling identities, across repeated
 		# refills. It checks endless rules, not human ability to reach this score.
 		var unique := true
-		for frame in range(12000):
-			game.step(1.0 / 60, 0, false)
+		for frame in range(24000):
+			game.step(1.0 / 30, 0, false)
 			var ids := {}
 			for leaf in game.leaves:
 				unique = unique and not ids.has(leaf.id)
@@ -115,7 +115,7 @@ func run() -> void:
 	check(main.campaign.slots[0] == original and main.slots_intent == "new", "cancelling replacement preserves the save and returns to New Game")
 	main.show_slot_name(0, false, true)
 	action(main, "Review fresh start").pressed.emit()
-	action(main, "Start fresh · Blustery").pressed.emit()
+	action(main, "Start fresh · Medium").pressed.emit()
 	check(main.campaign.slots[0].checkpoint.run_id != original.checkpoint.run_id and main.sim.week == 1, "explicit confirmation replaces only the chosen campaign")
 	main.finish_story()
 	main.sim.week = 13; main.sim.earned_points = 24; main.sim.points = 24; main.sim.status = "won"
@@ -127,8 +127,14 @@ func run() -> void:
 	action(main, "Challenge").pressed.emit()
 	await process_frame
 	check(layout_ok(main), "Challenge setup has distinct portrait hit areas")
+	check(action(main, "Challenge scores") == null, "Challenge setup has no separate High Scores shortcut")
+	check(not action(main, "Easy").disabled and not action(main, "Medium").disabled and action(main, "Hard").disabled, "a Medium campaign win enables Easy and Medium Challenge but disables Hard")
+	main.start_run(-1, "", 2, true)
+	check(main.mode == "challenge_setup" and not main.sim.challenge, "a direct start cannot bypass a locked Challenge difficulty")
+	main.campaign.unlock_challenge(2)
+	main.show_challenge()
 	var before: Array = main.campaign.slots.duplicate(true)
-	action(main, "Gale").pressed.emit()
+	action(main, "Hard").pressed.emit()
 	check(main.mode == "play" and main.sim.challenge and main.sim.difficulty == 2 and main.active_slot == -1 and main.level_checkpoint.is_empty(), "Challenge difficulty starts an independent live run")
 	main.pause_for_focus()
 	var time: float = main.sim.week_time
@@ -142,15 +148,15 @@ func run() -> void:
 	main.show_result(); main.finish_tally()
 	check(action(main, "Play again") != null and action(main, "Retry this level") == null, "Challenge results offer a fresh attempt")
 	main.show_initials()
-	main.overlay.find_children("*", "LineEdit", true, false)[0].text = "xyz"
+	var initials = main.overlay.find_children("*", "LineEdit", true, false)
+	for column in range(3):initials[column].text = "xyz"[column]
 	action(main, "Save score").pressed.emit()
 	await process_frame
 	check(main.challenge_scores.entries(2).size() == 1 and main.challenge_scores.entries(2)[0].initials == "XYZ" and main.high_scores.entries(2).is_empty(), "initials submit to Challenge scores without polluting campaign tables")
-	check(layout_ok(main), "score screen tabs do not overlap")
+	check(layout_ok(main), "Challenge result actions do not overlap")
 	var reopened = Scores.new(main.challenge_scores.path, "snow.challenge_scores.v1")
 	check(reopened.entries(2).size() == 1 and reopened.entries(2)[0].score == 5000, "Challenge high scores survive reopening")
-	main.return_from_scores()
-	check(main.mode == "lost" and not main.challenge_scores.qualifies(main.sim), "returning from scores retains the result without duplicate rows")
+	check(main.mode == "lost" and not main.challenge_scores.qualifies(main.sim) and not main.result_score_action.visible, "saving Challenge initials retains the result without a score-board shortcut or duplicate rows")
 	var run_id: String = main.sim.run_id
 	action(main, "Play again").pressed.emit()
 	check(main.sim.run_id != run_id and main.sim.score == 0 and main.sim.tiers == [10,10,10], "Play again resets score and identity with all upgrades")

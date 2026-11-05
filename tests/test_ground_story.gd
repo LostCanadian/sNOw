@@ -78,6 +78,22 @@ func run() -> void:
 	check(game.surge_charge == charge, "menu time cannot advance an ability's gameplay clock")
 	game.next_week()
 	check(game.ground_leaves.is_empty() and game.surge_charge == 1 and game.surge_left == 0, "next week starts with the saved clean path and charged ability")
+	for facing in [-1,1]:
+		game=Loop.new(77);game.owned.assign([10,12]);game.tiers=Loop.Upgrades.counts(game.owned);game.facing=facing
+		land(game,5)
+		var radius:float=game.stats().surge_radius
+		var swept:Array=game.ground_leaves.slice(0,3)
+		for i in range(5):
+			var ground:Dictionary=game.ground_leaves[i]
+			ground.position.x=game.x+[-radius+1,0.0,radius-1,-radius-4,radius+4][i]
+			ground.attach_after=999
+		# A leaf settling into a growing pile can still sit below its new support.
+		game.ground_leaves[0].position.y=Loop.GROUND
+		game.ground_leaves[0].rest_y=Loop.GROUND-20
+		check(game.activate_surge() and game.ground_leaves.size()==2 and game.week_missed==2,"Whirlwind lifts both sides and the centre of its full ground radius, keeping distant leaves grounded")
+		check(swept[0].velocity.x<0 and swept[2].velocity.x>0 and swept.all(func(l):return l.velocity.y< -160 and l.position.y<Loop.GROUND-10),"pickup launches original leaves up and away with immediate pile clearance, facing %d"%facing)
+		for frame in range(39):game.step(1.0/60,0,false)
+		check(swept.all(func(l):return l.state=="air" and l.position.y<Loop.GROUND-60) and game.week_missed==2,"rotating downward airflow cannot immediately redeposit swept ground leaves, facing %d"%facing)
 	var introductions := {}
 	var conclusions := {}
 	var subtle := true

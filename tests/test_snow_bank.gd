@@ -10,6 +10,10 @@ func _initialize() -> void:
 	var piles=Piles.new()
 	for i in range(120):piles.deposit(135,i*2)
 	for i in range(55):piles.deposit(240,i*2+1)
+	var bounded := true
+	for i in range(91):
+		for lane in [0, 1]:bounded = bounded and piles.minimum_y() <= piles.surface(i * 4.0, lane)
+	check(bounded, "the airborne broad-phase bound never skips raised pile support in either lane")
 	var before:PackedFloat32Array=piles.heights.duplicate()
 	var bank:=Snow.contour(piles)
 	check(bank.size()==181 and bank[0].x==0 and bank[-1].x==360,"snow blankets the complete viewport with a fine contour")

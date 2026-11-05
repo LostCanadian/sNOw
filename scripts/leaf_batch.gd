@@ -12,6 +12,7 @@ var buffers: Array[PackedFloat32Array] = []
 var cached: Array[PackedFloat32Array] = []
 var palette_bytes:=PackedByteArray()
 var cached_palette:=PackedByteArray()
+var uploaded_palette:=PackedByteArray()
 var palette_texture:ImageTexture
 
 func _init(meshes: Array[MultiMesh]) -> void:
@@ -44,9 +45,20 @@ func leaf(id: int, position: Vector2, angle: float, colour: Color, roll:=1.0, gr
 	if id<0 or id>=rank.size():return
 	var offset:=rank[id]*STRIDE
 	var pixel:=rank[id]*4
-	palette_bytes[PALETTE_WIDTH*PALETTE_HEIGHT*4+pixel]=255 if breeze else 0
 	palette_bytes[pixel]=colour.r8;palette_bytes[pixel+1]=colour.g8
 	palette_bytes[pixel+2]=colour.b8;palette_bytes[pixel+3]=colour.a8
+	pose(id, position, angle, roll, grounded, size)
+	palette_bytes[PALETTE_WIDTH*PALETTE_HEIGHT*4+pixel]=255 if breeze else 0
+	var lane := 2 if grounded and Piles.in_front(id) else 0
+	for shadow in range(2):
+		var data := buffers[lane + shadow]
+		var tint := Color(0.17, 0.17, 0.10, 0.20) if shadow else colour
+		data[offset+8]=tint.r;data[offset+9]=tint.g;data[offset+10]=tint.b;data[offset+11]=tint.a
+
+func pose(id: int, position: Vector2, angle: float, roll:=1.0, grounded:=false, size:=1.0) -> void:
+	# A moving identity keeps its palette and tint; only its transform changes.
+	var offset := rank[id] * STRIDE
+	palette_bytes[PALETTE_WIDTH*PALETTE_HEIGHT*4+rank[id]*4] = 0
 	var front:=grounded and Piles.in_front(id)
 	var lane:=2 if front else 0
 	var c:=cos(angle)*Canopy.RADIUS*size
@@ -55,14 +67,17 @@ func leaf(id: int, position: Vector2, angle: float, colour: Color, roll:=1.0, gr
 		var data:=buffers[lane+shadow]
 		data[offset]=c*roll;data[offset+1]=-s;data[offset+3]=position.x+shadow
 		data[offset+4]=s*roll;data[offset+5]=c;data[offset+7]=position.y+shadow
-		var tint:=Color(0.17,0.17,0.10,0.20) if shadow else colour
-		data[offset+8]=tint.r;data[offset+9]=tint.g;data[offset+10]=tint.b;data[offset+11]=tint.a
 		var other:=buffers[(0 if front else 2)+shadow]
 		other[offset]=0;other[offset+1]=0;other[offset+4]=0;other[offset+5]=0
 
 func upload() -> void:
 	for i in range(4):batches[i].buffer=buffers[i]
+	if palette_bytes != uploaded_palette:
+		upload_palette()
+
+func upload_palette() -> void:
 	palette_texture.update(palette_image())
+	uploaded_palette = palette_bytes.duplicate()
 
 func palette_image() -> Image:
 	return Image.create_from_data(PALETTE_WIDTH,PALETTE_HEIGHT*2,false,Image.FORMAT_RGBA8,palette_bytes)
@@ -71,3 +86,8 @@ func move_air(id: int, position: Vector2) -> void:
 	var offset:=rank[id]*STRIDE
 	buffers[0][offset+3]=position.x;buffers[0][offset+7]=position.y
 	buffers[1][offset+3]=position.x+1;buffers[1][offset+7]=position.y+1
+
+func hide(id: int) -> void:
+	var offset := rank[id] * STRIDE
+	for data in buffers:
+		data[offset]=0;data[offset+1]=0;data[offset+4]=0;data[offset+5]=0

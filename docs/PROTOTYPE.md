@@ -15,7 +15,7 @@
 - Small warning flakes near defeat; clouds, cut-paper snowflakes and ground snow on loss; flowers on victory. Main-menu season previews allow immediate art review.
 - A speaker button opens mute and independent persistent music/effects volume; nine original retro score loops and layered action effects. No microphone input or external audio service.
 
-The title screen offers **Continue / New game** to choose one of three named Save Slots and **Explore the seasons** to review the visual states. New saves choose Breezy, Blustery or Gale; weeks are deliberately short and not the finished difficulty curve. The main menu also opens local **High Scores** and offline **License** notices. See [scores and licenses](SCORES_AND_LICENSES.md) for the storage/deduplication contract and current difficulty tuning. Nothing is purchased with score or real money.
+The title screen offers **Continue / New game** to choose one of three named Save Slots and **Explore the seasons** to review the visual states. New saves choose Easy, Medium or Hard; weeks are deliberately short and not the finished difficulty curve. The main menu also opens local **High Scores** and offline **License** notices. See [scores and licenses](SCORES_AND_LICENSES.md) for the storage/deduplication contract and current difficulty tuning. Nothing is purchased with score or real money.
 
 For the exact save/retry contract, clothing progression, final encounter and deferred scenery polish, see [Campaign design](CAMPAIGN.md). Native saves use `user://campaigns.json` with a recovery backup; browser saves use the localStorage key `snow.campaigns.v1` and a separate backup value. Browser close confirmation wording is controlled by the browser; completed checkpoints do not depend on that dialog.
 

@@ -12,7 +12,7 @@ func capture(path:String) -> void:
 func run() -> void:
 	DirAccess.make_dir_recursive_absolute("res://work/cycle-visual")
 	var main=Main.instantiate();root.add_child(main);main.set_physics_process(false)
-	main.campaign.challenge_unlocked=true;main.start_challenge()
+	main.campaign.highest_completed_difficulty=2;main.start_challenge()
 	# Art fixture: sparse foliage exposes painted perches; no gameplay claim.
 	for slot in main.sim.slots:
 		if int(slot.leaf_id)%3!=0:slot.leaf_id=-1

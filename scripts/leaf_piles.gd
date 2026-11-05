@@ -5,6 +5,7 @@ const GROUND := 502.0
 const CELL := 4.0
 const BINS := 91
 var heights := PackedFloat32Array()
+var highest := 0.0
 
 func _init() -> void: clear()
 
@@ -14,6 +15,11 @@ static func in_front(id: int) -> bool:
 func clear() -> void:
 	heights.resize(BINS*2)
 	heights.fill(0)
+	highest = 0.0
+
+func minimum_y() -> float:
+	# Conservative bound for every x and both lanes, including neighbour support.
+	return GROUND - RADIUS * 0.35 - highest
 
 func lane(id: int) -> int:
 	return 1 if in_front(id) else 0
@@ -35,6 +41,7 @@ func deposit(x: float, id: int) -> float:
 	for dx in range(-2,3):
 		var i:=clampi(index+dx,0,BINS-1)
 		heights[offset+i]+=thickness*(1.0-absf(dx)*0.28)
+		highest = maxf(highest, heights[offset+i])
 	return y
 
 func seed(leaf: Dictionary) -> void:
@@ -45,3 +52,4 @@ func seed(leaf: Dictionary) -> void:
 	for dx in range(-2,3):
 		var i:=clampi(index+dx,0,BINS-1)
 		heights[offset+i]=maxf(heights[offset+i],height-maxf(0,absf(dx)-0.5)*0.8)
+		highest = maxf(highest, heights[offset+i])

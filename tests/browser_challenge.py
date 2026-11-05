@@ -45,20 +45,20 @@ with sync_playwright() as p:
     mode('title')
     capture('locked-menu')
     click('New Game'); mode('slots'); click('Slot 1 · Empty'); mode('name')
-    click('Gale'); click('Start week 1'); mode('intro')
+    click('Hard'); click('Start week 1'); mode('intro')
     assert slots()[0]['checkpoint']['difficulty'] == 2
     original = slots()
     page.reload(wait_until='networkidle'); mode('title')
-    click('Continue'); mode('slots'); click('Save 1\nWeek 1 · Gale'); mode('continue')
+    click('Continue'); mode('slots'); click('Save 1\nWeek 1 · Hard'); mode('continue')
     assert snap()['difficulty'] == 2 and snap()['time'] == 0
     click('Save Slots'); mode('slots'); click('Back to menu'); mode('title')
-    click('New Game'); mode('slots'); click('Save 1\nWeek 1 · Gale'); mode('name')
-    click('Blustery'); click('Review fresh start')
+    click('New Game'); mode('slots'); click('Save 1\nWeek 1 · Hard'); mode('name')
+    click('Medium'); click('Review fresh start')
     capture('overwrite-review')
     assert slots() == original
     click('Keep my save'); mode('slots'); assert slots() == original
-    click('Save 1\nWeek 1 · Gale'); mode('name'); click('Blustery'); click('Review fresh start')
-    click('Start fresh · Blustery'); mode('intro')
+    click('Save 1\nWeek 1 · Hard'); mode('name'); click('Medium'); click('Review fresh start')
+    click('Start fresh · Medium'); mode('intro')
     assert slots()[0]['checkpoint']['run_id'] != original[0]['checkpoint']['run_id']
     assert slots()[1:] == original[1:]
     print('PASS: separate Continue/New Game routes and confirmed slot replacement.', flush=True)
@@ -69,7 +69,7 @@ with sync_playwright() as p:
     capture('unlocked-menu')
     before = slots()
     click('Challenge'); mode('challenge_setup'); capture('challenge-setup')
-    click('Gale'); mode('play')
+    click('Hard'); mode('play')
     assert snap()['challenge'] and snap()['tiers'] == [10,10,10]
     assert snap()['active_slot'] == -1 and snap()['level_quota'] == 0 and snap()['surge_unlocked']
     first_interval = snap()['shedding_interval']
@@ -86,15 +86,15 @@ with sync_playwright() as p:
     click('Continue'); mode('lost')
     page.wait_for_function('window.snowSnapshot.result_tallied')
     capture('challenge-results')
-    click('Enter initials'); mode('initials'); click('Save score'); mode('scores')
+    click('Enter initials'); mode('initials'); click('Save score'); mode('lost')
     assert page.evaluate("JSON.parse(localStorage.getItem('snow.challenge_scores.v1')).tables[2][0].score") > 0
     assert page.evaluate("localStorage.getItem('snow.highscores.v1')") is None
-    capture('challenge-scores')
     assert slots() == before
-    click('Back'); mode('lost'); click('Play again'); mode('play')
+    click('Play again'); mode('play')
     assert snap()['score'] == 0 and snap()['tiers'] == [10,10,10]
     page.reload(wait_until='networkidle'); mode('title')
     click('High Scores'); mode('scores'); click('Challenge'); mode('scores')
+    capture('challenge-scores')
     assert page.evaluate("JSON.parse(localStorage.getItem('snow.challenge_scores.v1')).tables[2][0].score") > 0
     assert slots() == before
     print('PASS: migrated unlock, all-upgrade Challenge, focus pause, loss, separate persistent scores and fresh retry.', flush=True)

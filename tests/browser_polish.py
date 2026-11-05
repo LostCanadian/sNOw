@@ -20,7 +20,7 @@ with sync_playwright() as p:
   x,y,w,h=button['rect'];canvas=page.locator('canvas').bounding_box()
   page.mouse.click(canvas['x']+(x+w/2)/360*canvas['width'],canvas['y']+(y+h/2)/640*canvas['height'])
  def capture(name):page.locator('canvas').screenshot(path=f'test-results/{name}.png')
- click('Continue');mode('slots');click('Full canopy ending\nWeek 12 · Gale');mode('continue')
+ click('Continue');mode('slots');click('Full canopy ending\nWeek 12 · Hard');mode('continue')
  click('Upgrades');mode('workshop');page.wait_for_timeout(600);capture('paper-workshop-boots')
  for branch in [1,2,0]:
   click(name=f'Equipment{branch}')

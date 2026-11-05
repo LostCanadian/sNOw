@@ -23,10 +23,15 @@ with sync_playwright() as p:
     click(113, 479)
     mode('scores')
     assert snap()['score_rows'] == [0,0,0]
-    for x in [78,180,282]:
-        click(x,154)
+    mode_tabs = [b for b in snap()['ui_buttons'] if b['text'] in ('Campaign', 'Challenge')]
+    score_tabs = [b for b in snap()['ui_buttons'] if b['text'] in ('Easy', 'Medium', 'Hard')]
+    assert [b['text'] for b in mode_tabs] == ['Campaign', 'Challenge']
+    assert [b['text'] for b in score_tabs] == ['Easy', 'Medium', 'Hard']
+    assert mode_tabs[0]['rect'][1] == mode_tabs[1]['rect'][1] < score_tabs[0]['rect'][1]
+    for x in [80,180,280]:
+        click(x,173)
         page.wait_for_timeout(250)
-    click(180,554)
+    click(180,572)
     mode('title')
     click(244,479)
     mode('license')
@@ -55,7 +60,7 @@ with sync_playwright() as p:
     mode('title')
     print('PASS: all difficulty tabs and complete license sections work offline; focus changes retain the selected notice.',flush=True)
     # New-garden difficulty controls: real UI selection persisted in the campaign.
-    for difficulty, slot_y, x, capacity in [(0,242,62,135),(2,322,246,75),(1,402,154,105)]:
+    for difficulty, slot_y, x, capacity in [(0,242,62,135),(2,322,246,95),(1,402,154,105)]:
         click(180,313)
         mode('slots')
         click(180,slot_y)

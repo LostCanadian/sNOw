@@ -4,6 +4,9 @@ const Canopy=preload("res://scripts/canopy.gd")
 const OWL_BARK := [Vector2(500,547),Vector2(570,559),Vector2(640,583),Vector2(510,651),Vector2(658,649),Vector2(682,892),Vector2(658,950),Vector2(902,982),Vector2(730,873),Vector2(820,914)]
 const SQUIRREL_BARK := [Vector2(510,651),Vector2(658,649),Vector2(658,950),Vector2(682,892)]
 const CLIMB_BARK := [Vector2(335,1310),Vector2(280,1150),Vector2(270,1000),Vector2(300,900),Vector2(345,810)]
+const FAR_GROUND_Y := 443.0
+const NEAR_GROUND_Y := 451.0
+const GROUND_HEIGHTS := {"squirrel":15.5,"rabbit":20.0,"wolf":25.0}
 var owl_perch:=tree_point(OWL_BARK[1])
 var squirrel_perch:=tree_point(SQUIRREL_BARK[0])
 var perch_key:=""
@@ -14,6 +17,10 @@ var reaction_ready:=0.0
 var seed_value:=0
 static func tree_point(pixel:Vector2) -> Vector2:
 	return Canopy.TREE_RECT.position+pixel/Vector2(1024,1536)*Canopy.TREE_RECT.size
+static func ground_height(kind: String, baseline: float) -> float:
+	# The rabbit's existing path is the size reference. Use the ground baseline,
+	# not a hop's animated vertical offset, so bodies do not pulse while running.
+	return float(GROUND_HEIGHTS[kind]) * clampf(1.0 + (baseline - FAR_GROUND_Y) * 0.0035, 0.90, 1.12)
 func reset(seed:int) -> void:
 	seed_value=seed;perch_key="";look=0;flap_start=-10;next_flap=7+seed%6;reaction_ready=0
 func select_perches(slots:Array,variant:float) -> void:
@@ -75,12 +82,16 @@ func squirrel(clock:float,soft:bool) -> Dictionary:
 		position=squirrel_perch;action="perch";frame=12
 		var nibble:=fmod(t-10.9+seed_value%4,9)
 		if nibble>4:frame=13+int(nibble*5)%3;action="nibble"
-	return {"kind":"squirrel","sheet":"squirrel","frame":frame,"position":position,"height":20.0,"direction":1,"alpha":1.0,"plane":"tree","action":action}
+	var height := lerpf(ground_height("squirrel",466),20.0,smoothstep(3.0,6.0,t))
+	return {"kind":"squirrel","sheet":"squirrel","frame":frame,"position":position,"height":height,"direction":1,"alpha":1.0,"plane":"tree","action":action}
 func squirrel_climbs(visit: int) -> bool:
 	# A cosmetic coin toss stays stable across redraws, retries and pause.
 	return (str(seed_value)+":squirrel:"+str(visit)).sha256_text().substr(0,8).hex_to_int()%2==0
 
-func squirrel_ground(clock: float, soft: bool) -> Dictionary:
+func squirrel_near_ground(visit: int) -> bool:
+	return (str(seed_value)+":squirrel-depth:"+str(visit)).sha256_text().substr(0,8).hex_to_int()%2==0
+
+func squirrel_ground(clock: float, soft: bool, near := false) -> Dictionary:
 	var t:=6.0 if soft else maxf(0,clock)
 	var x:=-65.0;var direction:=1;var running:=true
 	if t<4:x=lerpf(-65,90,t/4)
@@ -92,8 +103,9 @@ func squirrel_ground(clock: float, soft: bool) -> Dictionary:
 	elif t<27:x=lerpf(90,-65,(t-23)/4);direction=-1
 	else:direction=-1;running=false
 	var frame:=int(t*9)%4 if running else (12 if soft else 13+int(t*5)%3)
-	return {"kind":"squirrel","sheet":"squirrel","frame":frame,"position":Vector2(x,443),
-		"height":20.0,"direction":direction,"alpha":1.0,"plane":"ground","action":"run" if running else "nibble"}
+	var baseline := NEAR_GROUND_Y if near else FAR_GROUND_Y
+	return {"kind":"squirrel","sheet":"squirrel","frame":frame,"position":Vector2(x,baseline),
+		"height":ground_height("squirrel",baseline),"direction":direction,"alpha":1.0,"plane":"near_ground" if near else "ground","action":"run" if running else "nibble"}
 
 func squirrel_arrival(t: float) -> Dictionary:
 	var pose:=squirrel(t,false)
@@ -112,7 +124,7 @@ func squirrel_depart(t: float, clock: float) -> Dictionary:
 func squirrel_visit(clock: float, soft: bool) -> Dictionary:
 	var visit:=0 if soft else floori(clock/45.0)
 	var t:=18.0 if soft else fposmod(clock,45.0)
-	if not squirrel_climbs(visit):return squirrel_ground(t,soft)
+	if not squirrel_climbs(visit):return squirrel_ground(t,soft,squirrel_near_ground(visit))
 	return squirrel_arrival(t) if t<=30.9 else squirrel_depart(maxf(0,41.8-t),clock)
 
 func rabbit(clock:float,coat:float,soft:bool) -> Array[Dictionary]:
@@ -137,7 +149,7 @@ func rabbit(clock:float,coat:float,soft:bool) -> Array[Dictionary]:
 	for layer in range(2):
 		var alpha:=1-mix if layer==0 else mix
 		if alpha<0.001:continue
-		poses.append({"kind":"rabbit","sheet":"rabbit","frame":(first+layer)*8+frame,"position":Vector2(x,443-lift),"height":20.0,"direction":direction,"alpha":alpha,"plane":"ground","action":action,"coat":first+layer})
+		poses.append({"kind":"rabbit","sheet":"rabbit","frame":(first+layer)*8+frame,"position":Vector2(x,443-lift),"height":ground_height("rabbit",443),"direction":direction,"alpha":alpha,"plane":"ground","action":action,"coat":first+layer})
 	return poses
 func wolf(clock:float,soft:bool) -> Dictionary:
 	var t:=fmod(0.0 if soft else clock,48)
@@ -152,7 +164,7 @@ func wolf(clock:float,soft:bool) -> Dictionary:
 	else:x=lerpf(-35,80,(t-44)/4);walking=true
 	var frame:=int(clock*8)%6 if walking else (6+int(clock/2)%2)
 	if soft:frame=6
-	return {"kind":"wolf","sheet":"rare","frame":frame,"position":Vector2(x,444),"height":25.0,"direction":direction,"alpha":0.90,"plane":"ground","action":"trot" if walking else "sniff"}
+	return {"kind":"wolf","sheet":"rare","frame":frame,"position":Vector2(x,444),"height":ground_height("wolf",444),"direction":direction,"alpha":0.90,"plane":"ground","action":"trot" if walking else "sniff"}
 func bat(clock:float,soft:bool) -> Dictionary:
 	var t:=0.0 if soft else clock
 	return {"kind":"bat","sheet":"rare","frame":8+int(t*10)%8,"position":Vector2(180+sin(t*.42)*150,112+sin(t*.83)*23),"height":16.0,"direction":1 if cos(t*.42)>=0 else -1,"alpha":0.85,"plane":"ground","action":"fly"}

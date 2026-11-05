@@ -52,7 +52,8 @@ with sync_playwright() as p:
     page.wait_for_timeout(250);assert snap()['mode']=='title';page.evaluate("window.dispatchEvent(new Event('focus'))")
     click(180,261);mode('slots');click(180,242);mode('results')
     page.wait_for_function('window.snowSnapshot.result_tallied')
-    assert snap()['result_display']==['90','30',str(summary['checkpoint']['score']-summary['checkpoint']['week_start_score'])]
+    miss_limit=[135,105,95][int(summary['checkpoint'].get('difficulty',1))]
+    assert snap()['result_display']==['90',f'30 / {miss_limit}',str(summary['checkpoint']['score']-summary['checkpoint']['week_start_score'])]
     page.evaluate("window.dispatchEvent(new Event('blur'))");page.wait_for_timeout(250)
     assert snap()['mode']=='results';page.evaluate("window.dispatchEvent(new Event('focus'))")
     capture('results');audible();print('PASS: completed results stay open on blur and scene music is audible.',flush=True)

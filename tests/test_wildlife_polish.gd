@@ -62,6 +62,11 @@ func run() -> void:
 	check(climbs>=450 and climbs<=550,"about half of squirrel visits choose the tree")
 	var again=Motion.new();again.reset(0)
 	check(range(100).all(func(visit):return motion.squirrel_climbs(visit)==again.squirrel_climbs(visit)),"cosmetic route choices reproduce after resetting the same saved scene seed")
+	var near_visits:=0;var ground_visits:=0
+	for visit in range(1000):
+		if not motion.squirrel_climbs(visit):
+			ground_visits+=1;near_visits+=int(motion.squirrel_near_ground(visit))
+	check(near_visits>ground_visits*0.4 and near_visits<ground_visits*0.6 and range(100).all(func(visit):return motion.squirrel_near_ground(visit)==again.squirrel_near_ground(visit)),"ground visits reproducibly choose both distant and foreground crossings")
 	var ground_only:=true;var ground_smooth:=true;var directions:={};var ground_actions:={}
 	var ground_previous:Vector2=motion.squirrel_ground(0,false).position
 	for frame in range(1,3601):
@@ -71,7 +76,18 @@ func run() -> void:
 		directions[pose.direction]=true;ground_actions[pose.action]=true;ground_previous=pose.position
 	check(ground_only and ground_smooth and directions.size()==2 and ground_actions.has("run") and ground_actions.has("nibble"),"ground visits roam in both directions and nibble continuously without climbing")
 	check(motion.squirrel_ground(0,false).position.x< -40 and motion.squirrel_ground(30,false).position.x< -40,"ground visits start and finish fully offscreen")
-	check(motion.squirrel_visit(18,false).plane=="tree" and motion.squirrel_visit(45+18,false).plane=="ground","successive campaign visits actually use both selected routes")
+	check(motion.squirrel_visit(18,false).plane=="tree" and motion.squirrel_visit(45+18,false).plane in ["ground","near_ground"],"successive campaign visits actually use both selected routes")
+	var near_smooth:=true;var near_previous:Vector2=motion.squirrel_ground(0,false,true).position
+	for frame in range(1,3601):
+		var pose:Dictionary=motion.squirrel_ground(frame/120.0,false,true)
+		near_smooth=near_smooth and pose.plane=="near_ground" and pose.position.y==Motion.NEAR_GROUND_Y and pose.position.distance_to(near_previous)<1
+		near_previous=pose.position
+	check(near_smooth,"foreground crossings retain their depth throughout running, nibbling and departure")
+	var far_squirrel:Dictionary=motion.squirrel_ground(8,false)
+	var near_squirrel:Dictionary=motion.squirrel_ground(8,false,true)
+	check(far_squirrel.height<near_squirrel.height and near_squirrel.height<motion.rabbit(8,0,false)[0].height*0.85,"a squirrel stays smaller than a rabbit, with a slight increase closer to the viewer")
+	check(motion.rabbit(8,0,false)[0].height==20 and motion.rabbit(8.1,0,false)[0].height==20 and absf(motion.wolf(8,false).height-25)<0.25,"rabbit hops keep the existing body size and wolf scaling stays subtle")
+	check(absf(motion.squirrel(3.001,false).height-motion.squirrel(2.999,false).height)<0.01 and motion.squirrel(6,false).height==20,"squirrel scale changes smoothly from the ground approach to the established branch size")
 	var visit_continuous:=true;var visit_previous:Vector2=motion.squirrel_visit(0,false).position
 	for frame in range(1,10801):
 		var pose:Dictionary=motion.squirrel_visit(frame/120.0,false)
@@ -106,7 +122,7 @@ func run() -> void:
 	check(assets and total==88,"all eighty-eight complete paper poses have valid bounds and smooth mipmaps")
 	var main=Main.instantiate();root.add_child(main);main.set_physics_process(false)
 	var resident:Node2D=main.scenery_layers[1];var meadow:Node2D=main.scenery_layers[2]
-	check(resident.plane=="tree" and resident.z_index==-2 and resident.get_index()<meadow.get_index() and main.scenery_layers[3].z_index>resident.z_index,"tree residents draw over bark, under the meadow, leaves and player")
-	check(RootMeadow.cover_rect().end.y>=502 and RootMeadow.cover_rect().position.x<=20 and RootMeadow.cover_rect().end.x>=340,"the paper meadow covers the lower root fan across the tree base")
+	check(resident.planes==["tree","near_ground"] and main.world.animals.planes==["ground"] and resident.z_index==-2 and resident.get_index()>main.scenery_layers[0].get_index() and resident.get_index()<meadow.get_index() and main.scenery_layers[3].z_index>resident.z_index,"near squirrels and tree residents draw over bark, under the meadow, leaves and player; distant animals stay behind bark")
+	check(RootMeadow.cover_rect().end.y>=502 and RootMeadow.cover_rect().position.x<0 and RootMeadow.cover_rect().end.x>360,"the paper meadow extends beyond both screen edges to cover the side roots")
 	world.queue_free();main.queue_free();await process_frame
 	print("Wildlife polish: %d checks, %d failures"%[checks,failures]);quit(1 if failures else 0)

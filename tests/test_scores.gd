@@ -88,7 +88,7 @@ func _initialize() -> void:
 	legacy.order = legacy.order.filter(func(id): return id < 48)
 	if legacy.order.is_empty(): legacy.order = [0]
 	legacy.erase("run_id")
-	check(Campaign.restore(legacy).difficulty == 1 and Campaign.restore(legacy).run_id == Campaign.restore(legacy).run_id, "legacy saves migrate to Blustery with a stable campaign identity")
+	check(Campaign.restore(legacy).difficulty == 1 and Campaign.restore(legacy).run_id == Campaign.restore(legacy).run_id, "legacy saves migrate to Medium with a stable campaign identity")
 	for name in DirAccess.get_files_at("user://"):
 		if name.begins_with(path.get_file()): DirAccess.remove_absolute("user://" + name)
 	print("High scores and difficulty: %d checks, %d failures" % [checks, failures])

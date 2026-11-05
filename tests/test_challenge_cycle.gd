@@ -97,25 +97,28 @@ func run() -> void:
 	check(smooth and swap_safe, "arrivals, exits and full-moon replacements never teleport or remove an on-screen animal")
 	check(["fly_in","land","fly_out","descend","leave","perch","nibble"].all(func(a):return actions.has(a)), "owls fly in, land, watch and depart; squirrels perch, descend and run away")
 	check(frames.size()==16, "all sixteen new flight, landing, descent and run frames are exercised")
-	var roaming=Visitors.new();var choices:={};var visits:=0;var held:=true;var ground_only:=true;var ground_runs:=false
+	var roaming=Visitors.new();var choices:={};var depths:={};var visits:=0;var held:=true;var ground_only:=true;var ground_runs:=false;var ground_planes:={}
 	var daylight:=Cycle.sample(0)
 	for frame in range(3200):
 		var clock:=frame/4.0
 		roaming.advance(0.25,daylight,motion,clock)
 		if roaming.squirrel_visits>visits:
 			visits=roaming.squirrel_visits;choices[visits]=roaming.lanes.tree.climbs
+			depths[visits]=roaming.lanes.tree.near_ground
 		if roaming.lanes.has("tree") and roaming.lanes.tree.kind=="squirrel":
-			held=held and roaming.lanes.tree.climbs==choices[visits]
+			held=held and roaming.lanes.tree.climbs==choices[visits] and roaming.lanes.tree.near_ground==depths[visits]
 			var pose:Dictionary=roaming.pose(roaming.lanes.tree,motion,clock,1.0)[0]
 			if not roaming.lanes.tree.climbs:
-				ground_only=ground_only and pose.plane=="ground" and pose.position.y==443 and pose.action not in ["climb","jump","descend"]
+				var near:bool=roaming.lanes.tree.near_ground
+				ground_only=ground_only and pose.plane==("near_ground" if near else "ground") and pose.position.y==(World.Motion.NEAR_GROUND_Y if near else World.Motion.FAR_GROUND_Y) and pose.action not in ["climb","jump","descend"]
+				ground_planes[pose.plane]=true
 				ground_runs=ground_runs or pose.action=="run"
 	var tree_visits:=choices.values().count(true)
 	check(held and visits>15 and tree_visits>0 and tree_visits<visits,"each Challenge squirrel visit chooses once and retains its route through entry, residence and exit")
-	check(ground_only and ground_runs,"Challenge ground-only visits stay on the ground even when departing")
+	check(ground_only and ground_runs and ground_planes.size()==2,"Challenge ground visits use both depths and retain their plane and height even when departing")
 	var main=Main.instantiate();root.add_child(main);main.set_physics_process(false)
 	main.campaign=Campaign.new("user://cycle-test-no-save.json")
-	main.campaign.challenge_unlocked=true;main.start_challenge()
+	main.campaign.highest_completed_difficulty=2;main.start_challenge()
 	main.sim.week_time=95;main.sim.spawn_timer=999;main._physics_process(0.1)
 	check(main.world.challenge and main.world.profile.time=="night" and main.sim.week==8, "actual Challenge play cycles atmosphere without advancing the campaign week")
 	main.pause_game();var profile:Dictionary=main.world.profile.duplicate(true)

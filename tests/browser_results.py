@@ -18,6 +18,7 @@ with sync_playwright() as p:
     page.wait_for_function("window.snowSnapshot?.mode === 'title'", timeout=90000)
     fixture = json.loads(Path('test-results/results-fixture.json').read_text())
     expected = fixture['slots'][0]['checkpoint']
+    miss_limit = [135, 105, 95][int(expected.get('difficulty', 1))]
     page.evaluate('(data)=>localStorage.setItem("snow.campaigns.v1",JSON.stringify(data))', fixture)
     page.reload(wait_until='networkidle')
     page.wait_for_function("window.snowSnapshot?.mode === 'title'", timeout=90000)
@@ -45,25 +46,24 @@ with sync_playwright() as p:
     page.evaluate("window.dispatchEvent(new Event('focus'))")
     page.wait_for_function('window.snowSnapshot.result_tallied')
     assert snap()['result_new_high']
-    assert snap()['result_display'] == ['90', '30', str(expected['score'] - expected['week_start_score'])]
+    assert snap()['result_display'] == ['90', f'30 / {miss_limit}', str(expected['score'] - expected['week_start_score'])]
     capture('results')
     print('PASS: completed-week results tally the saved counts, stay open across focus changes, and reveal the high-score alert.', flush=True)
 
     click(100, 427); mode('initials')
     capture('initials')
-    click(180, 258)
+    click(112, 258)
     page.keyboard.press('Control+A')
     page.keyboard.type('ice', delay=40)
     # Touch-friendly letter buttons also work without a software keyboard.
-    click(109, 313); click(109, 358)
-    click(116, 445); mode('scores')
+    click(112, 313); click(112, 358)
+    click(116, 445); mode('results')
     table = page.evaluate("JSON.parse(localStorage.getItem('snow.highscores.v1')).tables[0]")
     assert len(table) == 1 and table[0]['initials'] == 'ICE' and table[0]['score'] == expected['score']
     assert table[0]['outcome'] == 'workshop' and table[0]['week'] == 9
-    capture('high-scores')
-    click(180, 554); mode('results')
     assert snap()['result_tallied']
-    print('PASS: weekly initials can be entered before campaign end, stored in the right table, and viewed without losing results.', flush=True)
+    assert not any(b['text'] == 'High Scores' for b in snap()['ui_buttons'])
+    print('PASS: weekly initials save to the correct table and return directly to results.', flush=True)
 
     click(230, 427); mode('workshop')
     click(60, 333)
@@ -79,11 +79,10 @@ with sync_playwright() as p:
     click(180, 242); mode('results')
     page.wait_for_function('window.snowSnapshot.result_tallied')
     assert snap()['tiers'] == [4, 3, 2] and snap()['points'] == 7
-    assert snap()['result_display'] == ['90', '30', str(expected['score'] - expected['week_start_score'])]
+    assert snap()['result_display'] == ['90', f'30 / {miss_limit}', str(expected['score'] - expected['week_start_score'])]
     assert not snap()['result_new_high'] and snap()['score_rows'] == [1, 0, 0]
-    click(100, 427); mode('scores')
     assert page.evaluate("JSON.parse(localStorage.getItem('snow.highscores.v1')).tables[0][0].initials") == 'ICE'
-    click(180, 554); mode('results')
+    assert not any(b['text'] == 'High Scores' for b in snap()['ui_buttons'])
     click(250, 477); mode('intro')
     mode('play')
     assert snap()['week'] == 10 and snap()['week_rescued'] == 0 and snap()['week_missed'] == 0

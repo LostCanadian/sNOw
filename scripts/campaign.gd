@@ -8,7 +8,9 @@ const WEB_KEY := "snow.campaigns.v1"
 var path: String
 var browser_storage := false
 var slots: Array = [null, null, null]
-var challenge_unlocked := false
+var highest_completed_difficulty := -1
+var challenge_unlocked: bool:
+	get: return highest_completed_difficulty >= 0
 var error := ""
 
 
@@ -26,6 +28,10 @@ func load_slots() -> void:
 		if not data is Dictionary or not whole(data.get("version"), VERSION, VERSION) or not data.get("slots") is Array or data.slots.size() != 3:
 			error = "Save data could not be read. Existing files were preserved."
 			continue
+		# Completion metadata survives replacement (or damage) of any one slot.
+		highest_completed_difficulty = maxi(highest_completed_difficulty, completed_difficulty(data))
+		if not whole(data.get("highest_completed_difficulty", -1), -1, 2):
+			error = "Challenge unlock data could not be read; checking the recovery copy."
 		for i in range(3):
 			var record = data.slots[i]
 			if record == null: continue
@@ -34,7 +40,6 @@ func load_slots() -> void:
 			else:
 				error = "One save slot could not be read; other saves are available."
 		if valid_document(data):
-			challenge_unlocked = data.get("challenge_unlocked", false) or slots.any(func(slot): return slot != null and slot.checkpoint.phase == "won")
 			if candidate != path: error = "Recovered the last good local checkpoint."
 			return
 
@@ -56,9 +61,23 @@ func read_raw(backup: bool) -> String:
 static func valid_document(data) -> bool:
 	if not data is Dictionary or not whole(data.get("version"), VERSION, VERSION) or not data.get("slots") is Array or data.slots.size() != 3: return false
 	if not data.get("challenge_unlocked", false) is bool: return false
+	if not whole(data.get("highest_completed_difficulty", -1), -1, 2): return false
 	for record in data.slots:
 		if record != null and (not record is Dictionary or not record.get("name") is String or not valid_checkpoint(record.get("checkpoint"))): return false
 	return true
+
+
+static func completed_difficulty(data: Dictionary) -> int:
+	var highest := -1
+	if whole(data.get("highest_completed_difficulty", -1), -1, 2):
+		highest = int(data.get("highest_completed_difficulty", -1))
+	if not data.has("highest_completed_difficulty") and data.get("challenge_unlocked", false) == true:
+		# The old boolean proves a win, but not its difficulty.
+		highest = maxi(highest, 0)
+	for record in data.slots:
+		if record is Dictionary and record.get("name") is String and valid_checkpoint(record.get("checkpoint")) and record.checkpoint.phase == "won":
+			highest = maxi(highest, int(record.checkpoint.get("difficulty", 1)))
+	return highest
 
 
 static func clean_name(value: String, index: int) -> String:
@@ -223,7 +242,8 @@ func store(index: int, name: String, checkpoint: Dictionary) -> bool:
 		error = "This checkpoint could not be saved. Your previous save is unchanged."
 		return false
 	slots[index] = {"name": clean_name(name, index), "checkpoint": checkpoint.duplicate(true)}
-	if checkpoint.phase == "won": challenge_unlocked = true
+	if checkpoint.phase == "won":
+		highest_completed_difficulty = maxi(highest_completed_difficulty, int(checkpoint.get("difficulty", 1)))
 	return flush()
 
 
@@ -233,18 +253,28 @@ func rename_slot(index: int, name: String) -> bool:
 	return flush()
 
 
-func unlock_challenge() -> bool:
-	if challenge_unlocked: return true
-	challenge_unlocked = true
+func can_play_challenge(difficulty: int) -> bool:
+	return difficulty >= 0 and difficulty <= highest_completed_difficulty and difficulty < Loop.DIFFICULTIES.size()
+
+
+func unlock_challenge(difficulty: int) -> bool:
+	if difficulty < 0 or difficulty >= Loop.DIFFICULTIES.size(): return false
+	if difficulty <= highest_completed_difficulty and error.is_empty(): return true
+	highest_completed_difficulty = maxi(highest_completed_difficulty, difficulty)
 	return flush()
 
 
 func flush() -> bool:
+	var previous := read_raw(false)
+	var saved = read_document(previous)
+	# Another open session may have earned a harder unlock since this one loaded.
+	if valid_document(saved):
+		highest_completed_difficulty = maxi(highest_completed_difficulty, completed_difficulty(saved))
+	var payload := JSON.stringify({"version": VERSION, "slots": slots, "challenge_unlocked": challenge_unlocked,
+		"highest_completed_difficulty": highest_completed_difficulty})
 	if browser_storage:
 		# WebStorage setItem is an atomic, synchronous value replacement. Keep a
 		# validated previous value separately; never depend on virtual-FS flush timing.
-		var previous := read_raw(false)
-		var payload := JSON.stringify({"version": VERSION, "slots": slots, "challenge_unlocked": challenge_unlocked})
 		var js := "(() => { try { "
 		if valid_document(read_document(previous)):
 			js += "localStorage.setItem(%s,%s);" % [JSON.stringify(WEB_KEY + ".backup"), JSON.stringify(previous)]
@@ -260,7 +290,7 @@ func flush() -> bool:
 	if file == null:
 		error = "Local saving is unavailable. Keep this session open to retain progress."
 		return false
-	file.store_string(JSON.stringify({"version": VERSION, "slots": slots, "challenge_unlocked": challenge_unlocked}))
+	file.store_string(payload)
 	file.flush()
 	var write_error := file.get_error()
 	file.close()

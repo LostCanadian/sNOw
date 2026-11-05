@@ -1,10 +1,12 @@
 # Scores and acknowledgements
 
-The main menu now has **High Scores** and **License** buttons. Both fit the fixed portrait playfield, work with mouse/touch and keyboard, and retain their screen when paused and resumed.
+The main menu has **High Scores** and **License** buttons. The score board opens only from the main menu; Challenge setup contains difficulty choices and Back. Both dialogs fit the fixed portrait playfield, work with mouse/touch and keyboard, and retain their screen when paused and resumed.
 
 ## Local high scores
 
-Each difficulty has its own top ten: **Breezy**, **Blustery**, and **Gale**. Empty tables show an invitation to play; no fabricated scores are installed. A qualifying completed week, loss or victory offers **Enter initials** on the result screen. Enter three A–Z characters with the keyboard or the large plus/minus letter controls; empty positions default to A. **Not now** returns to the result without recording it.
+Each difficulty has its own top ten: **Easy**, **Medium**, and **Hard**. Empty tables show an invitation to play; no fabricated scores are installed. A qualifying completed week, loss or victory offers **Enter initials** on the result screen. Three separate single-letter boxes align with their own plus/minus controls. Keyboard input advances to the next box and keeps letters uppercase; empty positions default to A. **Not now** returns to the result without recording it.
+
+Centered **Campaign** and **Challenge** radio buttons sit above a separate **Easy / Medium / Hard** radio group. Each group has exactly one selected button, shown with the same dark selected style; changing one group preserves the other selection. The difficulty row and complete top ten sit lower in the taller dialog. Renaming difficulties preserves their stored indices and existing score tables. Menu text buttons are slightly inset within their original positions, and their smaller shadows leave room between neighbouring controls and panel edges.
 
 A record contains score, initials, highest week/final encounter, completion/loss/win outcome, equipment tiers, difficulty, campaign identity and scoring-rules version. Scores rank by descending score and then highest week; earlier exact ties retain their order. Each saved campaign contributes **one best result**. A better retry replaces that campaign's previous row; equal/worse retries and reopening a victory never create duplicates. Positive scores qualify at completed-week, loss and victory boundaries. Once initials have been recorded, later improvements update that campaign row automatically after the results tally. Exiting an unfinished level does not submit a score.
 
@@ -12,7 +14,7 @@ Campaign saves and high scores are separate. A level retry rolls gameplay back t
 
 Browser scores use localStorage `snow.highscores.v1` with `.backup` recovery; native scores use `user://highscores.json` and `.bak`. Version/field/order validation rejects malformed records. Writes preserve a good backup and damaged primary data. A storage failure displays a notice and keeps scores only for the current session. Browser data belongs to that hostname/port/origin; clearing site data removes it. Campaign slot storage remains `snow.campaigns.v1` / `user://campaigns.json`.
 
-New-save difficulty is selected above the name field and stays fixed for that campaign. Existing checkpoints without these fields migrate to **Blustery** with a stable identity, retaining their difficulty and progress while migrating the new rules. The current profiles, weekly miss limits, 2,880-leaf persistent canopy, 960-leaf recovery floor and eighteen-node workshop are documented in [Campaign rules](CAMPAIGN.md). Rules version 5 separates colour-weighted shedding and tenfold smaller score awards from earlier rules. Previous scores remain stored under the same key and can be viewed using the **Previous scores** button; they are not overwritten or ranked against current results. Each rules version retains ten entries per difficulty.
+New-save difficulty is selected above the name field and stays fixed for that campaign. Existing checkpoints without these fields migrate to **Medium** with a stable identity, retaining their difficulty and progress while migrating the new rules. The current profiles, weekly miss limits, 2,880-leaf persistent canopy, 960-leaf recovery floor and eighteen-node workshop are documented in [Campaign rules](CAMPAIGN.md). Rules version 5 separates colour-weighted shedding and tenfold smaller score awards from earlier rules. Previous scores remain stored under the same key and can be viewed using the **Previous scores** button; they are not overwritten or ranked against current results. Each rules version retains ten entries per difficulty.
 
 ## License screen
 
@@ -33,7 +35,7 @@ Scoring versions 1–4 remain separately accessible through Previous Scores. Cur
 
 ## Running locally in a browser
 
-Complete a week, wait for its tally, then choose **Enter initials** when the score qualifies. Type three letters or use the letter controls and press **Save score**. **Not now** leaves that first score unrecorded. Losing or winning also provides entry when eligible. Returning from the score table restores the result page. Later campaign improvements retain those initials automatically.
+Complete a week, wait for its tally, then choose **Enter initials** when the score qualifies. Type three letters or use the letter controls and press **Save score**. Saving returns directly to results; **Not now** returns without recording the first score. Losing or winning also provides entry when eligible. Results do not provide a score-board shortcut. Later campaign improvements retain those initials automatically. Open the score board from the main menu to review stored rows.
 
 If the old flow is still showing, rerun `python3 tools/play_web.py --open` from the updated checkout; avoid `--serve-only` until it has rebuilt. Use the same origin each time: `localhost:8000`, `127.0.0.1:8000`, a different port and another browser profile all have separate storage. Clearing site data/private sessions can remove local scores. Loading a save selects its difficulty for subsequent score-menu visits in that session. Choose the difficulty tab matching the save; older rules remain under Previous Scores. Storage-denied/write errors display on the page and preserve session play.
 

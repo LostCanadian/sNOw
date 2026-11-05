@@ -4,25 +4,30 @@ extends RefCounted
 const BlowerPose = preload("res://scripts/blower_pose.gd")
 const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
-const RULES := 12
+const RULES := 13
 const AttachmentAnchors=preload("res://scripts/attachment_anchors.gd")
 const ChallengeCycle = preload("res://scripts/challenge_cycle.gd")
+const ChallengeWind = preload("res://scripts/challenge_wind.gd")
 const NorthWind = preload("res://scripts/north_wind.gd")
 const CROWN_CEILINGS := [2160,2080,2000,1900,1800,1680,1560,1440,1320,1200,1080,960,960]
 const SURGE_DURATION := 1.15
+const GROUND_LAUNCH_DURATION := 0.65
 const RECOVERY_FLOOR := 720
 const GRAVITY := 48.0
 const GROUND := 502.0
 const Canopy = preload("res://scripts/canopy.gd")
 const CAPTURE_RADIUS := 15.0
 const MAX_ACTIVE := 1500
+const CHALLENGE_MAX_ACTIVE := 200
+const CHALLENGE_WAVE_SECONDS := 20.0
+const CHALLENGE_WAVE_ACTIVE := 10.0
 const SHED_BATCH := 10
 const BASE_SPEED := 50.0
 const CAPACITY := 105 # Default weekly allowance. Cumulative loss remains in missed.
 const DIFFICULTIES := [
-	{"name": "Breezy", "capacity": 135, "leaves": 180, "increment": 15, "cadence": 1.15, "wind": 0.70, "fall": 0.88},
-	{"name": "Blustery", "capacity": 105, "leaves": 225, "increment": 15, "cadence": 1.0, "wind": 1.0, "fall": 1.0},
-	{"name": "Gale", "capacity": 75, "leaves": 270, "increment": 23, "cadence": 0.85, "wind": 1.30, "fall": 1.12},
+	{"name": "Easy", "capacity": 135, "leaves": 180, "increment": 15, "cadence": 1.15, "wind": 0.70, "fall": 0.88},
+	{"name": "Medium", "capacity": 105, "leaves": 225, "increment": 15, "cadence": 1.0, "wind": 1.0, "fall": 1.0},
+	{"name": "Hard", "capacity": 95, "leaves": 270, "increment": 23, "cadence": 0.95, "wind": 1.30, "fall": 1.12},
 ]
 const MAIN_WEEKS := 12
 const BOSS_STAGE := MAIN_WEEKS + 1
@@ -44,6 +49,10 @@ const SEASONS := [
 const LEAF_COLOURS := [Color("e6ae3d"), Color("d96a32"), Color("b54332"), Color("b5b352")]
 
 var challenge := false
+var challenge_airflow := Vector2.ZERO
+var weather_gust:Dictionary={}
+var challenge_wave:=-1
+var challenge_wave_spawned:=0
 var difficulty := 1
 var run_id := ""
 var rng := RandomNumberGenerator.new()
@@ -83,7 +92,6 @@ var surge_charge := 1.0
 var surge_left := 0.0
 var surge_held := false
 var slots: Array[Dictionary] = []
-var capture_grid := {}
 var attached_lookup := PackedInt32Array()
 var canopy_revision := 0
 var attachment_motions := {}
@@ -126,6 +134,7 @@ func stats(build: Array = []) -> Dictionary:
 	var effects := Upgrades.effects(nodes)
 	var ranks := Upgrades.counts(nodes)
 	var load_factor: float = 1.0 + (0.025 * ranks[1] + 0.005 * ranks[2]) * (1.0 - effects.weight_relief)
+	var recharge_seconds := 2.25 if difficulty == 0 and not challenge else 3.0
 	return {
 		"speed": BASE_SPEED * (1.0 + effects.speed) / load_factor,
 		"force": 410.0 * (1.0 + effects.force),
@@ -133,7 +142,7 @@ func stats(build: Array = []) -> Dictionary:
 		"reach": 335.0 + effects.reach,
 		"steering": 1.0 + effects.steering,
 		"burst": 6.0 * (1.0 + effects.burst) / (1.0 + 0.035 * ranks[1]),
-		"recharge": 3.0 * (1.0 - effects.recharge),
+		"recharge": recharge_seconds * (1.0 - effects.recharge),
 		"pile_penalty": maxf(0.04, 0.32 - effects.grip),
 		"surge_cooldown": 36.0 - effects.cooldown,
 		"surge_radius": 88.0 + effects.radius,
@@ -194,12 +203,27 @@ func seasonal_risk() -> float:
 
 
 func shed_batch_size() -> int:
+	if challenge:return [3,4,5][difficulty]
 	return 4 + roundi(6 * sqrt(seasonal_risk()))
 
+func challenge_wave_quota()->int:
+	return [30,40,50][difficulty]
+
+func falling_scale()->float:
+	if challenge:return 1.0+minf(0.30,0.03*ChallengeWind.stage(week_time))
+	return 1.0+0.03*clampi(week-3,0,9)
 
 func shedding_interval() -> float:
-	if challenge: return DIFFICULTIES[difficulty].cadence * 1.2 / (1.0 + week_time / 35.0)
+	if challenge:return [1.0,0.95,0.9][difficulty]
 	return maxf(0.65, 1.30 - week * 0.045) * DIFFICULTIES[difficulty].cadence * lerpf(1.15, 1.0, seasonal_risk())
+
+func active_leaf_limit() -> int:
+	return CHALLENGE_MAX_ACTIVE if challenge else MAX_ACTIVE
+
+func shedding_leaf_limit() -> int:
+	# Grounded leaves keep their place in the budget for Whirlwind.
+	# New branch shedding must not consume the slots needed to recover them.
+	return maxi(0, active_leaf_limit() - ground_leaves.size())
 
 
 func prepare_shedding() -> void:
@@ -281,16 +305,17 @@ func boss_phase() -> String:
 
 func step_north_wind(previous_time: float) -> void:
 	var time := wind_time()
-	if time < 0 or leaves.size() >= MAX_ACTIVE: return
-	ensure_falling_order(64)
-	if spawned >= falling_order.size():return
+	if time < 0: return
+	var full := leaves.size() >= shedding_leaf_limit()
+	if not full: ensure_falling_order(64)
 	var gust := ChallengeCycle.gust(week_time) if challenge else {}
 	var cycle: int = gust.id if challenge else NorthWind.cycle(time)
 	if cycle != wind_cycle:
 		wind_cycle = cycle
 		wind_released = 0
 		wind_next_packet=week_time
-		wind_lane = choose_wind_lane()
+		wind_lane = 110.0 + (maxi(0,cycle)*5 % 16)*15.0 if full else choose_wind_lane()
+	if full or spawned >= falling_order.size(): return
 	if boss_phase() != "blast" or week_time<wind_next_packet: return
 	var quota: int = [16,20,24][difficulty] if challenge else [48,56,64][difficulty]
 	if wind_released >= quota: return
@@ -381,7 +406,9 @@ func capture_slot(from: Vector2, to: Vector2, leaf:Dictionary={}) -> int:
 	var end := Vector2i((from.max(to) + Vector2.ONE * CAPTURE_RADIUS) / 24.0)
 	for cx in range(start.x, end.x + 1):
 		for cy in range(start.y, end.y + 1):
-			for i in capture_grid.get(Vector2i(cx, cy), []):
+			var cell := Vector2i(cx, cy)
+			if not anchors.active_cells.has(cell): continue
+			for i in anchors.active_cells[cell]:
 				if slots[i].leaf_id >= 0 or not anchors.active.has(i) or week_time < float(slots[i].get("capture_after",0)): continue
 				var point := Geometry2D.get_closest_point_to_segment(slots[i].position, from, to)
 				var distance := point.distance_squared_to(slots[i].position)
@@ -393,13 +420,9 @@ func capture_slot(from: Vector2, to: Vector2, leaf:Dictionary={}) -> int:
 
 func index_canopy() -> void:
 	canopy_revision += 1
-	capture_grid.clear()
 	attached_lookup.resize(Canopy.SLOT_COUNT)
 	attached_lookup.fill(-1)
 	for i in range(slots.size()):
-		var cell := Vector2i(slots[i].position / 24.0)
-		if not capture_grid.has(cell): capture_grid[cell] = []
-		capture_grid[cell].append(i)
 		if slots[i].leaf_id >= 0: attached_lookup[slots[i].leaf_id] = i
 
 	anchors.rebuild(slots,week)
@@ -495,92 +518,151 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 	week_time += dt
 	# Ordinary shedding continues in the finale, sharing the same finite schedule.
 	spawn_timer -= dt
-	if spawn_timer<=0 and leaves.size()<MAX_ACTIVE:
-		for i in range(3 if is_boss() else shed_batch_size()):
+	var wave_active:=true
+	if challenge:
+		var wave:=floori(week_time/CHALLENGE_WAVE_SECONDS)
+		if wave!=challenge_wave:challenge_wave=wave;challenge_wave_spawned=0
+		wave_active=fposmod(week_time,CHALLENGE_WAVE_SECONDS)<CHALLENGE_WAVE_ACTIVE and challenge_wave_spawned<challenge_wave_quota()
+	if not wave_active or leaves.size() >= shedding_leaf_limit():
+		spawn_timer = maxf(0, spawn_timer)
+	elif spawn_timer<=0:
+		var packet:=3 if is_boss() else shed_batch_size()
+		if challenge:packet=mini(packet,challenge_wave_quota()-challenge_wave_spawned)
+		for i in range(packet):
 			if not spawn_leaf():break
-		spawn_timer+=shedding_interval()*(2.4 if is_boss() else 1.0)
+			if challenge:challenge_wave_spawned+=1
+		spawn_timer=maxf(0,spawn_timer)+shedding_interval()*(2.4 if is_boss() else 1.0)
 	if is_boss() or challenge:step_north_wind(previous_time)
 	var gust_time := wind_time()
+	challenge_airflow = ChallengeWind.sample(week_time, difficulty, rng.seed, gust_time) if challenge else Vector2.ZERO
+	weather_gust=ChallengeWind.squall(week_time,difficulty,rng.seed,0 if challenge else week)
+	var squall_force:=Vector2(weather_gust.get("cross",0.0),weather_gust.get("down",0.0))
+	var squall_lane:float=weather_gust.get("lane",180.0)
+	var squall_radius:float=weather_gust.get("radius",92.0)
+	var north_active := gust_time >= 0 and NorthWind.phase(gust_time) == "blast"
+	var north_origin := NorthWind.center(gust_time,wind_lane) if north_active else Vector2.ZERO
+	var north_travel := NorthWind.tangent(gust_time,wind_lane)*150 if north_active else Vector2.ZERO
+	var north_spin := NorthWind.direction(gust_time)*165 if north_active else 0.0
 	var origin := nozzle()
 	var airflow := air_axis()
 	var lateral := airflow.orthogonal()
+	# Frame-wide values stay typed and outside the per-leaf script loop.
+	var reach: float = s.reach
+	var width: float = s.width
+	var force: float = s.force
+	var steering: float = s.steering
+	var gust_reach := minf(reach, 145.0) if low_power else reach
+	var fall: float = DIFFICULTIES[difficulty].fall * falling_scale()
+	var gravity := GRAVITY * fall
+	var fall_acceleration := gravity + challenge_airflow.y
+	var fall_limit := (45.0 + week * 1.5) * fall * (1.0 + minf(0.45,challenge_airflow.y*0.006))
+	var wind := sin(week_time * 0.9 + week) * (5.0 + week * 1.6) * float(DIFFICULTIES[difficulty].wind) + challenge_airflow.x
+	var surge_center := Vector2(x, GROUND - 35) + surge_offset() if surge_left > 0 else Vector2.ZERO
+	var surge_radius: float = 175.0 + float(s.surge_radius) - 88.0
+	var surge_force: float = s.surge_force
+	var ground_ceiling := pile_surface.minimum_y()
+	var resolved := false
 	for leaf in leaves:
 		if leaf.state != "air":
+			resolved = true
 			continue
-		leaf.age += dt
+		var age: float = leaf.age + dt
+		var id: int = leaf.id
+		var wall_return := int(leaf.get("wall_return", 0))
+		if wall_return > 0 and leaf.position.x >= 144 or wall_return < 0 and leaf.position.x <= 216:
+			wall_return = 0
+			leaf.wall_return = 0
+		leaf.age = age
 		var p: Vector2 = leaf.position
 		var previous := p
 		var v: Vector2 = leaf.velocity
 		var offset := p - origin
 		var height := offset.dot(airflow)
 		var across := offset.dot(lateral)
-		var in_gust: bool = blowing and height > -8.0 and height < (minf(s.reach,145.0) if low_power else s.reach) and absf(across) < s.width * (0.7 + height / 340.0)
-		var wind := sin(week_time * 0.9 + week) * (5.0 + week * 1.6) * float(DIFFICULTIES[difficulty].wind)
+		var spread := width * (0.7 + height / 340.0)
+		var in_gust: bool = blowing and height > -8.0 and height < gust_reach and absf(across) < spread
 		# Smooth, seeded aerodynamic variation: broad drifting arcs, never frame noise.
-		var flutter: float = leaf.age * leaf.get("flutter_rate", 2.8) + leaf.get("flutter_phase", float(leaf.id))
-		var flutter_x: float = sin(flutter) * leaf.get("flutter_strength", 26.0)
-		v.x += (wind + flutter_x - v.x) * 1.8 * dt
+		var flutter: float = age * float(leaf.get("flutter_rate", 2.8)) + float(leaf.get("flutter_phase", float(id)))
+		var flutter_sin := sin(flutter)
+		var flutter_strength:float=leaf.get("flutter_strength",26.0)
+		var flutter_x := flutter_sin * flutter_strength
+		# Independent broad paths separate overlapping leaves without pairwise work
+		# or new RNG samples. The stable bias keeps them from sharing one airflow lane.
+		var drift := (fposmod(id * 0.754877666, 1.0) - 0.5) * 48.0 * flutter_strength / 30.0
+		var drift_target := wind + flutter_x + drift * 0.45
+		if wall_return > 0:drift_target=absf(drift_target)
+		elif wall_return < 0:drift_target=-absf(drift_target)
+		v.x += (drift_target - v.x) * 1.8 * dt
 		var drag_coefficient: float = leaf.get("drag", 0.65) * (0.75 + 0.25 * cos(flutter * 2))
-		v.y += (GRAVITY * float(DIFFICULTIES[difficulty].fall) - v.y * drag_coefficient + sin(flutter * 2) * 8.0) * dt
-		if gust_time >= 0: v += NorthWind.force(p,gust_time,wind_lane)*dt
-		var rise_limit:float=158.0*float(leaf.get("lift_response",1.0))
+		v.y += (fall_acceleration - v.y * drag_coefficient + sin(flutter * 2) * 8.0) * dt
+		if squall_force!=Vector2.ZERO:
+			v+=squall_force*ChallengeWind.exposure(p,squall_lane,squall_radius)*dt
+		if north_active: v += NorthWind.force_at(p,north_origin,north_travel,north_spin)*dt
+		var lift_response := float(leaf.get("lift_response", 1.0))
+		var rise_limit := 158.0 * lift_response
 		if in_gust:
 			if not low_power:leaf.lifted=true
-			var strength:=BlowerPose.attenuation(height,s.reach)
-			var spread: float = s.width * (0.7 + height / 340.0)
+			var strength := BlowerPose.attenuation(height, reach)
 			var normalized_across := clampf(across / spread, -1, 1)
 			# Fan out from the nozzle: standing to one side now steers a leaf that way.
 			# Each leaf carries independent, smooth turbulence rather than sharing lanes.
-			var turbulence: float = sin(flutter * 1.31 + leaf.id * 2.399) * 23.0 + sin(flutter * 2.17) * 9.0
-			var lift:float=(GRAVITY*float(DIFFICULTIES[difficulty].fall)+7.0*strength)/maxf(0.7,-airflow.y) if low_power else float(s.force)*float(leaf.get("lift_response",1.0))*strength
-			var force:Vector2=airflow*lift+lateral*(normalized_across*155.0*float(s.steering)+turbulence)*strength*(0.25 if low_power else 1.0)
-			# At the borders a return breeze wins over outward-directed blower force.
-			if force.x < 0: force.x *= smoothstep(-8, 48, p.x)
-			if force.x > 0: force.x *= (1.0 - smoothstep(312, 368, p.x))
-			v+=force*dt
+			var turbulence := (sin(flutter * 1.31 + id * 2.399) * 42.0 + sin(flutter * 2.17) * 18.0) * flutter_strength / 30.0 + drift * 3.0
+			var lift := (gravity + 7.0 * strength) / maxf(0.7, -airflow.y) if low_power else force * lift_response * strength
+			var draft := airflow * lift + lateral * (normalized_across * 155.0 * steering + turbulence) * strength * (0.25 if low_power else 1.0)
+			if p.x < 48 and draft.x < 0: wall_return = 1; leaf.wall_return = 1
+			elif p.x > 312 and draft.x > 0: wall_return = -1; leaf.wall_return = -1
+			draft = BlowerPose.reflect_draft(p.x, draft, wall_return)
+			v += draft * dt
 			if low_power:
 				# Retain the recharge draft's gravity support; its small surplus fades.
 				if v.y < -12.0*strength:v.y=move_toward(v.y,-12.0*strength,dt*180)
 			else:rise_limit*=strength
 		if surge_left > 0:
-			var center := Vector2(x, GROUND - 35) + surge_offset()
-			var radial: Vector2 = p - center
-			var reach: float = 175.0 + float(s.surge_radius) - 88.0
-			if radial.length() < reach:
-				var strength: float = 1.0 - radial.length() / reach
+			var radial := p - surge_center
+			var distance := radial.length()
+			if distance < surge_radius:
+				var strength := 1.0 - distance / surge_radius
 				var cone: float = 1.0 if height > -18 and height < 225 and absf(across) < 45 + maxf(0, height) * 0.48 else 0.0
-				v += (airflow * float(s.force) * cone * 1.25 * float(s.surge_force) + radial.orthogonal().normalized() * facing * 95 * strength + Vector2(0, -110) * strength) * dt
+				v += (airflow * force * cone * 1.25 * surge_force + radial.orthogonal().normalized() * facing * 95 * strength + Vector2(0, -110) * strength) * dt
 				leaf.lifted = true
 				leaf.surge_lift = 0.8
 		v.x += BlowerPose.edge_force(p.x) * dt
-		leaf.surge_lift = maxf(0, float(leaf.get("surge_lift", 0)) - dt)
-		v.y = clampf(v.y, -238.0 if leaf.surge_lift > 0 else -rise_limit, (45.0 + week * 1.5) * float(DIFFICULTIES[difficulty].fall))
+		var surge_lift := maxf(0, float(leaf.get("surge_lift", 0)) - dt)
+		leaf.surge_lift = surge_lift
+		var ground_launch := maxf(0, float(leaf.get("ground_launch", 0)) - dt)
+		if ground_launch > 0:
+			# The spinning nozzle can point down: keep freshly swept leaves rising
+			# until they clear the pile instead of immediately counting as misses again.
+			v.y = minf(v.y, -lerpf(85, 155, ground_launch / GROUND_LAUNCH_DURATION))
+		if leaf.has("ground_launch"):leaf.ground_launch = ground_launch
+		v.y = clampf(v.y, -238.0 if surge_lift > 0 else -rise_limit, fall_limit)
 		v.x = clampf(v.x, -125.0, 125.0)
 		p += v * dt
-		# A short overshoot is allowed; the spring continuously draws leaves back in.
-		if p.x < -22.0:
-			p.x = -22.0
-			v.x = maxf(24, absf(v.x) * 0.35)
-		elif p.x > 382.0:
-			p.x = 382.0
-			v.x = -maxf(24, absf(v.x) * 0.35)
+		if p.x < LEAF_RADIUS or p.x > 360.0 - LEAF_RADIUS:
+			leaf.wall_return = 1 if p.x < LEAF_RADIUS else -1
+			if p.x < LEAF_RADIUS and v.x < 0 or p.x > 360.0 - LEAF_RADIUS and v.x > 0:
+				v.x *= -0.85
+			p = BlowerPose.reflect_point(p, LEAF_RADIUS)
 		leaf.position = p
 		leaf.velocity = v
-		var detach_blend := smoothstep(0, 0.8, leaf.age)
-		leaf.angle = leaf.get("rest_angle", 0.0) + (sin(flutter) * 0.65 + leaf.age * leaf.get("spin", 0.2)) * detach_blend
+		var detach_blend := smoothstep(0, 0.8, age)
+		leaf.angle = float(leaf.get("rest_angle", 0.0)) + (flutter_sin * 0.65 + age * float(leaf.get("spin", 0.2))) * detach_blend
 		leaf.roll = lerpf(float(leaf.get("detach_roll", 1.0)), 0.62 + 0.38 * absf(cos(flutter * 0.7)), detach_blend)
 		var target := capture_slot(previous, p, leaf) if leaf.lifted and v.y < 0.0 else -1
 		if target >= 0:
 			resolve_leaf(leaf, true, target)
-		elif p.y >= pile_surface.surface(p.x, leaf.id):
+			resolved = true
+		elif p.y >= ground_ceiling and p.y >= pile_surface.surface(p.x, id):
 			resolve_leaf(leaf, false)
+			ground_ceiling = pile_surface.minimum_y()
+			resolved = true
 		elif p.y < 75.0:
 			# Missing a real gap never scores. Let the leaf fall back into reach.
 			leaf.position.y = 75.0
 			leaf.velocity.y = maxf(8.0, -leaf.velocity.y * 0.25)
 		if status == "lost" or quota_reached():
 			break
-	leaves = leaves.filter(func(leaf: Dictionary) -> bool: return leaf.state == "air")
+	if resolved: leaves = leaves.filter(func(leaf: Dictionary) -> bool: return leaf.state == "air")
 	if status == "playing" and quota_reached():complete_level()
 
 
@@ -591,6 +673,7 @@ func complete_level() -> void:
 	canopy_revision+=1
 	blowing=false;low_power=false;surge_left=0
 	closing_surface.heights=pile_surface.heights.duplicate()
+	closing_surface.highest=pile_surface.highest
 	closing_settled=leaves.is_empty()
 	if is_boss():score+=500;status="won"
 	else:points+=2;earned_points+=2;status="workshop"
@@ -642,7 +725,7 @@ static func leaf_lift_response(id:int) -> float:
 
 
 func spawn_leaf() -> bool:
-	if leaves.size() >= MAX_ACTIVE:return false
+	if leaves.size() >= shedding_leaf_limit():return false
 	ensure_falling_order()
 	if spawned>=falling_order.size():return false
 	var id := falling_order[spawned]
@@ -661,6 +744,7 @@ func spawn_leaf() -> bool:
 		"velocity": Vector2(rng.randf_range(-6, 6), 3.0),
 		"state": "air", "lifted": false, "age": 0.0,
 		"attach_after":week_time+LEAF_ATTACH_DELAY,
+		"wall_return": 0,
 		"lift_response": leaf_lift_response(id),
 		"angle": pose.angle, "rest_angle": pose.angle, "colour": leaf_colour(id), "category": leaf_category(id),
 		"flutter_phase": rng.randf_range(0, TAU), "flutter_rate": rng.randf_range(2.1, 3.8),
@@ -848,15 +932,19 @@ func activate_surge() -> bool:
 	var nearby := leaves.any(func(leaf): return leaf.state == "air" and leaf.position.distance_to(center) < 175 + stats().surge_radius - 88)
 	var lifted: Array[Dictionary] = []
 	for leaf in ground_leaves:
-		if absf(leaf.position.x - x) > radius or leaves.size() >= MAX_ACTIVE: continue
+		if absf(leaf.position.x - x) > radius or leaves.size() >= active_leaf_limit(): continue
 		var delta: float = leaf.position.x - x
 		leaf.state = "air"
 		leaf.lifted = true
-		leaf.velocity = Vector2(signf(delta) * 25 + facing * 15, -95.0 - int(leaf.id) % 5 * 4)
+		var variation := fposmod(int(leaf.id) * 0.61803398875, 1.0)
+		var outward := signf(delta) if absf(delta) > 3 else (-1.0 if variation < 0.5 else 1.0)
+		leaf.position.y = minf(leaf.position.y, float(leaf.get("rest_y",leaf.position.y))) - LEAF_RADIUS * 1.5
+		leaf.velocity = Vector2(outward * lerpf(45, 80, variation), -165.0 - variation * 35)
 		leaf.rest_angle = leaf.angle
 		leaf.detach_roll = leaf.get("roll", 1.0)
 		leaf.age = 0.0
 		leaf.surge_lift = 1.0
+		leaf.ground_launch = GROUND_LAUNCH_DURATION
 		if not leaves.has(leaf): leaves.append(leaf)
 		lifted.append(leaf)
 	if lifted.is_empty() and not nearby: return false

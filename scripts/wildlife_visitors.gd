@@ -28,9 +28,10 @@ func advance(dt: float, profile: Dictionary, motion, clock: float) -> void:
 		if not lanes.has(lane):
 			if target != "" and cooldown[lane] <= 0:
 				lanes[lane] = {"kind": target, "phase": "enter", "age": 0.0, "route_time": 0.0,
-					"exit_from": Vector2.ZERO, "exit_to": Vector2.ZERO, "duration": 0.0, "climbs": true}
+					"exit_from": Vector2.ZERO, "exit_to": Vector2.ZERO, "duration": 0.0, "climbs": true, "near_ground": false}
 				if target == "squirrel":
 					lanes[lane].climbs = motion.squirrel_climbs(squirrel_visits)
+					lanes[lane].near_ground = motion.squirrel_near_ground(squirrel_visits)
 					squirrel_visits += 1
 			continue
 		var animal: Dictionary = lanes[lane]
@@ -55,7 +56,8 @@ func leave(animal: Dictionary, motion, clock: float) -> void:
 	else:
 		var flying: bool = animal.kind in ["owl", "bat"]
 		var side := -65.0 if current.position.x < 180 else 425.0
-		animal.exit_to = Vector2(side, 60 if animal.kind == "owl" else (90 if flying else 443))
+		var ground_y := Motion.NEAR_GROUND_Y if animal.kind == "squirrel" and animal.get("near_ground",false) else (444.0 if animal.kind == "wolf" else Motion.FAR_GROUND_Y)
+		animal.exit_to = Vector2(side, 60 if animal.kind == "owl" else (90 if flying else ground_y))
 		animal.duration = 3.0 if flying else maxf(0.1, absf(side-current.position.x)/(45.0 if animal.kind == "wolf" else 38.0))
 
 static func enter_duration(kind: String, climbs := true) -> float:
@@ -73,7 +75,7 @@ func pose(animal: Dictionary, motion, clock: float, coat: float) -> Array[Dictio
 	var age: float = animal.age
 	if kind == "squirrel":
 		if not animal.climbs:
-			var ground: Dictionary = motion.squirrel_ground(animal.route_time if entering else 4.0+age,false)
+			var ground: Dictionary = motion.squirrel_ground(animal.route_time if entering else 4.0+age,false,animal.get("near_ground",false))
 			if exiting:
 				ground.position = animal.exit_from.lerp(animal.exit_to,clampf(age/animal.duration,0,1))
 				ground.direction = 1 if animal.exit_to.x >= animal.exit_from.x else -1

@@ -31,7 +31,7 @@ with sync_playwright() as p:
         page.wait_for_timeout(350)
     mode('title')
     before=page.evaluate("localStorage.getItem('snow.campaigns.v1')")
-    click('Challenge');mode('challenge_setup');click('Breezy');mode('play')
+    click('Challenge');mode('challenge_setup');click('Easy');mode('play')
     assert snap()['challenge'] and snap()['world']['stage']==0 and snap()['world']['moon']==7
     page.screenshot(path=str(out/'sunny.png'),timeout=15000)
     page.wait_for_function('window.snowSnapshot.mode==="play" && window.snowSnapshot.world.stage===1',timeout=90000)

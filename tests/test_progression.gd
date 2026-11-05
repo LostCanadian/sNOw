@@ -52,7 +52,7 @@ func _initialize() -> void:
 	check(game.status == "workshop" and game.attached_count() == Loop.Canopy.SLOT_COUNT, "a perfect week retains the entire canopy")
 	game.next_week()
 	check(game.attached_count() == game.crown_ceiling() and game.week_leaf_count() > initial_count and game.regrown == 0 and game.seasonal_fallen == 80, "the next week thins healthy twig clusters without counting seasonal loss as player misses")
-	# A plausible sparse end-of-campaign checkpoint: 1,500 losses over twelve Breezy weeks.
+	# A plausible sparse end-of-campaign checkpoint: 1,500 losses over twelve Easy weeks.
 	game = Loop.new(55, 0)
 	game.week = 12
 	game.status = "workshop"

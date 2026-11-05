@@ -25,6 +25,11 @@ static func segment(previous:float,time:float,lane:float) -> Array[Vector2]:
 	return [center(maxf(previous,beginning),lane),center(time,lane)]
 static func force(position:Vector2,time:float,lane:float) -> Vector2:
 	if phase(time)!="blast":return Vector2.ZERO
-	var radial:=position-center(time,lane)
+	return force_at(position, center(time,lane), tangent(time,lane)*150, direction(time)*165)
+static func force_at(position:Vector2,origin:Vector2,travel:Vector2,spin:float) -> Vector2:
+	var radial:=position-origin
 	var strength:=clampf(1-radial.length()/94.0,0,1)
-	return (tangent(time,lane)*150+radial.orthogonal().normalized()*direction(time)*165)*strength
+	return (travel+radial.orthogonal().normalized()*spin)*strength
+static func downburst(time:float) -> float:
+	if time < 0 or phase(time)!="blast":return 0.0
+	return pow(sin(progress(time)*PI),2)

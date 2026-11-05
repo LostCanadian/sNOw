@@ -5,7 +5,9 @@ config_version=5
 config/name="sNOw"
 run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
-config/icon="res://assets/icon.svg"
+config/icon="res://assets/icon.png"
+boot_splash/show_image=false
+boot_splash/bg_color=Color(0.075, 0.12, 0.115, 1)
 
 [display]
 window/size/viewport_width=360
@@ -26,7 +28,7 @@ environment/defaults/default_clear_color=Color(0.075, 0.12, 0.115, 1)
 driver/enable_input=false
 
 [input_devices]
-pointing/emulate_mouse_from_touch=false
+pointing/emulate_mouse_from_touch=true
 
 [physics]
 common/physics_ticks_per_second=60

@@ -29,3 +29,25 @@ static func edge_force(x: float) -> float:
 	if x < 48.0: return (48.0 - x) * 5.0 + (120.0 if x < 0 else 0.0)
 	if x > 312.0: return -(x - 312.0) * 5.0 - (120.0 if x > 360 else 0.0)
 	return 0.0
+
+static func reflect_draft(x: float, force: Vector2, return_side := 0) -> Vector2:
+	# Turn outward airflow inward across a soft wall band. Past the nozzle the
+	# normal fan-out can then carry a returned leaf farther into the clearing.
+	if return_side > 0 and x < 144.0:
+		force.x = absf(force.x)
+		return force
+	if return_side < 0 and x > 216.0:
+		force.x = -absf(force.x)
+		return force
+	if force.x < 0 and x < 96.0:
+		force.x *= lerpf(-1.0, 1.0, smoothstep(0.0, 96.0, x))
+	elif force.x > 0 and x > 264.0:
+		force.x *= lerpf(-1.0, 1.0, smoothstep(0.0, 96.0, 360.0 - x))
+	return force
+
+static func reflect_point(point: Vector2, margin := 7.8) -> Vector2:
+	# Mirror overshoot instead of pinning a leaf at a wall.
+	if point.x < margin: point.x = 2.0 * margin - point.x
+	elif point.x > 360.0 - margin: point.x = 720.0 - 2.0 * margin - point.x
+	point.x = clampf(point.x, margin, 360.0 - margin)
+	return point

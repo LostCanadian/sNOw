@@ -108,16 +108,17 @@ See [campaign details](CAMPAIGN.md) for the state flow, storage semantics, and f
 
 ## Difficulty and level progression
 
-Use three difficulties, provisionally **Breezy**, **Blustery**, and **Gale**. Keep control rules identical. Separate local score tables make score multipliers unnecessary.
+Use three difficulties: **Easy**, **Medium**, and **Hard**. Keep control rules identical. Separate local score tables make score multipliers unnecessary.
 
-| Parameter | Breezy | Blustery | Gale |
+| Parameter | Easy | Medium | Hard |
 | --- | --- | --- | --- |
-| Scheduled leaves | 240 + 20 per following week | 300 + 20 per following week | 360 + 30 per following week |
-| Weekly misses before loss | 180 | 140 | 100 |
-| Shedding interval factor | ×1.15 | ×1.00 | ×0.85 |
+| Completion quota | 180 + 15 per following week | 225 + 15 per following week | 270 + 23 per following week |
+| Weekly misses before loss | 135 | 105 | 95 |
+| Shedding interval factor | ×1.15 | ×1.00 | ×0.95 |
 | Wind factor | ×0.70 | ×1.00 | ×1.30 |
+| Fall factor | ×0.88 | ×1.00 | ×1.12 |
 
-The final encounter adds 120 leaves to the schedule. These are current prototype values, not a finished balance claim. A new campaign has 2,880 individually occupied leaf positions. Keeping every leaf in week one preserves the whole canopy for week two. Saving exact occupancy and applying the 960-leaf floor prevents supply depletion; weekly danger resets prevent inherited near-defeat checkpoints. See [campaign rules](CAMPAIGN.md).
+The final encounter adds 90 leaves to the quota. These are current prototype values, not a finished balance claim. A new campaign has 2,160 individually occupied leaf positions. Keeping every leaf in week one preserves the whole canopy for week two. Saving exact occupancy and applying the 720-leaf floor prevents supply depletion; weekly danger resets prevent inherited near-defeat checkpoints. See [campaign rules](CAMPAIGN.md).
 
 | Weeks | Seasonal presentation | Challenge / clothing direction |
 | --- | --- | --- |
@@ -171,7 +172,7 @@ Save only level boundaries/workshop edits. Foreground resume preserves a paused 
 
 Show the sNOw logo, Continue, New Game, Challenge, High Scores, Explore the seasons, License and the audio-settings icon. Menu copy stays minimal: titles, action labels, actual values and relevant confirmation/error messages. Do not add tooltips, help paragraphs, control reminders, mode explanations or promotional captions unless the user explicitly requests them. This is the user's standing preference for future menu changes too.
 
-New Game selects a slot and difficulty; confirm replacement of an occupied save. Challenge unlocks after a campaign victory. The first intentional tap/click can enable browser audio. Tutorials or other explanatory menu copy require an explicit request.
+New Game selects a slot and difficulty; confirm replacement of an occupied save. A campaign victory permanently unlocks Challenge at that difficulty and every easier difficulty; harder buttons remain disabled. This completion record persists independently of save slots and cannot be reduced by overwriting a campaign. The first intentional tap/click can enable browser audio. Tutorials or other explanatory menu copy require an explicit request.
 
 ### In-game HUD
 

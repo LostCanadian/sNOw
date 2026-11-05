@@ -56,8 +56,8 @@ func run() -> void:
 	main.resume_game()
 	main._physics_process(2.2)
 	check(main.result_tallied and main.result_badge.text == "New high score!", "a qualifying score is announced only after the tally")
-	check(main.result_numbers.map(func(label): return label.text) == ["4", "1", str(final_score)], "all three displayed totals match actual weekly results")
-	check(main.result_bars[0].value < main.result_bars[2].value and main.result_bars[1].value < main.result_bars[0].value, "leaf bars show a share of this week's scheduled leaves")
+	check(main.result_numbers.map(func(label): return label.text) == ["4", "1 / 135", str(final_score)], "displayed totals match weekly results, with fallen leaves showing the loss allowance")
+	check(is_equal_approx(main.result_bars[0].value,4.0/main.sim.week_leaf_count()) and is_equal_approx(main.result_bars[1].value,1.0/main.sim.capacity()), "saved leaves use the weekly quota while fallen leaves use the loss allowance")
 	check(main.result_bars.all(func(bar): return bar.size.y <= 12), "result tracks stay slim rather than inheriting the theme's text height")
 	var layout := true
 	var buttons = main.overlay.find_children("*", "Button", true, false)
@@ -67,15 +67,16 @@ func run() -> void:
 	check(layout, "results actions fit the portrait field without overlapping")
 	press(main, "Enter initials")
 	check(main.mode == "initials" and main.visual_mode() == "workshop", "weekly initials keep the completed scene behind them")
-	main.overlay.find_children("*", "LineEdit", true, false)[0].text = "cat"
+	var initials = main.overlay.find_children("*", "LineEdit", true, false)
+	for column in range(3):initials[column].text = "cat"[column]
 	press(main, "Save score")
-	check(main.mode == "scores" and main.high_scores.entries(0)[0].initials == "CAT", "a completed week can save initials before a loss or campaign finale")
+	check(main.mode == "results" and main.high_scores.entries(0)[0].initials == "CAT", "saving weekly initials returns directly to results")
 	check(main.high_scores.entries(0)[0].outcome == "workshop", "a completed-week score is distinguished from a loss")
 	var text := ""
 	for label in main.overlay.find_children("*", "Label", true, false): text += label.text
-	check(not text.contains("Best result per campaign") and not text.contains("Local to this device"), "unnecessary score-screen footnotes are removed")
-	main.return_from_scores()
-	check(main.mode == "results" and main.result_tallied and main.result_numbers[0].text == "4", "return from scores preserves the completed tally")
+	check(not text.contains("Best result per campaign") and not text.contains("Local to this device"), "results contain no score-board footnotes")
+	main.show_high_scores()
+	check(main.mode == "results" and main.result_tallied and main.result_numbers[0].text == "4" and not main.result_score_action.visible, "the score board cannot open from results and saving initials preserves the tally")
 	press(main, "Upgrades")
 	check(main.mode == "workshop", "upgrades are an explicit optional destination")
 	main.purchase(0)
@@ -119,6 +120,16 @@ func run() -> void:
 		for j in range(i + 1, badges.size()): compact = compact and not badges[i].intersects(badges[j])
 	check(compact, "independent HUD badges leave the lower playfield free and avoid pause")
 	check(main.FROST_ICON.get_image().get_mipmap_count() > 0 and main.BATTERY_FRAME.get_image().get_mipmap_count() > 0, "new frost and battery assets are smoothly mipmapped")
+	for difficulty in range(3):
+		for challenge in [false,true]:
+			main.sim=main.Loop.new(55,difficulty,challenge)
+			main.sim.status="lost";main.sim.week_handled=600;main.sim.week_rescued=200
+			main.sim.week_missed=main.sim.capacity()
+			main.show_result();main.result_tallied=true;main.update_result_tally()
+			check(main.result_bars[1].value==1 and main.result_numbers[1].text=="%d / %d"%[main.sim.capacity(),main.sim.capacity()],"the fallen bar reaches full at the actual loss threshold on difficulty %d, Challenge=%s"%[difficulty,challenge])
+			main.sim.week_missed=main.sim.capacity()/2
+			main.update_result_tally()
+			check(is_equal_approx(main.result_bars[1].value,float(main.sim.week_missed)/main.sim.capacity()),"fallen scale follows the allowance independently of run length and rescue count")
 	for name in DirAccess.get_files_at("user://"):
 		if name.begins_with(prefix.get_file()): DirAccess.remove_absolute("user://" + name)
 	main.queue_free()

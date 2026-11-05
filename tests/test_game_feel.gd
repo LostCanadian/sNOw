@@ -33,6 +33,17 @@ func _initialize() -> void:
 	for frame in range(40):game.step(1.0/60,0,true)
 	var heights:Array=game.leaves.map(func(l):return l.position.y)
 	check(game.leaves.size()==8 and heights.max()-heights.min()>8,"vertical response and lift-speed variation spread a clump over time")
+	for frame in range(49):game.step(1.0/60,0,true)
+	var paths:Array=game.leaves.map(func(l):return l.position.x)
+	check(paths.max()-paths.min()>45,"independent sideways drift spreads an overlapping clump across more than three leaf widths in 1.5 seconds")
+	var replay=Loop.new(77);replay.spawn_timer=999
+	for i in range(8):replay.spawn_leaf()
+	for falling in replay.leaves:
+		falling.position=replay.nozzle()+Vector2(0,-55);falling.velocity=Vector2.ZERO
+		falling.drag=0.65;falling.flutter_rate=0;falling.flutter_phase=0
+	var rng_before_replay:int=replay.rng.state
+	for frame in range(90):replay.step(1.0/60,0,true)
+	check(replay.leaves.map(func(l):return l.position)==game.leaves.map(func(l):return l.position) and replay.rng.state==rng_before_replay,"dispersed paths reproduce on retry without consuming per-frame random samples")
 	var retry=Loop.new(77)
 	for i in range(8):retry.spawn_leaf()
 	check(retry.leaves.map(func(l):return l.lift_response)==game.leaves.map(func(l):return l.lift_response),"leaf response is deterministic across retries")

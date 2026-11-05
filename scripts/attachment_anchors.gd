@@ -4,12 +4,13 @@ const LIMITS:=[64,60,56,52,48,44,40,36,32,28,24,20,16]
 const CELL:=24.0
 var limit:=64
 var active:Dictionary={}
+var active_cells:Dictionary={}
 var gaps:Dictionary={}
 var recent:Array[Vector2]=[]
 static func level_limit(week:int) -> int:
 	return LIMITS[clampi(week-1,0,LIMITS.size()-1)]
 func rebuild(slots:Array,week:int) -> void:
-	limit=level_limit(week);active.clear();gaps.clear();recent.clear()
+	limit=level_limit(week);active.clear();active_cells.clear();gaps.clear();recent.clear()
 	for i in range(slots.size()):
 		slots[i].anchor_active=false
 		if slots[i].leaf_id<0:add_gap(i,slots[i].position)
@@ -24,6 +25,9 @@ func detached(index:int,slots:Array) -> void:
 func captured(index:int,slots:Array) -> void:
 	active.erase(index);slots[index].anchor_active=false
 	var cell:=Vector2i(slots[index].position/CELL)
+	if active_cells.has(cell):
+		active_cells[cell].erase(index)
+		if active_cells[cell].is_empty():active_cells.erase(cell)
 	if gaps.has(cell):
 		gaps[cell].erase(index)
 		if gaps[cell].is_empty():gaps.erase(cell)
@@ -49,3 +53,6 @@ func refill(slots:Array) -> void:
 				best=candidate;distance=nearest
 		if best<0:return
 		active[best]=true;slots[best].anchor_active=true
+		var cell := Vector2i(slots[best].position / CELL)
+		if not active_cells.has(cell):active_cells[cell]=[]
+		active_cells[cell].append(best)

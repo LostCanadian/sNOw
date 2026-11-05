@@ -174,7 +174,7 @@ func _initialize() -> void:
 	var animal_studies:={"version":1,"slots":[{"name":"Night wildlife","checkpoint":Campaign.snapshot(night_wildlife)},null,null]}
 	if not Campaign.valid_document(animal_studies):push_error("Invalid wildlife study");quit(1);return
 	file=FileAccess.open("res://test-results/wildlife-fixture.json",FileAccess.WRITE);file.store_string(JSON.stringify(animal_studies));file.close()
-	var champion=Loop.new()
+	var champion=Loop.new(641023, 2)
 	for completed in range(Loop.BOSS_STAGE):
 		champion.week_handled=champion.week_leaf_count();champion.step(1.0/60,0,false)
 		if champion.status=="workshop":champion.next_week()

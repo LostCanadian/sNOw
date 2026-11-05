@@ -24,7 +24,7 @@ func _initialize() -> void:
 
 func run() -> void:
 	var game = Loop.new()
-	check(game.attached_count() == 2160 and game.week_leaf_count() == 225 and game.capacity() == 105, "the new Blustery tree, weekly shedding and danger budget scale with the lighter canopy")
+	check(game.attached_count() == 2160 and game.week_leaf_count() == 225 and game.capacity() == 105, "the new Medium tree, weekly shedding and danger budget scale with the lighter canopy")
 	var identity := {}
 	for slot in game.slots: identity[slot.leaf_id] = true
 	check(identity.size() == 2160, "dense foliage consists of distinct recoverable leaves")
@@ -92,15 +92,16 @@ func run() -> void:
 	var original: Array = main.campaign.slots.duplicate(true)
 	main.show_slot_name(0, true)
 	press(main, "Start fresh…")
-	press(main, "Gale")
+	press(main, "Hard")
 	press(main, "Review fresh start")
 	check(main.campaign.slots == original, "choosing a replacement difficulty does not alter any existing slot before confirmation")
 	press(main, "Keep my save")
 	check(main.campaign.slots == original, "cancelling a fresh start preserves all three occupied saves")
+	main.show_slot_name(0, true)
 	press(main, "Start fresh…")
-	press(main, "Gale")
+	press(main, "Hard")
 	press(main, "Review fresh start")
-	press(main, "Start fresh · Gale")
+	press(main, "Start fresh · Hard")
 	check(main.mode == "intro" and main.sim.difficulty == 2 and main.sim.week == 1 and main.sim.score == 0, "confirmed fresh start uses the new difficulty and resets campaign progress")
 	check(main.sim.run_id != original[0].checkpoint.run_id and main.campaign.slots[0].name == "Occupied 0", "replacement gets a new campaign identity and retains the chosen slot name")
 	check(main.campaign.slots[1] == original[1] and main.campaign.slots[2] == original[2], "replacing one occupied slot leaves the other two intact")

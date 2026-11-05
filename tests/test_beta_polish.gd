@@ -22,6 +22,18 @@ func run() -> void:
 	check(last<first-40,"overlapping leaves create a growing pile, without a shallow height cap")
 	check(piles.surface(180,1)>last+35,"front and rear piles have independent support surfaces")
 	var game=Loop.new(77)
+	var easy=Loop.new(77,0)
+	var medium=Loop.new(77,1)
+	var hard=Loop.new(77,2)
+	check(easy.stats().recharge==2.25 and medium.stats().recharge==3 and hard.stats().recharge==3,"Easy campaign has a 25 percent shorter charging phase; Medium and Hard keep their recharge")
+	for battery in [easy,medium,hard]:
+		battery.charge=0;battery.energy_locked=true;battery.spawn_timer=9999
+	for frame in range(168):
+		for battery in [easy,medium,hard]:battery.step(1.0/60,0,false)
+	check(easy.charge==1 and medium.charge<0.8 and hard.charge==medium.charge,"actual Easy recovery finishes after the release delay while other difficulties are still charging")
+	easy.owned.assign([20,22]);easy.tiers=Loop.Upgrades.counts(easy.owned)
+	check(is_equal_approx(easy.stats().recharge,2.25*0.88),"Easy's faster base recharge composes with purchased recharge upgrades")
+	check(is_equal_approx(Loop.new(77,0,true).stats().recharge,Loop.new(77,1,true).stats().recharge),"the campaign assistance does not increase sustained power in Easy Challenge")
 	var old:Dictionary=Campaign.snapshot(game)
 	old.rules=6
 	for id in range(2160,2880):old.leaf_ids.append(id)
