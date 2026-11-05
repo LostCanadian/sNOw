@@ -100,7 +100,7 @@ with sync_playwright() as p:
     page.wait_for_function('window.snowSnapshot.surge_active')
     assert snap()['week_missed']<count and snap()['audio_cues'].get('whirlwind',0)==1
     capture('ability');page.wait_for_timeout(1300);menu_from_play()
-    click(180,558);mode('audio_options');capture('audio-options')
+    click(180,521);mode('audio_options');capture('audio-options')
     click(120,279);click(220,357)
     settings=page.evaluate("JSON.parse(localStorage.getItem('snow.audio.v1'))")
     assert 0<settings['music_volume']<.6 and settings['effects_volume']>.5

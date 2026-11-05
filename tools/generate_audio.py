@@ -81,7 +81,7 @@ def encode(name, signal):
     with tempfile.TemporaryDirectory(prefix='snow-audio-') as d:
         wav=Path(d)/'render.wav'
         with wave.open(str(wav),'wb') as w:
-            w.setnchannels(1);w.setsampwidth(2);w.setframerate(RATE)
+            w.setnchannels(1 if signal.ndim==1 else signal.shape[1]);w.setsampwidth(2);w.setframerate(RATE)
             w.writeframes((signal*32767).astype('<i2').tobytes())
         subprocess.run(['ffmpeg','-v','error','-y','-i',str(wav),'-c:a','libvorbis','-q:a','4',str(ROOT/f'{name}.ogg')],check=True)
         if name in SCORES:
@@ -124,6 +124,34 @@ def effect(name,duration,base,end,noise=0,seed=0):
     if name=='whirlwind': signal+=np.sin(math.tau*(280*t+180*t*t))*.2
     encode(name,signal*envelope*.33)
 
+def north_wind_signal():
+    """Heavy, non-tonal 2.1-second pass: low pressure, turbulent air, stereo travel."""
+    rng=np.random.default_rng(72104)
+    duration=2.1
+    t=np.arange(round(duration*RATE))/RATE
+    frequencies=np.fft.rfftfreq(len(t),1/RATE)
+    def band(low,high):
+        noise=np.fft.rfft(rng.normal(size=len(t)))
+        shape=(1-np.exp(-(frequencies/low)**4))/(1+(frequencies/high)**4)
+        sound=np.fft.irfft(noise*shape,n=len(t))
+        return sound/max(1e-9,np.sqrt(np.mean(sound**2)))
+    pressure=band(28,190)
+    air=band(90,1300)
+    hiss=band(700,3400)
+    progress=t/duration
+    envelope=np.sin(np.pi*progress)**1.1*np.exp(-((progress-.50)/.36)**2)
+    turbulence=1+.10*np.sin(2*np.pi*t*5.1)+.06*np.sin(2*np.pi*t*8.7+.8)
+    sound=(pressure*.58+air*.34+hiss*.08)*envelope*turbulence
+    sound=np.tanh(sound*.65)
+    sound*=.72/max(abs(sound).max(),1e-9)
+    pan=(np.tanh((progress-.5)*3.5)+1)/2
+    return np.column_stack((sound*np.cos(pan*np.pi/2),sound*np.sin(pan*np.pi/2)))
+
+def north_wind():
+    sound=north_wind_signal()
+    encode('north_wind',sound)
+    encode('north_wind_reverse',sound[:,::-1])
+
 def main(music_only=False):
     (ROOT/'midi').mkdir(parents=True,exist_ok=True)
     catalog={name:score(name,config) for name,config in SCORES.items()}
@@ -131,10 +159,15 @@ def main(music_only=False):
     (ROOT/'score_catalog.json').write_text(json.dumps(catalog,indent=2)+'\n')
 
     for args in ([] if music_only else [('menu_tap',.09,650,450,.04),('menu_focus',.055,420,520,.02),('upgrade',.35,520,1040,.12),('reset',.23,440,220,.1),('shuffle',.11,100,70,.8),('whirlwind',1.15,170,70,.5),('blower',1.0,110,110,.3),('leaf_saved',.13,830,1100,.02),('leaf_fallen',.12,150,95,.4),('battery_low',.2,330,220,.01),('week_clear',.6,520,1040,.03)]): effect(*args)
-    suffix='; existing effects preserved.' if music_only else ' and eleven effects.'
+    if not music_only: north_wind()
+    suffix='; existing effects preserved.' if music_only else ' and thirteen effects.'
     print(f'Generated {len(SCORES)} original sixteen-bar MIDI/Ogg/MP3 scores'+suffix)
 
 if __name__=='__main__':
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument('--music-only',action='store_true')
-    main(parser.parse_args().music_only)
+    parser=argparse.ArgumentParser();group=parser.add_mutually_exclusive_group()
+    group.add_argument('--music-only',action='store_true');group.add_argument('--wind-only',action='store_true')
+    args=parser.parse_args()
+    if args.wind_only:
+        north_wind();print('Generated two stereo North Wind pass variants.')
+    else: main(args.music_only)

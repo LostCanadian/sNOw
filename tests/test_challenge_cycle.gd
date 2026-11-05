@@ -121,6 +121,16 @@ func run() -> void:
 	main.pause_game();var profile:Dictionary=main.world.profile.duplicate(true)
 	main._physics_process(5)
 	check(main.world.profile==profile and main.world.clock>0, "the real pause overlay keeps the same cycle and lunar phase")
+	main.resume_game();main.sounds.unlock();main.muted=false;main.sounds.effects_volume=1
+	main.sim.week_time=56.79;main.sim.spawn_timer=999;main._physics_process(0.03)
+	check(main.sounds.cue_counts.get("north_wind",0)==1,"a real Challenge storm sweep triggers its wind audio")
+	main._physics_process(0.03)
+	check(main.sounds.cue_counts.get("north_wind",0)==1,"subsequent physics frames do not stack more wind clips")
+	main.sim.week_time=146.79;main._physics_process(0.03)
+	check(main.sounds.cue_counts.get("north_wind_reverse",0)==1,"a later Challenge pass reverses the audible travel direction")
+	main.start_run();main.finish_story();main.sim.week=13;main.sim.prepare_shedding()
+	main.sim.week_time=0.79;main.sim.spawn_timer=999;main._physics_process(0.03)
+	check(main.sounds.cue_counts.get("north_wind",0)==2,"the campaign finale uses the same once-per-pass wind sound")
 	main.queue_free();world.queue_free();await process_frame
 	await create_timer(0.5).timeout
 	print("Challenge cycle: %d checks, %d failures"%[checks,failures]);quit(1 if failures else 0)

@@ -21,7 +21,7 @@ with sync_playwright() as p:
     assert not any(b['text'] in ('Soft effects','Mute','Audio') for b in buttons)
     Path('test-results').mkdir(exist_ok=True)
     page.screenshot(path='test-results/menu-speaker.png')
-    click(180,558);mode('audio_options')
+    click(180,521);mode('audio_options')
     click(180,390);page.wait_for_function('snowSnapshot.audio_muted')
     click(180,390);page.wait_for_function('!snowSnapshot.audio_muted')
     click(120,279);click(220,357)

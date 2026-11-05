@@ -4,7 +4,7 @@ extends Node
 const MUSIC := ["menu", "workshop", "boss", "results", "victory", "winter",
 	"week_01", "week_02", "week_03", "week_04", "week_05", "week_06",
 	"week_07", "week_08", "week_09", "week_10", "week_11", "week_12"]
-const EFFECTS := ["menu_tap", "menu_focus", "upgrade", "reset", "shuffle", "whirlwind", "leaf_saved", "leaf_fallen", "battery_low", "week_clear"]
+const EFFECTS := ["menu_tap", "menu_focus", "upgrade", "reset", "shuffle", "whirlwind", "leaf_saved", "leaf_fallen", "battery_low", "week_clear", "north_wind", "north_wind_reverse"]
 const SETTINGS_KEY := "snow.audio.v1"
 var preferences_path := "user://audio.json"
 var muted := false
@@ -25,6 +25,7 @@ var last_leaf_cue := 0.0
 var cue_time := 0.0
 var cue_counts := {}
 var paused := false
+var wind_pass_key := ""
 
 func _ready() -> void:
 	read_preferences()
@@ -100,6 +101,11 @@ func play_cue(name: String, volume := 1.0) -> void:
 		voice.play()
 		cue_counts[name] = cue_counts.get(name, 0) + 1
 		return
+
+func north_wind_pass(key: String, phase: String, direction: float) -> void:
+	if phase != "blast" or key == wind_pass_key: return
+	wind_pass_key = key
+	play_cue("north_wind" if direction > 0 else "north_wind_reverse",1.0)
 
 func select_track(name: String) -> void:
 	if name == track: return

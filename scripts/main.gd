@@ -487,15 +487,14 @@ func start_run(slot_index := -1, slot_name := "", difficulty := -1, challenge :=
 func show_challenge() -> void:
 	if not campaign.challenge_unlocked: return
 	mode = "challenge_setup"
-	var panel := new_panel(Rect2(25, 151, 310, 338))
+	var panel := new_panel(Rect2(25, 197, 310, 246))
 	text_label(panel, "Challenge", Rect2(10, 18, 290, 38), 27, INK, true)
-	text_label(panel, "All upgrades. No quota.\nLeaves fall faster and faster.\nHold off winter and chase a high score.\n\nA fresh run each time · separate top ten\nYour campaign saves stay safe.", Rect2(12, 66, 286, 110), 11, INK)
 	for i in range(3):
-		button(panel, Loop.DIFFICULTIES[i].name, Rect2(17+i*93, 192, 90, 37), func():
+		button(panel, Loop.DIFFICULTIES[i].name, Rect2(17+i*93, 84, 90, 37), func():
 			selected_difficulty = i
 			start_challenge(), true).add_theme_font_size_override("font_size", 10)
-	button(panel, "Challenge scores", Rect2(24, 244, 262, 36), func(): show_high_scores(-1, false, true), true)
-	button(panel, "Back", Rect2(85, 290, 140, 34), show_title, true)
+	button(panel, "Challenge scores", Rect2(24, 136, 262, 36), func(): show_high_scores(-1, false, true), true)
+	button(panel, "Back", Rect2(85, 182, 140, 34), show_title, true)
 
 
 func start_challenge() -> void:
@@ -525,11 +524,9 @@ func pause_game() -> void:
 	clear_input()
 	var panel := new_panel(Rect2(28, 158, 304, 333))
 	text_label(panel, "A moment of calm", Rect2(20, 19, 264, 36), 22, INK, true)
-	text_label(panel, "Autumn will wait for you.", Rect2(20, 59, 264, 24), 11, INK)
 	button(panel, "Resume", Rect2(24, 105, 256, 44), resume_game)
 	if sim.challenge or not level_checkpoint.is_empty(): button(panel, "Restart challenge" if sim.challenge else "Restart current level", Rect2(24, 159, 256, 40), confirm_restart, true)
 	button(panel, "Exit to menu", Rect2(24, 209, 256, 40), confirm_menu, true)
-	text_label(panel, "Challenge runs are not saved.\nResume to keep chasing your high score." if sim.challenge else "Completed weeks are saved.\nThis level resumes only when you choose.", Rect2(14, 265, 276, 45), 10, INK)
 
 
 func resume_game() -> void:
@@ -559,7 +556,7 @@ func show_restart_review() -> void:
 	mode="paused"
 	var panel:=new_panel(Rect2(28,175,304,290))
 	text_label(panel,"Restart this level?",Rect2(12,16,280,36),21,INK,true)
-	text_label(panel,"Current level progress will be lost.\nUpgrades apply when this level restarts.",Rect2(12,59,280,42),10,INK)
+	text_label(panel,"Current level progress will be lost.",Rect2(12,59,280,42),10,INK)
 	button(panel,"Restart level",Rect2(24,115,256,40),func():
 		if not restart_draft.is_empty():
 			level_checkpoint=restart_draft.duplicate(true)
@@ -636,7 +633,6 @@ func show_slots(intent := "continue") -> void:
 	var fresh := intent == "new"
 	var panel := new_panel(Rect2(18, 116, 324, 409))
 	text_label(panel, "New Game" if fresh else "Continue", Rect2(8, 17, 308, 34), 23, INK, true)
-	text_label(panel, "Choose a slot · review before replacing a save" if fresh else "Choose a saved campaign to continue", Rect2(8, 56, 308, 24), 10, INK)
 	for i in range(3):
 		var record = campaign.slots[i]
 		var y := 98 + i * 80
@@ -680,10 +676,9 @@ func show_slot_name(index: int, editing: bool, replacing := false) -> void:
 			choice.toggle_mode = true
 			choice.button_group = group
 			choice.button_pressed = selected_difficulty == i
-		text_label(panel, "Choose a fresh difficulty.\nYour save stays until confirmation." if replacing else "Difficulty stays with this campaign.\nEach has its own local top ten.", Rect2(14, 213, 282, 43), 10, INK)
 	else:
 		var difficulty: int = campaign.slots[index].checkpoint.get("difficulty", 1)
-		text_label(panel, Loop.DIFFICULTIES[difficulty].name + " · Difficulty stays with this campaign", Rect2(12, 62, 286, 28), 10, INK)
+		text_label(panel, Loop.DIFFICULTIES[difficulty].name, Rect2(12, 62, 286, 28), 10, INK)
 	var accept := func():
 		if editing:
 			campaign.rename_slot(index, input.text)
@@ -740,7 +735,6 @@ func show_continue() -> void:
 	mode="continue"
 	var panel:=new_panel(Rect2(28,190,304,268))
 	text_label(panel,"Week %d"%sim.week,Rect2(16,18,272,36),24,INK,true)
-	text_label(panel,"Continue from the start of this level.",Rect2(12,61,280,28),11,INK)
 	button(panel,"Continue",Rect2(24,105,256,38),begin_intro)
 	button(panel,"Upgrades",Rect2(24,155,256,38),func():open_workshop("continue"),true)
 	button(panel,"Save Slots",Rect2(24,205,256,38),show_slots,true)
@@ -845,7 +839,7 @@ func show_title() -> void:
 	preview_victory = false
 	preview_mode = false
 	clear_input()
-	var panel := new_panel(Rect2(26, 98, 308, 487))
+	var panel := new_panel(Rect2(26, 98, 308, 450))
 	var logo := RichTextLabel.new()
 	logo.bbcode_enabled = true
 	logo.text = "[center]s[color=#bd5430]NO[/color]w[/center]"
@@ -857,22 +851,17 @@ func show_title() -> void:
 	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(logo)
 	text_label(panel, "KEEP WINTER WAITING", Rect2(12, 77, 284, 20), 9, INK)
-	text_label(panel, "Keep a little autumn alive.", Rect2(12, 107, 284, 22), 11, INK)
 	var continue_button := button(panel, "Continue", Rect2(25, 142, 258, 42), show_slots)
 	continue_button.disabled = not campaign.slots.any(func(slot): return slot != null)
 	button(panel, "New Game", Rect2(25, 194, 258, 42), func(): show_slots("new"))
 	var challenge_button := button(panel, "Challenge" if campaign.challenge_unlocked else "Challenge · locked", Rect2(25, 246, 258, 40), show_challenge, true)
 	challenge_button.disabled = not campaign.challenge_unlocked
-	challenge_button.tooltip_text = "All upgrades · survive for a high score" if campaign.challenge_unlocked else "Beat the campaign to unlock Challenge."
-	text_label(panel, "All upgrades · endless high scores" if campaign.challenge_unlocked else "Beat the campaign to unlock Challenge", Rect2(12, 288, 284, 20), 9, INK)
 	button(panel, "Explore the seasons", Rect2(25, 318, 258, 36), show_season_lab, true)
-	text_label(panel, "Move: A / D or arrows · Blow: hold Space\nE: Whirlwind (unlock in the workshop)", Rect2(12, 408, 284, 32), 10, INK)
 	button(panel, "High Scores", Rect2(25, 364, 123, 34), func(): show_high_scores(), true)
 	button(panel, "License", Rect2(160, 364, 123, 34), show_license, true)
-	var audio_button := button(panel, "", Rect2(132, 445, 44, 30), show_audio_options, true)
+	var audio_button := button(panel, "", Rect2(132, 408, 44, 30), show_audio_options, true)
 	audio_button.name = "AudioSettings"
 	audio_button.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER
-	audio_button.tooltip_text = "Audio settings"
 	audio_button.expand_icon = true
 	audio_button.add_theme_constant_override("icon_max_width", 24)
 	audio_button.icon = SPEAKER_ICON
@@ -928,7 +917,7 @@ func show_high_scores(difficulty := -1, from_result := false, challenge := false
 	button(panel, "Campaign" if challenge else "Challenge", Rect2(90, 42, 144, 20), func(): show_high_scores(selected, from_result, not challenge), true).add_theme_font_size_override("font_size", 9)
 	var table: Array = store.entries(selected)
 	if table.is_empty():
-		text_label(panel, "No Challenge scores yet.\n\nFinish a run, then enter your initials\non the results screen." if challenge else "No scores yet.\n\nFinish a week, then enter your initials\non the results screen.", Rect2(10, 175, 304, 125), 13, INK)
+		text_label(panel, "No scores yet.", Rect2(10, 175, 304, 125), 13, INK)
 	for i in range(table.size()):
 		var record: Dictionary = table[i]
 		var y := 139 + i * 27
@@ -938,7 +927,7 @@ func show_high_scores(difficulty := -1, from_result := false, challenge := false
 		var stage := "Final encounter" if record.week == Loop.BOSS_STAGE else "Week %d" % int(record.week)
 		var outcome: String = record.get("outcome", "won" if record.won else "lost")
 		var progress: String = "CLEARED" if outcome == "workshop" else ("WIN" if outcome == "won" else "LOSS")
-		text_label(panel, "CHALLENGE\nAll upgrades" if challenge else progress + " · " + stage + "\nBoots %d · Fan %d · Cell %d" % [record.tiers[0], record.tiers[1], record.tiers[2]], Rect2(164, y, 152, 26), 8, INK)
+		text_label(panel, "CHALLENGE" if challenge else progress + " · " + stage + "\nBoots %d · Fan %d · Cell %d" % [record.tiers[0], record.tiers[1], record.tiers[2]], Rect2(164, y, 152, 26), 8, INK)
 	if not store.error.is_empty():
 		var notice := text_label(panel, store.error, Rect2(12,416,300,40),10, INK)
 		notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -984,7 +973,6 @@ func show_initials() -> void:
 				var initials := HighScores.clean_initials(input.text)
 				initials[column] = char(65 + posmod(initials.unicode_at(column) - 65 + direction, 26))
 				input.text = initials, true)
-	text_label(panel, "A–Z · Type or use the letter buttons", Rect2(8, 236, 288, 23), 10, INK)
 	var submit := func():
 		score_store().submit(sim, input.text)
 		show_high_scores(sim.difficulty, true, sim.challenge)
@@ -1113,8 +1101,9 @@ func show_workshop(animate := false) -> void:
 	reset.expand_icon=true
 	reset.icon=paper_icon(WORKSHOP_TOKENS,WorkshopRegions.TOKENS[1])
 	reset.add_theme_constant_override("icon_max_width",27)
-	var workshop_hint:=text_label(panel,"Two Gold Leaves each week. Choose your path." if save_notice.is_empty() else save_notice,Rect2(8,44,320,22),11 if save_notice.is_empty() else 8,INK if save_notice.is_empty() else RUST)
-	workshop_hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	if not save_notice.is_empty():
+		var notice:=text_label(panel,save_notice,Rect2(8,44,320,22),8,RUST)
+		notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	for branch in range(3):
 		var tab := button(panel, "", Rect2(10 + branch * 108,66,100,55), func():
 			selected_upgrade = Vector2i(branch, 0)
@@ -1304,7 +1293,6 @@ func show_result() -> void:
 	else:
 		result_actions.append(button(panel, "Save Slots", Rect2(160, 344, 136, 38), show_slots))
 	result_actions.append(button(panel, "Main menu", Rect2(16, 344, 136, 38), show_title, true))
-	if sim.status == "won": text_label(panel, "Challenge unlocked · find it on the main menu", Rect2(8, 387, 296, 22), 10, INK)
 	update_result_tally()
 
 
@@ -1679,7 +1667,6 @@ func battery_colour() -> Color:
 func draw_hud() -> void:
 	paper_box(SCORE_BADGE, Color(0.10, 0.20, 0.17, 0.94), 9)
 	write("%05d" % sim.score, Vector2(24, 41), 19, CREAM, true)
-	if sim.challenge: write_center("CHALLENGE", SCORE_BADGE.get_center().x, 68, 9, GOLD)
 	paper_box(FROST_BADGE, Color(0.10, 0.20, 0.17, 0.90), 9)
 	var frost_center := FROST_BADGE.get_center()
 	var pressure: float = sim.pressure()
@@ -1795,6 +1782,7 @@ func fill_audio(dt: float) -> void:
 	if mode == "victory_outro": audio_mode = "won"
 	if mode == "initials": audio_mode = sim.status if sim.status in ["lost","won"] else "results"
 	sounds.update(audio_mode, audio_week, sim.blowing, sim.charge, actor.gait_distance, actor.movement > 0.05, sim.surge_left > 0, dt, sim.low_power)
+	sounds.north_wind_pass("%s:%d:%d"%[sim.run_id,sim.week,sim.wind_cycle],sim.boss_phase() if mode=="play" else "",Loop.NorthWind.direction(maxf(0,sim.wind_time())))
 
 
 func show_audio_options() -> void:

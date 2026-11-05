@@ -169,13 +169,13 @@ Save only level boundaries/workshop edits. Foreground resume preserves a paused 
 
 ### Main menu
 
-Show the sNOw logo, a lightly animated tree scene, **Play**, **High Scores**, **How to Play**, **License**, and **Settings**. Avoid a separate mandatory account, splash interaction, or lengthy intro. The first intentional tap/click can also enable browser audio.
+Show the sNOw logo, Continue, New Game, Challenge, High Scores, Explore the seasons, License and the audio-settings icon. Menu copy stays minimal: titles, action labels, actual values and relevant confirmation/error messages. Do not add tooltips, help paragraphs, control reminders, mode explanations or promotional captions unless the user explicitly requests them. This is the user's standing preference for future menu changes too.
 
-Play opens a difficulty selector with a short description and that difficulty's best score. Remember the last choice. Start week one with three brief contextual lessons: move, hold to blow, and avoid burying the path. Let returning players skip them. Delay real pressure until the player has used the controls.
+New Game selects a slot and difficulty; confirm replacement of an occupied save. Challenge unlocks after a campaign victory. The first intentional tap/click can enable browser audio. Tutorials or other explanatory menu copy require an explicit request.
 
 ### In-game HUD
 
-Give score a compact independent bar at top left. Use a growing, pulsing paper snowflake for winter danger and a battery silhouette with green/yellow/red fill for charge, alongside pause. Show no numeric week, temperature, frost count or charge percentage during play. Clothing and weather indicate the season. Week, temperature, animated weekly leaf/points totals, a qualifying high-score alert and optional upgrades belong on the results page. Gameplay has no combo callouts; achievements remain future work. See [HUD and results](HUD_AND_RESULTS.md).
+Give score a compact independent bar at top left. Use a growing, pulsing paper snowflake for winter danger and a battery silhouette with green/yellow/red fill for charge, alongside pause. Show no numeric week, temperature, frost count or charge percentage during play. Clothing and weather indicate the season. Week, temperature, animated weekly leaf/points totals, a qualifying high-score alert and optional upgrades belong on the results page. Gameplay has no mode-name labels or combo callouts; achievements remain future work. See [HUD and results](HUD_AND_RESULTS.md).
 
 ### Aspect ratios and fair play
 
@@ -203,7 +203,7 @@ Use a soft electric blower whirr and airy gust loop, leaf rustles, a distinct ca
 
 ## First-version scope
 
-Required: one polished scene, one character with weekly outfits, 12 configured weeks plus a final encounter, three difficulties, touch and keyboard controls, leaf physics and captures, local piles and slowdown, rechargeable blower energy, between-week upgrade tree with weight tradeoffs, readable scoring, local per-difficulty high scores, menus/settings/tutorial, three named local campaign saves, a final encounter, and both ending sequences. Temporary pickups are deferred until the upgrade progression is balanced.
+Required: one polished scene, one character with weekly outfits, 12 configured weeks plus a final encounter, three difficulties, touch and keyboard controls, leaf physics and captures, local piles and slowdown, rechargeable blower energy, between-week upgrade tree with weight tradeoffs, readable scoring, local per-difficulty high scores, menus/settings, three named local campaign saves, a final encounter, and both ending sequences. Temporary pickups are deferred until the upgrade progression is balanced.
 
 Deferred: global leaderboards, accounts, cloud saves, permanent cross-run stat progression, endless mode, multiplayer, multiple biomes, elaborate narrative, monetization, and full 3D assets. A satisfying complete run matters more than breadth.
 
