@@ -38,19 +38,28 @@ with sync_playwright() as p:
         # while the software renderer catches up on physics steps.
         page.evaluate('window.wildlifeSeen={};window.wildlifeObserving=true;')
     click('Explore the seasons');mode('preview');observe()
-    page.wait_for_function('snowSnapshot.world.animals.some(a=>a.kind==="squirrel" && a.action==="climb" && a.y<390)',timeout=45000)
-    capture('squirrel-climbing')
+    page.wait_for_function('snowSnapshot.world.animals.some(a=>a.kind==="squirrel" && a.x>20 && a.x<340)',timeout=45000)
+    squirrel_plane=next(a for a in snap()['world']['animals'] if a['kind']=='squirrel')['plane']
+    if squirrel_plane=='tree':
+        page.wait_for_function('snowSnapshot.world.animals.some(a=>a.kind==="squirrel" && a.action==="climb" && a.y<390)',timeout=45000)
+        capture('squirrel-climbing')
+    else:
+        capture('squirrel-ground-running')
     page.wait_for_function('snowSnapshot.world.animals.some(a=>a.kind==="squirrel" && a.action==="nibble")',timeout=45000)
     squirrel=next(a for a in snap()['world']['animals'] if a['kind']=='squirrel')
-    assert squirrel['plane']=='tree';capture('squirrel-perched')
+    assert squirrel['plane']==squirrel_plane
+    capture('squirrel-perched' if squirrel_plane=='tree' else 'squirrel-ground-nibbling')
     page.wait_for_function('snowSnapshot.world.animals.some(a=>a.kind==="rabbit" && a.direction===-1 && a.x<345 && a.x>150)',timeout=45000)
     capture('rabbit-returning')
     page.wait_for_function('Object.keys(wildlifeSeen["rabbit:graze"]||{}).length>=3',timeout=45000)
     seen=page.evaluate('wildlifeSeen')
-    assert len(seen.get('squirrel:climb',{}))>=3 and len(seen.get('squirrel:jump',{}))>=2,seen
+    if squirrel_plane=='tree':
+        assert len(seen.get('squirrel:climb',{}))>=3 and len(seen.get('squirrel:jump',{}))>=2,seen
+    else:
+        assert len(seen.get('squirrel:run',{}))>=3,seen
     assert len(seen.get('rabbit:graze',{}))>=3,seen
-    print('PASS: squirrel climbs over bark, jumps and stays to nibble; rabbit grazes and returns facing left.',flush=True)
-    click('Back to menu');mode('title');click('Continue / New game');mode('slots');click('Night wildlife');mode('continue');click('Continue');mode('intro')
+    print(f'PASS: squirrel completes its selected {squirrel_plane} route and nibbles; rabbit grazes and returns facing left.',flush=True)
+    click('Back to menu');mode('title');click('Continue');mode('slots');click('Night wildlife');mode('continue');click('Continue');mode('intro')
     page.wait_for_timeout(800);page.keyboard.press('Space');mode('play');observe()
     page.keyboard.down('a');page.wait_for_function('snowSnapshot.x===29',timeout=20000);page.keyboard.up('a');page.wait_for_timeout(400)
     left=next(a for a in snap()['world']['animals'] if a['kind']=='owl');assert left['plane']=='tree' and left['look']<0

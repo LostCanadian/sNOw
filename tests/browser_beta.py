@@ -50,7 +50,7 @@ with sync_playwright() as p:
     capture('menu')
     page.evaluate("window.dispatchEvent(new Event('blur'))")
     page.wait_for_timeout(250);assert snap()['mode']=='title';page.evaluate("window.dispatchEvent(new Event('focus'))")
-    click(180,323);mode('slots');click(180,242);mode('results')
+    click(180,261);mode('slots');click(180,242);mode('results')
     page.wait_for_function('window.snowSnapshot.result_tallied')
     assert snap()['result_display']==['90','30',str(summary['checkpoint']['score']-summary['checkpoint']['week_start_score'])]
     page.evaluate("window.dispatchEvent(new Event('blur'))");page.wait_for_timeout(250)
@@ -85,7 +85,7 @@ with sync_playwright() as p:
         assert abs(box['width']/box['height']-9/16)<.003 and box['y']>=0 and box['y']+box['height']<=height+1
     page.set_viewport_size({'width':360,'height':640})
     page.evaluate("window.dispatchEvent(new Event('focus'))");page.keyboard.press('Escape');mode('play');menu_from_play()
-    click(180,323);mode('slots');click(180,322);mode('continue')
+    click(180,261);mode('slots');click(180,322);mode('continue')
     assert snap()['time']==0
     print('PASS: saved level offers Continue.',flush=True)
     capture('continue');click(180,314);mode('intro');page.wait_for_timeout(800);page.keyboard.press('Space');mode('play')
@@ -100,7 +100,7 @@ with sync_playwright() as p:
     page.wait_for_function('window.snowSnapshot.surge_active')
     assert snap()['week_missed']<count and snap()['audio_cues'].get('whirlwind',0)==1
     capture('ability');page.wait_for_timeout(1300);menu_from_play()
-    click(180,526);mode('audio_options');capture('audio-options')
+    click(180,558);mode('audio_options');capture('audio-options')
     click(120,279);click(220,357)
     settings=page.evaluate("JSON.parse(localStorage.getItem('snow.audio.v1'))")
     assert 0<settings['music_volume']<.6 and settings['effects_volume']>.5
@@ -108,7 +108,7 @@ with sync_playwright() as p:
     click(180,390);page.wait_for_function('!window.snowSnapshot.audio_muted');audible()
     click(180,427);mode('title')
     page.reload(wait_until='networkidle');page.wait_for_function("window.snowSnapshot?.mode==='title'",timeout=90000)
-    click(180,323);mode('slots');click(180,242);mode('continue')
+    click(180,261);mode('slots');click(180,242);mode('continue')
     assert snap()['week']==10 and snap()['tiers']==[4,3,2] and snap()['time']==0
     saved=page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1')).slots[0].checkpoint")
     assert saved['earned_points']==18 and 3 in saved['owned']

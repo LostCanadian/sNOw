@@ -35,7 +35,7 @@ with sync_playwright() as p:
     def capture(name):
         page.locator('canvas').screenshot(path=f'docs/images/prototype-{name}.png')
 
-    click(180, 323); mode('slots')
+    click(180, 261); mode('slots')
     click(180, 242); mode('results')
     page.wait_for_function('window.snowSnapshot.result_time > 0.4')
     assert not snap()['result_tallied'] and snap()['score_rows'] == [0, 0, 0]
@@ -75,7 +75,7 @@ with sync_playwright() as p:
     click(100, 477); mode('title')
     page.reload(wait_until='networkidle')
     page.wait_for_function("window.snowSnapshot?.mode === 'title'", timeout=90000)
-    click(180, 323); mode('slots')
+    click(180, 261); mode('slots')
     click(180, 242); mode('results')
     page.wait_for_function('window.snowSnapshot.result_tallied')
     assert snap()['tiers'] == [4, 3, 2] and snap()['points'] == 7

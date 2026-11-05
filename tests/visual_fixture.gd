@@ -3,6 +3,7 @@ extends SceneTree
 const Loop = preload("res://scripts/loop.gd")
 const Campaign = preload("res://scripts/campaign.gd")
 func _initialize() -> void:
+	DirAccess.make_dir_recursive_absolute("res://test-results")
 	var game = Loop.new()
 	var initial_canopy := {}
 	for slot in game.slots: initial_canopy[str(slot.leaf_id)] = [slot.position.x,slot.position.y,slot.angle,game.leaf_colour(slot.leaf_id).to_html(false)]
@@ -173,6 +174,13 @@ func _initialize() -> void:
 	var animal_studies:={"version":1,"slots":[{"name":"Night wildlife","checkpoint":Campaign.snapshot(night_wildlife)},null,null]}
 	if not Campaign.valid_document(animal_studies):push_error("Invalid wildlife study");quit(1);return
 	file=FileAccess.open("res://test-results/wildlife-fixture.json",FileAccess.WRITE);file.store_string(JSON.stringify(animal_studies));file.close()
+	var champion=Loop.new()
+	for completed in range(Loop.BOSS_STAGE):
+		champion.week_handled=champion.week_leaf_count();champion.step(1.0/60,0,false)
+		if champion.status=="workshop":champion.next_week()
+	var challenge_study:={"version":1,"slots":[{"name":"Completed campaign","checkpoint":Campaign.snapshot(champion)},{"name":"Keep this save","checkpoint":Campaign.snapshot(Loop.new())},null]}
+	if not Campaign.valid_document(challenge_study):push_error("Invalid Challenge unlock fixture");quit(1);return
+	file=FileAccess.open("res://test-results/challenge-fixture.json",FileAccess.WRITE);file.store_string(JSON.stringify(challenge_study));file.close()
 	print("Created validated late-week, boss and workshop UI fixtures.")
 	quit()
 

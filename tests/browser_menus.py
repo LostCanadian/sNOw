@@ -20,7 +20,7 @@ with sync_playwright() as p:
         return page.evaluate('window.snowSnapshot')
     assert page.title().startswith('sNOw') and 'Paper' not in page.title(), page.title()
     page.locator('canvas').screenshot(path='docs/images/prototype-menu.png')
-    click(113, 427)
+    click(113, 479)
     mode('scores')
     assert snap()['score_rows'] == [0,0,0]
     for x in [78,180,282]:
@@ -28,7 +28,7 @@ with sync_playwright() as p:
         page.wait_for_timeout(250)
     click(180,554)
     mode('title')
-    click(244,427)
+    click(244,479)
     mode('license')
     context.set_offline(True)
     for index, title in enumerate(['About','Godot (MIT)','Engine libraries','DejaVu fonts']):
@@ -55,8 +55,8 @@ with sync_playwright() as p:
     mode('title')
     print('PASS: all difficulty tabs and complete license sections work offline; focus changes retain the selected notice.',flush=True)
     # New-garden difficulty controls: real UI selection persisted in the campaign.
-    for difficulty, slot_y, x, capacity in [(0,242,62,180),(2,322,246,100),(1,402,154,140)]:
-        click(180,323)
+    for difficulty, slot_y, x, capacity in [(0,242,62,135),(2,322,246,75),(1,402,154,105)]:
+        click(180,313)
         mode('slots')
         click(180,slot_y)
         mode('name')
@@ -75,9 +75,8 @@ with sync_playwright() as p:
         mode('title')
     print('PASS: all three difficulty selections start and save distinct profiles in occupied slots.',flush=True)
     before=page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1'))")
-    click(180,323);mode('slots')
-    click(287,242);mode('name')
-    click(247,453);mode('name')
+    click(180,313);mode('slots')
+    click(180,242);mode('name')
     click(246,235)
     page.locator('canvas').screenshot(path='docs/images/prototype-fresh-start.png')
     click(180,342)
@@ -86,13 +85,13 @@ with sync_playwright() as p:
     click(180,345) # Cancel, preserving all occupied slots.
     page.wait_for_timeout(250)
     assert page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1'))")==before
-    click(247,453);click(246,235);click(180,342);click(180,396)
+    mode('slots');click(180,242);mode('name');click(246,235);click(180,342);click(180,396)
     mode('play')
     after=page.evaluate("JSON.parse(localStorage.getItem('snow.campaigns.v1'))")
     assert snap()['difficulty']==2 and snap()['week']==1 and snap()['score']==0
     assert after['slots'][0]['checkpoint']['run_id']!=before['slots'][0]['checkpoint']['run_id']
     assert after['slots'][1:]==before['slots'][1:]
-    print('PASS: Edit → Start fresh allows a different difficulty, cancellation preserves saves, and confirmation replaces only the selected slot.',flush=True)
+    print('PASS: New Game → occupied slot allows a different difficulty, cancellation preserves saves, and confirmation replaces only the selected slot.',flush=True)
     browser.close()
 assert not errors, errors
 print('No browser errors.',flush=True)

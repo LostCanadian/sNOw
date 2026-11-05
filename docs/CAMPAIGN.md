@@ -6,6 +6,18 @@ The working title is **sNOw**. The selected cut-paper style is an art direction,
 
 Play twelve main weeks, followed by the separately named North Wind final encounter. Temperature drops from 22°C to 0°C over the main weeks and reaches −2°C in the finale. Twelve outfit frames gradually add layers, a coat and scarf. Victory returns the caretaker to a happy T-shirt/shorts pose; defeat uses a sad, bundled pose. Authored turning/looking-up/celebration performances remain production work.
 
+## Main menu and Challenge
+
+**Continue** selects existing campaigns and is disabled when all slots are empty. **New Game** selects a slot and difficulty directly. Choosing an occupied slot opens naming/difficulty setup, then a replacement review showing the old save and the new week-one save. Keep my save returns to slot selection without writing; only Start fresh replaces the chosen slot. Other campaigns and high scores remain intact.
+
+Defeating the North Wind permanently unlocks **Challenge** on the main menu. Existing completed campaign saves also unlock it on load. The unlock is stored alongside the three slots and survives overwriting the winning campaign.
+
+Challenge starts with all thirty upgrade nodes, a full battery and Whirlwind. It keeps the week-eight autumn foliage and active-anchor pool with a full canopy, no completion quota and no weekly rewards. A shared 200-second calendar smoothly cycles day, dusk, night and dawn, with weather building from sun through clouds, wind, rain and storm before clearing again. Each night advances one lunar phase. During each of the two storms, the North Wind makes one brief, telegraphed pass, stripping at most 16 / 20 / 24 real leaves by difficulty. These visits do not become campaign bosses or award boss rewards. Real occupied leaves keep refilling the fall queue, so rescues can recur indefinitely. The batch interval is `1.2 × difficulty cadence / (1 + elapsed seconds / 35)`, progressively raising the arrival rate. The selected difficulty’s normal wind, fall factor and miss allowance still apply. Winter ends the run when that miss allowance is reached; pause freezes the ramp too. Scoring retains the usual rescue/combo rules.
+
+Each run is a fresh attempt with separate per-difficulty Challenge top tens and initials. Native scores use `challenge_scores.json`; web scores use `snow.challenge_scores.v1`. Campaign score data is unchanged. Challenge has no campaign checkpoint, editable workshop or saved continuation. Restart and Play again create a new run with zero score and every upgrade; exiting an unfinished attempt confirms that its score will be lost.
+
+Validation: `tests/test_challenge.gd` exercises quota-free refills, all-upgrade starts, accelerating arrivals, loss, unlock migration/persistence, overwrite cancellation/confirmation, focus pause, retry and isolated score storage. `tests/browser_challenge.py` exercises the menu and Challenge through browser input using the validated `challenge-fixture.json` from `tests/visual_fixture.gd`.
+
 ## Persistent canopy with a recovery floor
 
 A new campaign begins with **2,160 individually attached leaves** on the supplied textured ancient tree. Leaves originate at occupied twig positions, drift under gravity, and reattach only when lifted into a real vacant position. Only the level’s active empty anchors may accept a leaf; other bare positions remain unavailable until selected for the pool. The exact identities and occupancy of every position are saved.

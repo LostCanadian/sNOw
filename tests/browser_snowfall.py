@@ -24,7 +24,7 @@ with sync_playwright() as pw:
         s=snap();Path(f'test-results/{name}.json').write_text(json.dumps({k:s[k] for k in ['snow_cover','ending_phase','ending_attached','ending_air','ending_ground','outfit_index','score']},indent=2))
         shot=page.context.new_cdp_session(page).send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
         Path(f'test-results/{name}.png').write_bytes(base64.b64decode(shot['data']))
-    click('Continue / New game');mode('slots');click('Mid outfit');mode('continue');click('Continue');mode('intro')
+    click('Continue');mode('slots');click('Mid outfit');mode('continue');click('Continue');mode('intro')
     page.wait_for_timeout(900);page.keyboard.press('Space');mode('play')
     page.keyboard.down('d');page.wait_for_function('snowSnapshot.x===331',timeout=20000);page.keyboard.up('d')
     page.wait_for_function('snowSnapshot.mode==="lost" && snowSnapshot.ending_time>.75',timeout=120000)

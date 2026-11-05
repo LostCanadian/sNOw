@@ -23,9 +23,9 @@ with sync_playwright() as p:
         data=page.context.new_cdp_session(page).send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
         Path(f'test-results/{name}.png').write_bytes(base64.b64decode(data['data']))
     def start_slot(name):
-        click('Continue / New game');mode('slots');click(name);mode('continue');click('Continue');mode('intro')
+        click('Continue');mode('slots');click(name);mode('continue');click('Continue');mode('intro')
         page.wait_for_timeout(1000);page.keyboard.press('Space');mode('play')
-    click('Continue / New game');mode('slots');click('Next level study');mode('results')
+    click('Continue');mode('slots');click('Next level study');mode('results')
     page.wait_for_function('snowSnapshot.result_tallied && snowSnapshot.snow_active>0')
     assert snap()['weather']>.55
     click('Week 2');mode('intro');assert snap()['snow_active']==0

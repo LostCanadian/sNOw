@@ -54,7 +54,7 @@ with sync_playwright() as p:
     page.wait_for_function('''()=>snowAudioAnalysers.some(a=>{let v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return v.some(x=>Math.abs(x)>0.0001)})''',timeout=15000)
     click('Victory');page.wait_for_timeout(600);capture('victory')
     click('Back to menu');mode('title')
-    click('Continue / New game');mode('slots');click('Slot 1');mode('name');click('Start week 1');mode('intro')
+    click('New Game');mode('slots');click('Slot 1');mode('name');click('Start week 1');mode('intro')
     page.wait_for_timeout(700);page.keyboard.press('Space');mode('play')
     page.wait_for_timeout(500);before=snap()['world']
     page.keyboard.press('Escape');mode('paused');frozen=snap()['world'];page.wait_for_timeout(500)

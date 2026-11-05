@@ -28,7 +28,7 @@ with sync_playwright() as p:
         page.mouse.click(box['x']+x/360*box['width'],box['y']+y/640*box['height'])
     def mode(value):page.wait_for_function('value=>window.snowSnapshot.mode === value',arg=value)
     def snap():return page.evaluate('window.snowSnapshot')
-    click(180,323);mode('slots');click(180,242);mode('continue')
+    click(180,261);mode('slots');click(180,242);mode('continue')
     click(180,338);mode('intro')
     page.wait_for_function("window.snowSnapshot.mode === 'intro' && window.snowSnapshot.story_time > 0.5")
     intro_frame=time.monotonic()-started-0.12
@@ -74,7 +74,7 @@ with sync_playwright() as p:
     assert snap()['surge_charge']==ability
     print('PASS: real ground leaves conserve identity; E lifts them, restores frost headroom and starts a slow cooldown.',flush=True)
     click(180,387);page.wait_for_timeout(300);click(180,383);mode('title')
-    click(180,323);mode('slots');click(180,322);mode('continue')
+    click(180,261);mode('slots');click(180,322);mode('continue')
     click(180,338);mode('intro')
     mode('play')
     mode('outro')

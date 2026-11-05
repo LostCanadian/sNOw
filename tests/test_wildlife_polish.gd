@@ -51,12 +51,32 @@ func run() -> void:
 	for i in range(110,3000):
 		var pose:Dictionary=motion.squirrel(i/10.0,false)
 		settled=settled and pose.position==motion.squirrel_perch and pose.action in ["perch","nibble"]
-	check(settled and nibble_frames.size()>=3,"the squirrel stays on its branch and occasionally nibbles instead of restarting its climb")
+	check(settled and nibble_frames.size()>=3,"the climbing pose helper holds its branch until the visitor controller starts departure")
 	var continuity:=true;var previous:Vector2=motion.squirrel(0,false).position
 	for i in range(1,1500):
 		var p:Vector2=motion.squirrel(i/120.0,false).position
 		continuity=continuity and p.distance_to(previous)<2;previous=p
 	check(continuity,"run, climb, jump and landing positions join continuously")
+	var climbs:=0
+	for visit in range(1000):climbs+=int(motion.squirrel_climbs(visit))
+	check(climbs>=450 and climbs<=550,"about half of squirrel visits choose the tree")
+	var again=Motion.new();again.reset(0)
+	check(range(100).all(func(visit):return motion.squirrel_climbs(visit)==again.squirrel_climbs(visit)),"cosmetic route choices reproduce after resetting the same saved scene seed")
+	var ground_only:=true;var ground_smooth:=true;var directions:={};var ground_actions:={}
+	var ground_previous:Vector2=motion.squirrel_ground(0,false).position
+	for frame in range(1,3601):
+		var pose:Dictionary=motion.squirrel_ground(frame/120.0,false)
+		ground_only=ground_only and pose.plane=="ground" and pose.position.y==443 and pose.frame>=0 and pose.frame<16
+		ground_smooth=ground_smooth and pose.position.distance_to(ground_previous)<1
+		directions[pose.direction]=true;ground_actions[pose.action]=true;ground_previous=pose.position
+	check(ground_only and ground_smooth and directions.size()==2 and ground_actions.has("run") and ground_actions.has("nibble"),"ground visits roam in both directions and nibble continuously without climbing")
+	check(motion.squirrel_ground(0,false).position.x< -40 and motion.squirrel_ground(30,false).position.x< -40,"ground visits start and finish fully offscreen")
+	check(motion.squirrel_visit(18,false).plane=="tree" and motion.squirrel_visit(45+18,false).plane=="ground","successive campaign visits actually use both selected routes")
+	var visit_continuous:=true;var visit_previous:Vector2=motion.squirrel_visit(0,false).position
+	for frame in range(1,10801):
+		var pose:Dictionary=motion.squirrel_visit(frame/120.0,false)
+		visit_continuous=visit_continuous and (pose.position.distance_to(visit_previous)<2 or (pose.position.x< -40 and visit_previous.x< -40));visit_previous=pose.position
+	check(visit_continuous,"campaign arrivals, descents, ground visits and route changes join offscreen without teleporting")
 	var rabbit_out:Dictionary=motion.rabbit(9.5,0,false)[0]
 	var rabbit_back:Dictionary=motion.rabbit(15,0,false)[0]
 	check(rabbit_out.position.x>380 and rabbit_back.direction==-1 and rabbit_back.position.x<360,"a rabbit that exits right returns into view facing left")
@@ -83,7 +103,7 @@ func run() -> void:
 		assets=assets and image.get_mipmap_count()>0
 		for rect:Rect2 in Sprites.RECTS[name]:assets=assets and rect.size.x>40 and rect.size.y>40 and Rect2(Vector2.ZERO,image.get_size()).encloses(rect)
 		total+=Sprites.RECTS[name].size()
-	check(assets and total==72,"all seventy-two complete paper poses have valid bounds and smooth mipmaps")
+	check(assets and total==88,"all eighty-eight complete paper poses have valid bounds and smooth mipmaps")
 	var main=Main.instantiate();root.add_child(main);main.set_physics_process(false)
 	var resident:Node2D=main.scenery_layers[1];var meadow:Node2D=main.scenery_layers[2]
 	check(resident.plane=="tree" and resident.z_index==-2 and resident.get_index()<meadow.get_index() and main.scenery_layers[3].z_index>resident.z_index,"tree residents draw over bark, under the meadow, leaves and player")

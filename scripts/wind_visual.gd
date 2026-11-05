@@ -7,8 +7,8 @@ func _ready() -> void:
 	material=ShaderMaterial.new();material.shader=preload("res://scripts/wind_paper.gdshader")
 	texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 func _draw() -> void:
-	if game.visual_mode()!="play" or not game.sim.is_boss():return
-	var time:float=game.sim.week_time
+	if game.visual_mode()!="play" or not game.sim.has_north_wind():return
+	var time:float=game.sim.wind_time()
 	if Wind.phase(time)!="blast":return
 	var center:=Wind.center(time,game.sim.wind_lane)
 	var side:=Wind.direction(time)

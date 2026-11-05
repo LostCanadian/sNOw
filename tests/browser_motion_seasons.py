@@ -39,7 +39,7 @@ with sync_playwright() as p:
     def capture(name):
         page.locator('canvas').screenshot(path=f'test-results/{name}.png')
 
-    click(180,323);mode('slots');click(180,242);mode('name');click(180,342);mode('play')
+    click(180,313);mode('slots');click(180,242);mode('name');click(180,342);mode('play')
     page.wait_for_function('window.snowSnapshot.air_details.some(leaf=>leaf[6]<0.4)')
     geometry=json.loads(Path('test-results/canopy-fixture.json').read_text())
     observed=snap()['air_details']
@@ -64,7 +64,7 @@ with sync_playwright() as p:
     page.evaluate('(data)=>localStorage.setItem("snow.campaigns.v1",JSON.stringify(data))',fixture)
     page.reload(wait_until='networkidle')
     page.wait_for_function("window.snowSnapshot?.mode==='title'",timeout=90000)
-    click(180,323);mode('slots');click(180,242);mode('continue')
+    click(180,261);mode('slots');click(180,242);mode('continue')
     click(180,314);mode('intro');mode('play')
     page.wait_for_function("window.snowSnapshot.mode==='lost'",timeout=90000)
     loss_start=time.monotonic()-started

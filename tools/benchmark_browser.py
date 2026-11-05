@@ -24,7 +24,7 @@ with sync_playwright() as pw:
             cpu_ms=(cpu()-cpu_start)*1000/len(times)
             times.sort();return {'thread_cpu_ms':round(cpu_ms,2),'mean_ms':round(statistics.mean(times),2),'p95_ms':round(times[int(len(times)*.95)-1],2),'fps':round(1000/statistics.mean(times),1),'frames':len(times)}
         report={'url':url,'canvas':page.locator('canvas').evaluate('(c)=>({width:c.width,height:c.height,dpr:devicePixelRatio})'),'menu':measure()}
-        for x,y in [(180,324),(180,242),(180,342)]:page.mouse.click(x,y);page.wait_for_timeout(900)
+        for x,y in [(180,313),(180,242),(180,342)]:page.mouse.click(x,y);page.wait_for_timeout(900)
         page.wait_for_timeout(900);page.keyboard.press('Space');page.wait_for_timeout(1200)
         report['play']=measure();report['errors']=errors
         shot=page.context.new_cdp_session(page).send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})

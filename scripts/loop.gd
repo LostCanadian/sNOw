@@ -6,6 +6,7 @@ const NOZZLE_OFFSET := BlowerPose.REST_NOZZLE
 const Upgrades = preload("res://scripts/upgrades.gd")
 const RULES := 12
 const AttachmentAnchors=preload("res://scripts/attachment_anchors.gd")
+const ChallengeCycle = preload("res://scripts/challenge_cycle.gd")
 const NorthWind = preload("res://scripts/north_wind.gd")
 const CROWN_CEILINGS := [2160,2080,2000,1900,1800,1680,1560,1440,1320,1200,1080,960,960]
 const SURGE_DURATION := 1.15
@@ -42,6 +43,7 @@ const SEASONS := [
 ]
 const LEAF_COLOURS := [Color("e6ae3d"), Color("d96a32"), Color("b54332"), Color("b5b352")]
 
+var challenge := false
 var difficulty := 1
 var run_id := ""
 var rng := RandomNumberGenerator.new()
@@ -99,7 +101,12 @@ var owned: Array[int] = []
 var events: Array[Dictionary] = []
 
 
-func _init(seed_value: int = 641023, difficulty_value := 1) -> void:
+func _init(seed_value: int = 641023, difficulty_value := 1, challenge_value := false) -> void:
+	challenge = challenge_value
+	if challenge:
+		week = 8 # Autumn atmosphere without weekly transitions.
+		owned.assign(range(Upgrades.MAX_RANK * 3))
+		tiers = Upgrades.counts(owned)
 	difficulty = clampi(difficulty_value, 0, 2)
 	run_id = (str(Time.get_unix_time_from_system()) + ":" + str(Time.get_ticks_usec()) + ":" + str(randi())).sha256_text().substr(0, 32)
 	rng.seed = seed_value
@@ -108,6 +115,10 @@ func _init(seed_value: int = 641023, difficulty_value := 1) -> void:
 	slots = Canopy.slot_layout()
 	index_canopy()
 	prepare_shedding()
+
+
+func quota_reached() -> bool:
+	return not challenge and week_handled >= week_leaf_count()
 
 
 func stats(build: Array = []) -> Dictionary:
@@ -187,6 +198,7 @@ func shed_batch_size() -> int:
 
 
 func shedding_interval() -> float:
+	if challenge: return DIFFICULTIES[difficulty].cadence * 1.2 / (1.0 + week_time / 35.0)
 	return maxf(0.65, 1.30 - week * 0.045) * DIFFICULTIES[difficulty].cadence * lerpf(1.15, 1.0, seasonal_risk())
 
 
@@ -241,31 +253,49 @@ func temperature() -> int:
 
 
 func is_boss() -> bool:
-	return week == BOSS_STAGE
+	return not challenge and week == BOSS_STAGE
 
 
 func stage_title() -> String:
+	if challenge: return "CHALLENGE"
 	return "FINAL ENCOUNTER" if is_boss() else "WEEK %d / %d" % [week, MAIN_WEEKS]
 
 
+func wind_time(at := -1.0) -> float:
+	var time := week_time if at < 0 else at
+	if is_boss(): return time
+	if challenge:
+		var gust := ChallengeCycle.gust(time)
+		if not gust.is_empty(): return gust.time
+	return -1.0
+
+
+func has_north_wind() -> bool:
+	return wind_time() >= 0.0
+
+
 func boss_phase() -> String:
-	return NorthWind.phase(week_time) if is_boss() else ""
+	var time := wind_time()
+	return NorthWind.phase(time) if time >= 0 else ""
 
 
 func step_north_wind(previous_time: float) -> void:
-	if leaves.size() >= MAX_ACTIVE: return
+	var time := wind_time()
+	if time < 0 or leaves.size() >= MAX_ACTIVE: return
 	ensure_falling_order(64)
 	if spawned >= falling_order.size():return
-	var cycle := NorthWind.cycle(week_time)
+	var gust := ChallengeCycle.gust(week_time) if challenge else {}
+	var cycle: int = gust.id if challenge else NorthWind.cycle(time)
 	if cycle != wind_cycle:
 		wind_cycle = cycle
 		wind_released = 0
 		wind_next_packet=week_time
 		wind_lane = choose_wind_lane()
 	if boss_phase() != "blast" or week_time<wind_next_packet: return
-	var quota: int = [48,56,64][difficulty]
+	var quota: int = [16,20,24][difficulty] if challenge else [48,56,64][difficulty]
 	if wind_released >= quota: return
-	var path := NorthWind.segment(previous_time, week_time, wind_lane)
+	var before := maxf(time - (week_time - previous_time), time - NorthWind.SWEEP) if challenge else previous_time
+	var path := NorthWind.segment(before, time, wind_lane)
 	var candidates: Array[int] = []
 	for pending in range(spawned, falling_order.size()):
 		var id := falling_order[pending]
@@ -280,9 +310,9 @@ func step_north_wind(previous_time: float) -> void:
 		falling_order[pending] = falling_order[spawned]
 		falling_order[spawned] = id
 		if not spawn_leaf(): break
-		var radial:Vector2=leaves[-1].position-NorthWind.center(week_time,wind_lane)
-		leaves[-1].velocity+=NorthWind.tangent(week_time,wind_lane)*135+radial.orthogonal().normalized()*NorthWind.direction(week_time)*90
-		leaves[-1].spin+=NorthWind.direction(week_time)*0.7
+		var radial:Vector2=leaves[-1].position-NorthWind.center(time,wind_lane)
+		leaves[-1].velocity+=NorthWind.tangent(time,wind_lane)*135+radial.orthogonal().normalized()*NorthWind.direction(time)*90
+		leaves[-1].spin+=NorthWind.direction(time)*0.7
 		wind_released += 1
 	if not candidates.is_empty():wind_next_packet=week_time+0.05
 
@@ -296,7 +326,7 @@ func choose_wind_lane() -> float:
 	var order:Array[int]=falling_order if not falling_order.is_empty() else shedding_order
 	var counts:=PackedInt32Array();counts.resize(LANES);counts.fill(0)
 	var path:=PackedVector2Array()
-	for sample in range(25):path.append(NorthWind.point(sample/24.0,0,NorthWind.direction(week_time)))
+	for sample in range(25):path.append(NorthWind.point(sample/24.0,0,NorthWind.direction(maxf(0,wind_time()))))
 	for pending in range(spawned,order.size()):
 		var index:=find_attached_leaf(order[pending])
 		if index<0:continue
@@ -426,7 +456,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		blowing = false
 		low_power=false
 		return
-	if week_handled>=week_leaf_count():
+	if quota_reached():
 		complete_level();return
 	advance_attachments(dt)
 	var s := stats()
@@ -469,7 +499,8 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		for i in range(3 if is_boss() else shed_batch_size()):
 			if not spawn_leaf():break
 		spawn_timer+=shedding_interval()*(2.4 if is_boss() else 1.0)
-	if is_boss():step_north_wind(previous_time)
+	if is_boss() or challenge:step_north_wind(previous_time)
+	var gust_time := wind_time()
 	var origin := nozzle()
 	var airflow := air_axis()
 	var lateral := airflow.orthogonal()
@@ -491,7 +522,7 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 		v.x += (wind + flutter_x - v.x) * 1.8 * dt
 		var drag_coefficient: float = leaf.get("drag", 0.65) * (0.75 + 0.25 * cos(flutter * 2))
 		v.y += (GRAVITY * float(DIFFICULTIES[difficulty].fall) - v.y * drag_coefficient + sin(flutter * 2) * 8.0) * dt
-		if is_boss(): v += NorthWind.force(p,week_time,wind_lane)*dt
+		if gust_time >= 0: v += NorthWind.force(p,gust_time,wind_lane)*dt
 		var rise_limit:float=158.0*float(leaf.get("lift_response",1.0))
 		if in_gust:
 			if not low_power:leaf.lifted=true
@@ -547,14 +578,14 @@ func step(dt: float, move_axis: float, wants_blow: bool, wants_surge := false) -
 			# Missing a real gap never scores. Let the leaf fall back into reach.
 			leaf.position.y = 75.0
 			leaf.velocity.y = maxf(8.0, -leaf.velocity.y * 0.25)
-		if status == "lost" or week_handled>=week_leaf_count():
+		if status == "lost" or quota_reached():
 			break
 	leaves = leaves.filter(func(leaf: Dictionary) -> bool: return leaf.state == "air")
-	if status == "playing" and week_handled>=week_leaf_count():complete_level()
+	if status == "playing" and quota_reached():complete_level()
 
 
 func complete_level() -> void:
-	if status!="playing":return
+	if status!="playing" or challenge:return
 	score += 50 + 5 * (capacity() - week_missed)
 	leaves=leaves.filter(func(leaf):return leaf.state=="air")
 	canopy_revision+=1
@@ -718,7 +749,7 @@ func resolve_leaf(leaf: Dictionary, saved: bool, slot_index: int = -1) -> void:
 
 
 func can_upgrade() -> bool:
-	return status=="workshop" or (status=="playing" and week_time==0)
+	return not challenge and (status=="workshop" or (status=="playing" and week_time==0))
 
 
 func buy(branch: int, node := -1) -> bool:

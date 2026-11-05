@@ -20,7 +20,7 @@ with sync_playwright() as p:
   x,y,w,h=button['rect'];canvas=page.locator('canvas').bounding_box()
   page.mouse.click(canvas['x']+(x+w/2)/360*canvas['width'],canvas['y']+(y+h/2)/640*canvas['height'])
  def capture(name):page.locator('canvas').screenshot(path=f'test-results/{name}.png')
- click('Continue / New game');mode('slots');click('Full canopy ending\nWeek 12 · Gale');mode('continue')
+ click('Continue');mode('slots');click('Full canopy ending\nWeek 12 · Gale');mode('continue')
  click('Upgrades');mode('workshop');page.wait_for_timeout(600);capture('paper-workshop-boots')
  for branch in [1,2,0]:
   click(name=f'Equipment{branch}')
@@ -37,7 +37,7 @@ with sync_playwright() as p:
  click('Cancel');mode('play')
  assert snap()['owned']==before
  page.keyboard.press('Escape');mode('paused');click('Exit to menu');click('Exit');mode('title')
- click('Continue / New game');mode('slots');click('Slot 2 · New save');mode('name');click('Start week 1');mode('intro')
+ click('New Game');mode('slots');click('Slot 2 · Empty');mode('name');click('Start week 1');mode('intro')
  page.wait_for_timeout(800);page.keyboard.press('Space');mode('play')
  page.keyboard.down('Space');page.wait_for_function('window.snowSnapshot.low_power',timeout=60000)
  assert snap()['blowing']

@@ -8,6 +8,7 @@ const WEB_KEY := "snow.campaigns.v1"
 var path: String
 var browser_storage := false
 var slots: Array = [null, null, null]
+var challenge_unlocked := false
 var error := ""
 
 
@@ -33,6 +34,7 @@ func load_slots() -> void:
 			else:
 				error = "One save slot could not be read; other saves are available."
 		if valid_document(data):
+			challenge_unlocked = data.get("challenge_unlocked", false) or slots.any(func(slot): return slot != null and slot.checkpoint.phase == "won")
 			if candidate != path: error = "Recovered the last good local checkpoint."
 			return
 
@@ -53,6 +55,7 @@ func read_raw(backup: bool) -> String:
 
 static func valid_document(data) -> bool:
 	if not data is Dictionary or not whole(data.get("version"), VERSION, VERSION) or not data.get("slots") is Array or data.slots.size() != 3: return false
+	if not data.get("challenge_unlocked", false) is bool: return false
 	for record in data.slots:
 		if record != null and (not record is Dictionary or not record.get("name") is String or not valid_checkpoint(record.get("checkpoint"))): return false
 	return true
@@ -70,7 +73,7 @@ static func read_document(text: String):
 
 
 static func snapshot(game) -> Dictionary:
-	if game.status == "playing" and game.week_time > 0.0: return {}
+	if game.challenge or (game.status == "playing" and game.week_time > 0.0): return {}
 	var ids: Array = game.checkpoint_leaf_ids()
 	return {"rules": Loop.RULES, "seasonal_fallen": game.seasonal_fallen, "regrown": game.regrown, "week_regrown": game.week_regrown, "difficulty": game.difficulty, "run_id": game.run_id, "week": game.week, "phase": game.status, "score": game.score,
 		"week_start_score": game.week_start_score,
@@ -220,6 +223,7 @@ func store(index: int, name: String, checkpoint: Dictionary) -> bool:
 		error = "This checkpoint could not be saved. Your previous save is unchanged."
 		return false
 	slots[index] = {"name": clean_name(name, index), "checkpoint": checkpoint.duplicate(true)}
+	if checkpoint.phase == "won": challenge_unlocked = true
 	return flush()
 
 
@@ -229,12 +233,18 @@ func rename_slot(index: int, name: String) -> bool:
 	return flush()
 
 
+func unlock_challenge() -> bool:
+	if challenge_unlocked: return true
+	challenge_unlocked = true
+	return flush()
+
+
 func flush() -> bool:
 	if browser_storage:
 		# WebStorage setItem is an atomic, synchronous value replacement. Keep a
 		# validated previous value separately; never depend on virtual-FS flush timing.
 		var previous := read_raw(false)
-		var payload := JSON.stringify({"version": VERSION, "slots": slots})
+		var payload := JSON.stringify({"version": VERSION, "slots": slots, "challenge_unlocked": challenge_unlocked})
 		var js := "(() => { try { "
 		if valid_document(read_document(previous)):
 			js += "localStorage.setItem(%s,%s);" % [JSON.stringify(WEB_KEY + ".backup"), JSON.stringify(previous)]
@@ -250,7 +260,7 @@ func flush() -> bool:
 	if file == null:
 		error = "Local saving is unavailable. Keep this session open to retain progress."
 		return false
-	file.store_string(JSON.stringify({"version": VERSION, "slots": slots}))
+	file.store_string(JSON.stringify({"version": VERSION, "slots": slots, "challenge_unlocked": challenge_unlocked}))
 	file.flush()
 	var write_error := file.get_error()
 	file.close()

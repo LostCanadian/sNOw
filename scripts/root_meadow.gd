@@ -17,9 +17,7 @@ func _draw() -> void:
 	var spring:=0.0
 	if world!=null:
 		autumn=clampf((world.profile.week-2)/10.0,0,1)
-		if world.profile.time=="night":tint=Color(0.46,0.57,0.73)
-		elif world.profile.time=="dusk":tint=Color(0.86,0.70,0.67)
-		elif world.profile.weather in ["rain","storm"]:tint=Color(0.67,0.77,0.78)
+		tint=world.light("meadow")
 		if world.winter:tint=tint.lerp(Color(0.65,0.75,0.82),0.4)
 		if world.victory:
 			spring=world.spring

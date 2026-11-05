@@ -27,7 +27,7 @@ with sync_playwright() as p:
     capture('menu-speaker-centered')
     def skip_intro():
         mode('intro');page.wait_for_timeout(1000);page.keyboard.press('Space');mode('play')
-    click('Continue / New game');mode('slots');click('Victory study');mode('continue');click('Continue');skip_intro()
+    click('Continue');mode('slots');click('Victory study');mode('continue');click('Continue');skip_intro()
     page.keyboard.down('Space');page.wait_for_function('snowSnapshot.mode==="won" && !snowSnapshot.result_visible',timeout=30000);page.keyboard.up('Space')
     capture('spring-growing-crown')
     page.wait_for_function('snowSnapshot.flower_progress===1 && snowSnapshot.ending_time<6',timeout=30000)
@@ -39,7 +39,7 @@ with sync_playwright() as p:
     assert not snap()['result_visible'];capture('finale-watching-ending');click('Continue')
     page.wait_for_function('snowSnapshot.result_visible');page.wait_for_function('snowSnapshot.result_tallied');capture('finale-clean-results')
     print('PASS: flowers finish and hold before a separate victory card, pause freezes it, and Results follow.',flush=True)
-    click('Main menu');mode('title');click('Continue / New game');mode('slots');click('North Wind study');mode('continue');click('Continue');skip_intro()
+    click('Main menu');mode('title');click('Continue');mode('slots');click('North Wind study');mode('continue');click('Continue');skip_intro()
     opening=snap()
     assert len(opening['active_anchors'])==opening['anchor_limit']==16,opening
     assert opening['attached']+opening['air']+opening['missed']-opening['regrown']==960 and opening['seasonal_fallen']==1200,opening
@@ -51,7 +51,7 @@ with sync_playwright() as p:
     assert snap()['air']>0 and snap()['attached']<960 and snap()['glints']<=5
     page.keyboard.press('Escape');mode('paused');frozen=snap()['time'];page.wait_for_timeout(350);assert snap()['time']==frozen
     click('Exit to menu');click('Exit');mode('title')
-    click('Continue / New game');mode('slots');click('Slot 3');mode('name');click('Start week 1');skip_intro()
+    click('New Game');mode('slots');click('Slot 3');mode('name');click('Start week 1');skip_intro()
     capture('filled-middle-right-crown')
     assert snap()['seasonal_fallen']==0 and snap()['attached']>2100 and snap()['week']==1
     page.wait_for_function('snowSnapshot.air>0');capture('brighter-attachment-twinkles')

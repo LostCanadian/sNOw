@@ -8,11 +8,13 @@ const LIMIT := 10
 var tables: Array = [[], [], []]
 var path: String
 var browser_storage := false
+var web_key := WEB_KEY
 var error := ""
 
-func _init(file_path := "user://highscores.json") -> void:
+func _init(file_path := "user://highscores.json", storage_key := WEB_KEY) -> void:
 	path = file_path
-	browser_storage = OS.has_feature("web") and file_path == "user://highscores.json"
+	web_key = storage_key
+	browser_storage = OS.has_feature("web") and file_path in ["user://highscores.json", "user://challenge_scores.json"]
 	for backup in [false, true]:
 		var raw := read_raw(backup)
 		if raw.is_empty(): continue
@@ -131,7 +133,7 @@ func read_raw(backup: bool) -> String:
 		var source := path + (".bak" if backup else "")
 		if FileAccess.file_exists(source): return FileAccess.get_file_as_string(source)
 		return StoragePaths.legacy_raw("highscores.json", backup) if path == "user://highscores.json" else ""
-	var js := "(() => {try {return JSON.stringify({ok:true,data:localStorage.getItem(%s)});}catch(_){return JSON.stringify({ok:false});}})()" % JSON.stringify(WEB_KEY + (".backup" if backup else ""))
+	var js := "(() => {try {return JSON.stringify({ok:true,data:localStorage.getItem(%s)});}catch(_){return JSON.stringify({ok:false});}})()" % JSON.stringify(web_key + (".backup" if backup else ""))
 	var envelope = Campaign.read_document(str(JavaScriptBridge.eval(js, true)))
 	if not envelope is Dictionary or not envelope.get("ok", false):
 		error = "Browser storage is unavailable. Scores last only in this session."
@@ -145,8 +147,8 @@ func flush() -> bool:
 		var js := "(() => {try {"
 		if not previous.is_empty():
 			var suffix := ".backup" if valid_document(Campaign.read_document(previous)) else ".unreadable"
-			js += "localStorage.setItem(%s,%s);" % [JSON.stringify(WEB_KEY + suffix), JSON.stringify(previous)]
-		js += "localStorage.setItem(%s,%s);return true;}catch(_){return false;}})()" % [JSON.stringify(WEB_KEY), JSON.stringify(payload)]
+			js += "localStorage.setItem(%s,%s);" % [JSON.stringify(web_key + suffix), JSON.stringify(previous)]
+		js += "localStorage.setItem(%s,%s);return true;}catch(_){return false;}})()" % [JSON.stringify(web_key), JSON.stringify(payload)]
 		if not bool(JavaScriptBridge.eval(js, true)):
 			error = "Scores could not be saved. They last only in this session."
 			return false

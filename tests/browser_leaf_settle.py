@@ -26,7 +26,7 @@ with sync_playwright() as p:
         x,y,w,h=button['rect'];canvas=page.locator('canvas').bounding_box()
         page.mouse.click(canvas['x']+(x+w/2)/360*canvas['width'],canvas['y']+(y+h/2)/640*canvas['height'])
     def capture(name):page.locator('canvas').screenshot(path=f'test-results/{name}.png')
-    click('Continue / New game');mode('slots');click('Attachment study\nWeek 2 · Blustery');mode('continue')
+    click('Continue');mode('slots');click('Attachment study\nWeek 2 · Blustery');mode('continue')
     click('Continue');mode('intro');mode('play')
     page.evaluate('''window.settleSamples=[];window.lastSettleAge=-1;
       function observeSettle(){for(const record of window.snowSnapshot?.attachments??[]){

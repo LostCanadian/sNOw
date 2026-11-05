@@ -76,6 +76,45 @@ func squirrel(clock:float,soft:bool) -> Dictionary:
 		var nibble:=fmod(t-10.9+seed_value%4,9)
 		if nibble>4:frame=13+int(nibble*5)%3;action="nibble"
 	return {"kind":"squirrel","sheet":"squirrel","frame":frame,"position":position,"height":20.0,"direction":1,"alpha":1.0,"plane":"tree","action":action}
+func squirrel_climbs(visit: int) -> bool:
+	# A cosmetic coin toss stays stable across redraws, retries and pause.
+	return (str(seed_value)+":squirrel:"+str(visit)).sha256_text().substr(0,8).hex_to_int()%2==0
+
+func squirrel_ground(clock: float, soft: bool) -> Dictionary:
+	var t:=6.0 if soft else maxf(0,clock)
+	var x:=-65.0;var direction:=1;var running:=true
+	if t<4:x=lerpf(-65,90,t/4)
+	elif t<7:x=90;running=false
+	elif t<12:x=lerpf(90,280,(t-7)/5)
+	elif t<15:x=280;running=false
+	elif t<20:x=lerpf(280,90,(t-15)/5);direction=-1
+	elif t<23:x=90;direction=-1;running=false
+	elif t<27:x=lerpf(90,-65,(t-23)/4);direction=-1
+	else:direction=-1;running=false
+	var frame:=int(t*9)%4 if running else (12 if soft else 13+int(t*5)%3)
+	return {"kind":"squirrel","sheet":"squirrel","frame":frame,"position":Vector2(x,443),
+		"height":20.0,"direction":direction,"alpha":1.0,"plane":"ground","action":"run" if running else "nibble"}
+
+func squirrel_arrival(t: float) -> Dictionary:
+	var pose:=squirrel(t,false)
+	if t<3:pose.position.x=lerpf(-65,tree_point(CLIMB_BARK[0]).x,t/3)
+	return pose
+
+func squirrel_depart(t: float, clock: float) -> Dictionary:
+	var pose:=squirrel_arrival(t)
+	if t<10:
+		pose.sheet="travel"
+		pose.frame=8+int(clock*9)%4 if t>=3 else 12+int(clock*9)%4
+		pose.action="descend" if t>=3 else "leave"
+	else:pose.action="jump_back";pose.direction=-1
+	return pose
+
+func squirrel_visit(clock: float, soft: bool) -> Dictionary:
+	var visit:=0 if soft else floori(clock/45.0)
+	var t:=18.0 if soft else fposmod(clock,45.0)
+	if not squirrel_climbs(visit):return squirrel_ground(t,soft)
+	return squirrel_arrival(t) if t<=30.9 else squirrel_depart(maxf(0,41.8-t),clock)
+
 func rabbit(clock:float,coat:float,soft:bool) -> Array[Dictionary]:
 	var t:=fmod((0.0 if soft else clock)+seed_value%4,40)
 	var x:=255.0;var direction:=1;var running:=false
